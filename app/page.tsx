@@ -768,25 +768,40 @@ export default function HomePage() {
             </div>
 
             <div className="endingGrid">
-              {demoProducts.map((product) => (
-                <article className="endingCard" key={product.id}>
+              {activeCards.slice(0, 4).map((auction) => (
+                <article className="endingCard" key={auction.id}>
                   <div className="productImage">
-                    <span className="countdownBadge">{product.time}</span>
-                    <button type="button">♡</button>
-                    <img src={product.image} alt={product.title} />
+                    <span className="countdownBadge">
+                      {remainingTime(auction.ends_at)}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setMessage("Favoriler yakında gerçek veriye bağlanacak.")
+                      }
+                    >
+                      ♡
+                    </button>
+                    {auction.image_url ? (
+                      <img src={auction.image_url} alt={auction.title} />
+                    ) : (
+                      <div className="imageFallback">🔨</div>
+                    )}
                   </div>
-                  <h3>{product.title}</h3>
+                  <h3>{auction.title}</h3>
                   <div className="priceLine">
                     <div>
                       <span>Son teklif</span>
-                      <strong>{money(product.price)}</strong>
+                      <strong>{money(Number(auction.current_price))}</strong>
                     </div>
-                    <small>{product.bids} teklif</small>
+                    <small>
+                      Min. artış {money(Number(auction.min_increment))}
+                    </small>
                   </div>
                   <button
                     className="kapisButton"
                     type="button"
-                    onClick={() => setMessage("Gerçek teklif sistemi bir sonraki adımda bağlanacak.")}
+                    onClick={() => void openAuctionDetail(auction)}
                   >
                     KAPIŞ!
                   </button>
