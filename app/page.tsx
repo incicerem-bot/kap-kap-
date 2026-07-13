@@ -9,6 +9,19 @@ import {
 
 type AuthMode = "login" | "register";
 
+type Auction = {
+  id: string;
+  seller_id: string;
+  title: string;
+  description: string;
+  start_price: number;
+  current_price: number;
+  min_increment: number;
+  ends_at: string;
+  status: "active" | "ended" | "cancelled";
+  created_at: string;
+};
+
 export default function HomePage() {
   const [mode, setMode] = useState<AuthMode>("login");
   const [user, setUser] = useState<User | null>(null);
@@ -18,6 +31,34 @@ export default function HomePage() {
   const [message, setMessage] = useState("Oturum kontrol ediliyor...");
   const [loading, setLoading] = useState(false);
   const [profileName, setProfileName] = useState("");
+  const [auctions, setAuctions] = useState<Auction[]>([]);
+  const [auctionTitle, setAuctionTitle] = useState("");
+  const [auctionDescription, setAuctionDescription] = useState("");
+  const [startPrice, setStartPrice] = useState("1000");
+  const [minIncrement, setMinIncrement] = useState("100");
+  const [durationHours, setDurationHours] = useState("24");
+
+  async function loadAuctions() {
+    const supabase = getSupabaseBrowserClient();
+
+    if (!supabase) return;
+
+    const { data, error } = await supabase
+      .from("auctions")
+      .select(
+        "id, seller_id, title, description, start_price, current_price, min_increment, ends_at, status, created_at"
+      )
+      .eq("status", "active")
+      .order("created_at", { ascending: false })
+      .limit(20);
+
+    if (error) {
+      setMessage(`İlanlar yüklenemedi: ${error.message}`);
+      return;
+    }
+
+    setAuctions((data ?? []) as Auction[]);
+  }
 
   useEffect(() => {
     const supabase = getSupabaseBrowserClient();
@@ -58,6 +99,8 @@ export default function HomePage() {
           : "Hesabına giriş yap veya yeni hesap oluştur."
       );
     });
+
+    void loadAuctions();
 
     const {
       data: { subscription },
@@ -231,6 +274,73 @@ export default function HomePage() {
     setMessage("Profil bilgilerin veritabanına kaydedildi.");
   }
 
+  async function handleCreateAuction(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const supabase = getSupabaseBrowserClient();
+
+    if (!supabase || !user) {
+      setMessage("İlan vermek için giriş yapmalısın.");
+      return;
+    }
+
+    const cleanTitle = auctionTitle.trim();
+    const cleanDescription = auctionDescription.trim();
+    const parsedStartPrice = Number(startPrice);
+    const parsedMinIncrement = Number(minIncrement);
+    const parsedDurationHours = Number(durationHours);
+
+    if (cleanTitle.length < 5) {
+      setMessage("İlan başlığı en az 5 karakter olmalı.");
+      return;
+    }
+
+    if (
+      !Number.isFinite(parsedStartPrice) ||
+      parsedStartPrice <= 0 ||
+      !Number.isFinite(parsedMinIncrement) ||
+      parsedMinIncrement <= 0 ||
+      !Number.isFinite(parsedDurationHours) ||
+      parsedDurationHours <= 0
+    ) {
+      setMessage("Fiyat, teklif artışı ve süre geçerli olmalı.");
+      return;
+    }
+
+    setLoading(true);
+    setMessage("İlan Supabase'e kaydediliyor...");
+
+    const endsAt = new Date(
+      Date.now() + parsedDurationHours * 60 * 60 * 1000
+    ).toISOString();
+
+    const { error } = await supabase.from("auctions").insert({
+      seller_id: user.id,
+      title: cleanTitle,
+      description: cleanDescription,
+      start_price: parsedStartPrice,
+      current_price: parsedStartPrice,
+      min_increment: parsedMinIncrement,
+      ends_at: endsAt,
+      status: "active",
+    });
+
+    setLoading(false);
+
+    if (error) {
+      setMessage(`İlan oluşturma hatası: ${error.message}`);
+      return;
+    }
+
+    setAuctionTitle("");
+    setAuctionDescription("");
+    setStartPrice("1000");
+    setMinIncrement("100");
+    setDurationHours("24");
+    setMessage("İlanın yayınlandı.");
+    await loadAuctions();
+  }
+
   async function handleSignOut() {
     const supabase = getSupabaseBrowserClient();
 
@@ -291,6 +401,78 @@ export default function HomePage() {
             >
               {loading ? "Kaydediliyor..." : "Profili kaydet"}
             </button>
+
+            <div className="divider" />
+
+            <h2>İlk açık artırmanı oluştur</h2>
+            <form onSubmit={handleCreateAuction}>
+              <label>
+                İlan başlığı
+                <input
+                  value={auctionTitle}
+                  onChange={(event) => setAuctionTitle(event.target.value)}
+                  placeholder="Örnek: iPhone 15 Pro 256 GB"
+                  maxLength={100}
+                  required
+                />
+              </label>
+
+              <label>
+                Açıklama
+                <textarea
+                  value={auctionDescription}
+                  onChange={(event) => setAuctionDescription(event.target.value)}
+                  placeholder="Ürünün durumunu ve özelliklerini yaz"
+                  rows={4}
+                  maxLength={1000}
+                />
+              </label>
+
+              <div className="formGrid">
+                <label>
+                  Başlangıç fiyatı
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={startPrice}
+                    onChange={(event) => setStartPrice(event.target.value)}
+                    required
+                  />
+                </label>
+
+                <label>
+                  Minimum artış
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={minIncrement}
+                    onChange={(event) => setMinIncrement(event.target.value)}
+                    required
+                  />
+                </label>
+              </div>
+
+              <label>
+                Açık artırma süresi
+                <select
+                  value={durationHours}
+                  onChange={(event) => setDurationHours(event.target.value)}
+                >
+                  <option value="1">1 saat</option>
+                  <option value="6">6 saat</option>
+                  <option value="12">12 saat</option>
+                  <option value="24">24 saat</option>
+                  <option value="72">3 gün</option>
+                  <option value="168">7 gün</option>
+                </select>
+              </label>
+
+              <button className="primaryButton" type="submit" disabled={loading}>
+                {loading ? "Yayınlanıyor..." : "Açık artırmayı yayınla"}
+              </button>
+            </form>
 
             <p className="message">{message}</p>
 
@@ -393,6 +575,48 @@ export default function HomePage() {
         )}
       </section>
 
+      <section className="card auctionListCard">
+        <div className="sectionHeading">
+          <div>
+            <span className="status success">● GERÇEK VERİ</span>
+            <h2>Canlı açık artırmalar</h2>
+          </div>
+          <button className="refreshButton" type="button" onClick={loadAuctions}>
+            Yenile
+          </button>
+        </div>
+
+        {auctions.length === 0 ? (
+          <p className="muted">
+            Henüz aktif ilan yok. Giriş yapıp ilk açık artırmayı sen başlat.
+          </p>
+        ) : (
+          <div className="auctionList">
+            {auctions.map((auction) => (
+              <article className="auctionItem" key={auction.id}>
+                <div>
+                  <h3>{auction.title}</h3>
+                  <p>{auction.description || "Açıklama eklenmemiş."}</p>
+                </div>
+                <div className="auctionMeta">
+                  <span>Güncel fiyat</span>
+                  <strong>
+                    {Number(auction.current_price).toLocaleString("tr-TR")} TL
+                  </strong>
+                  <small>
+                    Bitiş:{" "}
+                    {new Date(auction.ends_at).toLocaleString("tr-TR", {
+                      dateStyle: "short",
+                      timeStyle: "short",
+                    })}
+                  </small>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
+
       <style jsx>{`
         :global(*) {
           box-sizing: border-box;
@@ -420,7 +644,7 @@ export default function HomePage() {
           display: flex;
           align-items: center;
           gap: 16px;
-          width: min(100%, 440px);
+          width: min(100%, 720px);
         }
 
         .logo {
@@ -453,7 +677,7 @@ export default function HomePage() {
         }
 
         .card {
-          width: min(100%, 440px);
+          width: min(100%, 720px);
           padding: 28px;
           border: 1px solid #252a34;
           border-radius: 24px;
@@ -499,7 +723,9 @@ export default function HomePage() {
           font-weight: 700;
         }
 
-        input {
+        input,
+        textarea,
+        select {
           width: 100%;
           border: 1px solid #303642;
           border-radius: 12px;
@@ -510,7 +736,14 @@ export default function HomePage() {
           outline: none;
         }
 
-        input:focus {
+        textarea {
+          resize: vertical;
+          min-height: 110px;
+        }
+
+        input:focus,
+        textarea:focus,
+        select:focus {
           border-color: #ffb703;
           box-shadow: 0 0 0 3px rgba(255, 183, 3, 0.12);
         }
@@ -592,6 +825,93 @@ export default function HomePage() {
 
         .accountBox strong {
           overflow-wrap: anywhere;
+        }
+
+        .divider {
+          height: 1px;
+          margin: 28px 0;
+          background: #252a34;
+        }
+
+        .formGrid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 12px;
+        }
+
+        .auctionListCard {
+          margin-bottom: 40px;
+        }
+
+        .sectionHeading {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 16px;
+        }
+
+        .refreshButton {
+          border: 1px solid #374151;
+          border-radius: 10px;
+          padding: 10px 12px;
+          background: transparent;
+          color: white;
+          cursor: pointer;
+          font-weight: 700;
+        }
+
+        .auctionList {
+          display: grid;
+          gap: 12px;
+        }
+
+        .auctionItem {
+          display: grid;
+          grid-template-columns: 1fr auto;
+          gap: 18px;
+          padding: 18px;
+          border: 1px solid #2c323d;
+          border-radius: 16px;
+          background: #0b0d12;
+        }
+
+        .auctionItem h3 {
+          margin: 0 0 8px;
+        }
+
+        .auctionItem p {
+          margin-bottom: 0;
+          color: #9ca6b5;
+          line-height: 1.45;
+        }
+
+        .auctionMeta {
+          display: grid;
+          align-content: center;
+          justify-items: end;
+          min-width: 150px;
+        }
+
+        .auctionMeta span,
+        .auctionMeta small {
+          color: #8d97a8;
+        }
+
+        .auctionMeta strong {
+          margin: 4px 0 8px;
+          color: #ffcb47;
+          font-size: 20px;
+        }
+
+        @media (max-width: 620px) {
+          .formGrid,
+          .auctionItem {
+            grid-template-columns: 1fr;
+          }
+
+          .auctionMeta {
+            justify-items: start;
+          }
         }
       `}</style>
     </main>
