@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import {
   getSupabaseBrowserClient,
@@ -19,9 +19,78 @@ type Auction = {
   min_increment: number;
   ends_at: string;
   status: "active" | "ended" | "cancelled";
+  image_url?: string | null;
   created_at: string;
-  image_url: string | null;
 };
+
+type SelectedAuction = Auction | null;
+
+const demoProducts = [
+  {
+    id: "demo-macbook",
+    title: 'MacBook Pro M4 14"',
+    price: 47250,
+    time: "01:42:11",
+    bids: 18,
+    image:
+      "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&w=900&q=80",
+  },
+  {
+    id: "demo-iphone",
+    title: "iPhone 15 Pro 256GB",
+    price: 32750,
+    time: "00:58:32",
+    bids: 23,
+    image:
+      "https://images.unsplash.com/photo-1695048133142-1a20484d2569?auto=format&fit=crop&w=900&q=80",
+  },
+  {
+    id: "demo-watch",
+    title: "Rolex Datejust 41",
+    price: 91500,
+    time: "02:21:45",
+    bids: 31,
+    image:
+      "https://images.unsplash.com/photo-1524805444758-089113d48a6d?auto=format&fit=crop&w=900&q=80",
+  },
+  {
+    id: "demo-ps5",
+    title: "PlayStation 5 Digital",
+    price: 18750,
+    time: "00:35:18",
+    bids: 15,
+    image:
+      "https://images.unsplash.com/photo-1607853202273-797f1c22a38e?auto=format&fit=crop&w=900&q=80",
+  },
+];
+
+const activity = [
+  { name: "Ayşe", text: "MacBook Pro’ya", value: "47.500 ₺", time: "2 saniye önce" },
+  { name: "Mehmet", text: "Rolex Datejust saatini kazandı", value: "", time: "45 saniye önce" },
+  { name: "Emre", text: "iPhone 15 Pro’ya", value: "32.750 ₺", time: "1 dakika önce" },
+  { name: "Zeynep", text: "PS5 Digital Edition kazandı", value: "", time: "2 dakika önce" },
+  { name: "Burak", text: "Dyson Airwrap’a", value: "8.250 ₺", time: "2 dakika önce" },
+];
+
+const mostViewed = [
+  { name: "MacBook Pro M4", views: "1.249 izlenme", icon: "💻" },
+  { name: "iPhone 15 Pro", views: "987 izlenme", icon: "📱" },
+  { name: "Rolex Datejust 41", views: "776 izlenme", icon: "⌚" },
+  { name: "PS5 Digital Edition", views: "654 izlenme", icon: "🎮" },
+  { name: "Dyson Airwrap", views: "512 izlenme", icon: "💨" },
+];
+
+const startingSoon = [
+  { name: "Tesla Model 3", price: "56.000 ₺", time: "02:15:33", icon: "🚗" },
+  { name: 'iPad Pro 12.9" M2', price: "18.000 ₺", time: "03:45:21", icon: "📱" },
+  { name: "Louis Vuitton Çanta", price: "12.000 ₺", time: "05:20:11", icon: "👜" },
+];
+
+const premiumSellers = [
+  { name: "TeknoMarket", score: "4.98", sales: "2.345 satış", icon: "TM" },
+  { name: "Saat Dünyası", score: "4.97", sales: "1.051 satış", icon: "SD" },
+  { name: "GamerZone", score: "4.96", sales: "892 satış", icon: "GZ" },
+];
 
 function money(value: number) {
   return new Intl.NumberFormat("tr-TR", {
@@ -38,12 +107,16 @@ function remainingTime(endsAt: string) {
 
   const hours = Math.floor(diff / 3_600_000);
   const minutes = Math.floor((diff % 3_600_000) / 60_000);
+  const seconds = Math.floor((diff % 60_000) / 1000);
 
   if (hours >= 24) {
-    return `${Math.floor(hours / 24)} gün ${hours % 24} saat`;
+    return `${Math.floor(hours / 24)}g ${hours % 24}s`;
   }
 
-  return `${hours} sa ${minutes} dk`;
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(
+    2,
+    "0"
+  )}:${String(seconds).padStart(2, "0")}`;
 }
 
 export default function HomePage() {
@@ -62,12 +135,12 @@ export default function HomePage() {
   const [startPrice, setStartPrice] = useState("1000");
   const [minIncrement, setMinIncrement] = useState("100");
   const [durationHours, setDurationHours] = useState("24");
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState("");
+  const [auctionImage, setAuctionImage] = useState<File | null>(null);
+  const [auctionImagePreview, setAuctionImagePreview] = useState("");
 
   const [showAuth, setShowAuth] = useState(false);
   const [showSell, setShowSell] = useState(false);
-  const [selectedAuction, setSelectedAuction] = useState<Auction | null>(null);
+  const [selectedAuction, setSelectedAuction] = useState<SelectedAuction>(null);
   const [query, setQuery] = useState("");
 
   async function loadAuctions() {
@@ -77,7 +150,7 @@ export default function HomePage() {
     const { data, error } = await supabase
       .from("auctions")
       .select(
-        "id, seller_id, title, description, start_price, current_price, min_increment, ends_at, status, created_at, image_url"
+        "id, seller_id, title, description, start_price, current_price, min_increment, ends_at, status, image_url, created_at"
       )
       .eq("status", "active")
       .order("created_at", { ascending: false })
@@ -135,7 +208,6 @@ export default function HomePage() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!mounted) return;
-
       setUser(session?.user ?? null);
       setProfileName(session?.user?.user_metadata?.full_name ?? "");
       setMessage(
@@ -150,6 +222,18 @@ export default function HomePage() {
       subscription.unsubscribe();
     };
   }, []);
+
+  useEffect(() => {
+    if (!auctionImage) {
+      setAuctionImagePreview("");
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(auctionImage);
+    setAuctionImagePreview(objectUrl);
+
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [auctionImage]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -174,7 +258,6 @@ export default function HomePage() {
     }
 
     setLoading(true);
-    setMessage(mode === "register" ? "Hesap oluşturuluyor..." : "Giriş yapılıyor...");
 
     try {
       if (mode === "register") {
@@ -182,9 +265,7 @@ export default function HomePage() {
           email: cleanEmail,
           password,
           options: {
-            data: {
-              full_name: fullName.trim(),
-            },
+            data: { full_name: fullName.trim() },
           },
         });
 
@@ -204,12 +285,10 @@ export default function HomePage() {
         if (data.session) {
           setUser(data.user);
           setProfileName(fullName.trim());
-          setMessage("Hesabın oluşturuldu ve giriş yapıldı.");
           setShowAuth(false);
+          setMessage("Hesabın oluşturuldu ve giriş yapıldı.");
         } else {
-          setMessage(
-            "Hesabın oluşturuldu. E-posta adresine gelen doğrulama bağlantısına tıkla."
-          );
+          setMessage("E-posta adresine gelen doğrulama bağlantısına tıkla.");
         }
       } else {
         const { data, error } = await supabase.auth.signInWithPassword({
@@ -224,8 +303,8 @@ export default function HomePage() {
 
         setUser(data.user);
         setProfileName(data.user.user_metadata?.full_name ?? "");
-        setMessage("KapışKapış hesabına giriş yapıldı.");
         setShowAuth(false);
+        setMessage("KapışKapış hesabına giriş yapıldı.");
       }
     } finally {
       setLoading(false);
@@ -236,12 +315,7 @@ export default function HomePage() {
     const supabase = getSupabaseBrowserClient();
     const cleanEmail = email.trim().toLowerCase();
 
-    if (!supabase) {
-      setMessage("Supabase bağlantısı bulunamadı.");
-      return;
-    }
-
-    if (!cleanEmail) {
+    if (!supabase || !cleanEmail) {
       setMessage("Önce e-posta adresini yaz.");
       return;
     }
@@ -252,21 +326,17 @@ export default function HomePage() {
     });
     setLoading(false);
 
-    if (error) {
-      setMessage(`Şifre sıfırlama hatası: ${error.message}`);
-      return;
-    }
-
-    setMessage("Şifre sıfırlama bağlantısı e-posta adresine gönderildi.");
+    setMessage(
+      error
+        ? `Şifre sıfırlama hatası: ${error.message}`
+        : "Şifre sıfırlama bağlantısı gönderildi."
+    );
   }
 
   async function handleProfileSave() {
     const supabase = getSupabaseBrowserClient();
 
-    if (!supabase || !user) {
-      setMessage("Önce giriş yapmalısın.");
-      return;
-    }
+    if (!supabase || !user) return;
 
     const cleanName = profileName.trim();
 
@@ -278,23 +348,15 @@ export default function HomePage() {
     setLoading(true);
 
     const { data, error } = await supabase.auth.updateUser({
-      data: {
-        full_name: cleanName,
-      },
+      data: { full_name: cleanName },
     });
 
     if (!error && data.user) {
-      const { error: profileError } = await supabase.from("profiles").upsert({
+      await supabase.from("profiles").upsert({
         id: data.user.id,
         full_name: cleanName,
         email: data.user.email ?? "",
       });
-
-      if (profileError) {
-        setLoading(false);
-        setMessage(`Profil tablosu hatası: ${profileError.message}`);
-        return;
-      }
     }
 
     setLoading(false);
@@ -308,46 +370,17 @@ export default function HomePage() {
     setMessage("Profil bilgilerin kaydedildi.");
   }
 
-
-  function handleImageChange(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0] ?? null;
-
-    if (!file) {
-      setImageFile(null);
-      setImagePreview("");
-      return;
-    }
-
-    if (!file.type.startsWith("image/")) {
-      setMessage("Yalnızca görsel dosyası yükleyebilirsin.");
-      event.target.value = "";
-      return;
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      setMessage("Ürün fotoğrafı en fazla 5 MB olabilir.");
-      event.target.value = "";
-      return;
-    }
-
-    setImageFile(file);
-    setImagePreview(URL.createObjectURL(file));
-    setMessage("Fotoğraf seçildi. İlanı yayınladığında yüklenecek.");
-  }
-
   async function handleCreateAuction(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const supabase = getSupabaseBrowserClient();
 
     if (!supabase || !user) {
-      setMessage("İlan vermek için giriş yapmalısın.");
       setShowAuth(true);
       return;
     }
 
     const cleanTitle = auctionTitle.trim();
-    const cleanDescription = auctionDescription.trim();
     const parsedStartPrice = Number(startPrice);
     const parsedMinIncrement = Number(minIncrement);
     const parsedDurationHours = Number(durationHours);
@@ -361,85 +394,79 @@ export default function HomePage() {
       !Number.isFinite(parsedStartPrice) ||
       parsedStartPrice <= 0 ||
       !Number.isFinite(parsedMinIncrement) ||
-      parsedMinIncrement <= 0 ||
-      !Number.isFinite(parsedDurationHours) ||
-      parsedDurationHours <= 0
+      parsedMinIncrement <= 0
     ) {
-      setMessage("Fiyat, teklif artışı ve süre geçerli olmalı.");
-      return;
-    }
-
-    if (!imageFile) {
-      setMessage("En az bir ürün fotoğrafı seç.");
+      setMessage("Fiyat ve minimum artış geçerli olmalı.");
       return;
     }
 
     setLoading(true);
-    setMessage("Fotoğraf yükleniyor...");
+    let imageUrl: string | null = null;
+    let uploadedPath = "";
 
-    const extension = imageFile.name.split(".").pop()?.toLowerCase() || "jpg";
-    const safeExtension = extension.replace(/[^a-z0-9]/g, "") || "jpg";
-    const objectPath = `${user.id}/${crypto.randomUUID()}.${safeExtension}`;
+    try {
+      if (auctionImage) {
+        if (auctionImage.size > 5 * 1024 * 1024) {
+          setMessage("Fotoğraf en fazla 5 MB olabilir.");
+          return;
+        }
 
-    const { error: uploadError } = await supabase.storage
-      .from("auction-images")
-      .upload(objectPath, imageFile, {
-        cacheControl: "3600",
-        upsert: false,
-        contentType: imageFile.type,
+        const extension = auctionImage.name.split(".").pop()?.toLowerCase() || "jpg";
+        uploadedPath = `${user.id}/${crypto.randomUUID()}.${extension}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from("auction-images")
+          .upload(uploadedPath, auctionImage, {
+            cacheControl: "3600",
+            upsert: false,
+          });
+
+        if (uploadError) {
+          setMessage(`Fotoğraf yükleme hatası: ${uploadError.message}`);
+          return;
+        }
+
+        const { data } = supabase.storage
+          .from("auction-images")
+          .getPublicUrl(uploadedPath);
+
+        imageUrl = data.publicUrl;
+      }
+
+      const { error } = await supabase.from("auctions").insert({
+        seller_id: user.id,
+        title: cleanTitle,
+        description: auctionDescription.trim(),
+        start_price: parsedStartPrice,
+        current_price: parsedStartPrice,
+        min_increment: parsedMinIncrement,
+        ends_at: new Date(
+          Date.now() + parsedDurationHours * 60 * 60 * 1000
+        ).toISOString(),
+        status: "active",
+        image_url: imageUrl,
       });
 
-    if (uploadError) {
+      if (error) {
+        if (uploadedPath) {
+          await supabase.storage.from("auction-images").remove([uploadedPath]);
+        }
+        setMessage(`İlan oluşturma hatası: ${error.message}`);
+        return;
+      }
+
+      setAuctionTitle("");
+      setAuctionDescription("");
+      setStartPrice("1000");
+      setMinIncrement("100");
+      setDurationHours("24");
+      setAuctionImage(null);
+      setShowSell(false);
+      setMessage("İlanın yayınlandı.");
+      await loadAuctions();
+    } finally {
       setLoading(false);
-      setMessage(`Fotoğraf yükleme hatası: ${uploadError.message}`);
-      return;
     }
-
-    const { data: publicUrlData } = supabase.storage
-      .from("auction-images")
-      .getPublicUrl(objectPath);
-
-    const imageUrl = publicUrlData.publicUrl;
-    const endsAt = new Date(
-      Date.now() + parsedDurationHours * 60 * 60 * 1000
-    ).toISOString();
-
-    setMessage("İlan Supabase'e kaydediliyor...");
-
-    const { error } = await supabase.from("auctions").insert({
-      seller_id: user.id,
-      title: cleanTitle,
-      description: cleanDescription,
-      start_price: parsedStartPrice,
-      current_price: parsedStartPrice,
-      min_increment: parsedMinIncrement,
-      ends_at: endsAt,
-      status: "active",
-      image_url: imageUrl,
-    });
-
-    if (error) {
-      await supabase.storage.from("auction-images").remove([objectPath]);
-    }
-
-    setLoading(false);
-
-    if (error) {
-      setMessage(`İlan oluşturma hatası: ${error.message}`);
-      return;
-    }
-
-    setAuctionTitle("");
-    setAuctionDescription("");
-    setStartPrice("1000");
-    setMinIncrement("100");
-    setDurationHours("24");
-    setImageFile(null);
-    if (imagePreview) URL.revokeObjectURL(imagePreview);
-    setImagePreview("");
-    setMessage("Fotoğraflı ilanın yayınlandı.");
-    setShowSell(false);
-    await loadAuctions();
   }
 
   async function handleSignOut() {
@@ -450,15 +477,10 @@ export default function HomePage() {
     const { error } = await supabase.auth.signOut();
     setLoading(false);
 
-    if (error) {
-      setMessage(`Çıkış hatası: ${error.message}`);
-      return;
+    if (!error) {
+      setUser(null);
+      setMessage("Güvenli şekilde çıkış yapıldı.");
     }
-
-    setUser(null);
-    setEmail("");
-    setPassword("");
-    setMessage("Güvenli şekilde çıkış yapıldı.");
   }
 
   const filteredAuctions = useMemo(() => {
@@ -472,233 +494,357 @@ export default function HomePage() {
     );
   }, [auctions, query]);
 
+  const activeCards = filteredAuctions.length
+    ? filteredAuctions
+    : demoProducts.map((product, index) => ({
+        id: product.id,
+        seller_id: "demo",
+        title: product.title,
+        description: "KapışKapış seçkisi",
+        start_price: product.price - 2000,
+        current_price: product.price,
+        min_increment: 250,
+        ends_at: new Date(Date.now() + (index + 1) * 3600000).toISOString(),
+        status: "active" as const,
+        image_url: product.image,
+        created_at: new Date().toISOString(),
+      }));
+
   return (
-    <main className="appShell">
-      <header className="topbar">
-        <button className="brandButton" type="button" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
-          <span className="brandMark">KK</span>
-          <span className="brandText">
-            <strong>KapışKapış</strong>
-            <small>Teklif ver, değerini bul</small>
-          </span>
+    <main className="app">
+      <header className="navbar">
+        <button className="brand" type="button" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
+          <span className="brandLogo">KK</span>
+          <strong>KAPIŞKAPIŞ</strong>
         </button>
 
-        <div className="topActions">
-          <span className="livePill">● SUPABASE CANLI</span>
-
-          {user ? (
-            <div className="userMenu">
-              <span className="userAvatar">
-                {(profileName || user.email || "K").slice(0, 1).toLocaleUpperCase("tr")}
-              </span>
-              <div>
-                <strong>{profileName || "Kullanıcı"}</strong>
-                <button type="button" onClick={handleSignOut}>Çıkış yap</button>
-              </div>
-            </div>
-          ) : (
-            <button
-              className="loginButton"
-              type="button"
-              onClick={() => setShowAuth(true)}
-            >
-              Giriş yap
-            </button>
-          )}
-        </div>
-      </header>
-
-      <section className="hero">
-        <div className="heroContent">
-          <span className="eyebrow">CANLI AÇIK ARTIRMALAR</span>
-          <h1>
-            İkinci el ürünün
-            <br />
-            gerçek değerini bul.
-          </h1>
-          <p>
-            Doğrulanmış kullanıcılar, güvenli teklifler ve gerçek zamanlı
-            açık artırmalar.
-          </p>
-
-          <div className="heroActions">
-            <button
-              className="primaryCta"
-              type="button"
-              onClick={() => {
-                if (!user) {
-                  setShowAuth(true);
-                  return;
-                }
-                setShowSell(true);
-              }}
-            >
-              Ürününü açık artırmaya çıkar <span>→</span>
-            </button>
-
-            <button className="secondaryCta" type="button" onClick={() => document.getElementById("auctions")?.scrollIntoView({ behavior: "smooth" })}>
-              Canlı ilanları keşfet
-            </button>
-          </div>
-        </div>
-
-        <div className="heroMetric">
-          <span className="metricLabel">CANLI PAZAR</span>
-          <strong>{auctions.length}</strong>
-          <span>Aktif açık artırma</span>
-          <small>Supabase üzerinden anlık yükleniyor</small>
-        </div>
-      </section>
-
-      <section className="trustStrip">
-        <article>
-          <span className="trustIcon">✓</span>
-          <div>
-            <strong>Doğrulanmış hesaplar</strong>
-            <small>Güvenli kullanıcı topluluğu</small>
-          </div>
-        </article>
-        <article>
-          <span className="trustIcon">⚡</span>
-          <div>
-            <strong>Anlık açık artırma</strong>
-            <small>Teklifler saniyeler içinde güncellenir</small>
-          </div>
-        </article>
-        <article>
-          <span className="trustIcon">🔒</span>
-          <div>
-            <strong>Korumalı işlem</strong>
-            <small>Alıcı ve satıcı odaklı güvenlik</small>
-          </div>
-        </article>
-      </section>
-
-      <section className="searchSection">
-        <div className="searchBar">
+        <div className="navSearch">
           <span>⌕</span>
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Telefon, bilgisayar, oyun konsolu ara..."
+            placeholder="Ne arıyorsun?"
           />
-          <button type="button" onClick={loadAuctions}>Yenile</button>
         </div>
-      </section>
 
-      <section className="categoryStrip">
-        {[
-          { name: "Tümü", icon: "✦", note: "Tüm ilanlar" },
-          { name: "Telefon", icon: "◫", note: "Akıllı telefonlar" },
-          { name: "Bilgisayar", icon: "▰", note: "Laptop & masaüstü" },
-          { name: "Oyun", icon: "◇", note: "Konsol & ekipman" },
-          { name: "Ev & Yaşam", icon: "⌂", note: "Ev ürünleri" },
-        ].map((item, index) => (
+        <div className="navActions">
           <button
+            className="sellButton"
             type="button"
-            key={item.name}
-            className={index === 0 ? "activeCategory" : ""}
+            onClick={() => (user ? setShowSell(true) : setShowAuth(true))}
           >
-            <span>{item.icon}</span>
-            <div>
-              <strong>{item.name}</strong>
-              <small>{item.note}</small>
-            </div>
+            <span>＋</span> İlan Ver
           </button>
-        ))}
-      </section>
-
-      <section className="auctionSection" id="auctions">
-        <div className="sectionHeader">
-          <div>
-            <span className="eyebrow">ŞU ANDA CANLI</span>
-            <h2>Kaçırılmayacak açık artırmalar</h2>
-          </div>
-          <span className="resultCount">{filteredAuctions.length} ilan</span>
+          <button className="iconButton" type="button">♧<small>3</small></button>
+          <button className="iconButton" type="button">♡</button>
+          <button
+            className="profileButton"
+            type="button"
+            onClick={() => (user ? setMessage("Profilin aktif.") : setShowAuth(true))}
+          >
+            <span>{(profileName || user?.email || "K").slice(0, 1).toUpperCase()}</span>
+          </button>
         </div>
+      </header>
 
-        {filteredAuctions.length === 0 ? (
-          <div className="emptyState">
-            <div className="emptyIcon">⌛</div>
-            <h3>Henüz aktif ilan yok</h3>
-            <p>İlk açık artırmayı sen başlat.</p>
-            <button
-              type="button"
-              onClick={() => {
-                if (!user) {
-                  setShowAuth(true);
-                  return;
-                }
-                setShowSell(true);
-              }}
-            >
-              İlan oluştur
-            </button>
-          </div>
-        ) : (
-          <div className="auctionGrid">
-            {filteredAuctions.map((auction, index) => (
-              <article className="auctionCard" key={auction.id}>
-                <div className={`imagePlaceholder imageTone${(index % 4) + 1}`}>
-                  <span className="liveBadge">CANLI</span>
-                  {index < 3 && <span className="trendBadge">ÖNE ÇIKAN</span>}
-                  <button
-                    className="favoriteButton"
-                    type="button"
-                    aria-label="Favorilere ekle"
-                    onClick={() => setMessage("Favoriler sıradaki adımda gerçek veriye bağlanacak.")}
-                  >
-                    ♡
-                  </button>
-                  {auction.image_url ? (
-                    <img
-                      className="auctionImage"
-                      src={auction.image_url}
-                      alt={auction.title}
-                    />
-                  ) : (
-                    <span className="categoryIcon">🔨</span>
-                  )}
-                </div>
+      <div className="dashboard">
+        <section className="mainColumn">
+          <section className="hero">
+            <div className="heroCopy">
+              <span className="heroKicker">TÜRKİYE'NİN CANLI PAZARYERİ</span>
+              <h1>
+                Beğendiysen bekleme,
+                <br />
+                <em>KapışKapış kap.</em>
+              </h1>
+              <p>Türkiye’nin en güvenli açık artırma platformu</p>
 
-                <div className="cardBody">
-                  <div className="cardTopline">
-                    <span>Doğrulanmış satıcı</span>
-                    <strong>{remainingTime(auction.ends_at)}</strong>
-                  </div>
+              <div className="heroActions">
+                <button
+                  className="goldButton"
+                  type="button"
+                  onClick={() => (user ? setShowSell(true) : setShowAuth(true))}
+                >
+                  ⚡ Açık Artırmaya Başla
+                </button>
+                <button
+                  className="outlineButton"
+                  type="button"
+                  onClick={() =>
+                    document.getElementById("live-auctions")?.scrollIntoView({
+                      behavior: "smooth",
+                    })
+                  }
+                >
+                  ◉ Canlı Teklifleri İzle
+                </button>
+              </div>
 
-                  <h3>{auction.title}</h3>
-                  <p>{auction.description || "Ürün açıklaması eklenmemiş."}</p>
+              <div className="heroTrust">
+                <span>🛡 Güvenli Ödeme</span>
+                <span>🚚 Kargo Koruması</span>
+                <span>✓ Doğrulanmış Satıcı</span>
+                <span>🎧 7/24 Destek</span>
+              </div>
+            </div>
 
-                  <div className="bidRow">
-                    <div>
-                      <span>Güncel teklif</span>
-                      <strong>{money(Number(auction.current_price))}</strong>
-                    </div>
+            <div className="heroVisual">
+              <div className="glow" />
+              <img
+                src="https://images.unsplash.com/photo-1598327105666-5b89351aff97?auto=format&fit=crop&w=900&q=80"
+                alt="Premium ürün"
+              />
+              <div className="floatingProduct watch">⌚</div>
+              <div className="floatingProduct game">🎮</div>
+              <div className="floatingProduct laptop">💻</div>
+            </div>
+          </section>
 
-                    <button type="button" onClick={() => setSelectedAuction(auction)}>
-                      Detayı aç
-                    </button>
-                  </div>
-
-                  <div className="cardFooter">
-                    <span>Minimum artış: {money(Number(auction.min_increment))}</span>
-                    <span>{new Date(auction.ends_at).toLocaleDateString("tr-TR")}</span>
-                  </div>
+          <section className="stats">
+            {[
+              ["🔥", "24.381", "Canlı teklif", "Son 24 saatte"],
+              ["👥", "18.219", "Doğrulanmış kullanıcı", "Topluluğumuz"],
+              ["🏆", "5.921", "Tamamlanan satış", "Bu ay"],
+              ["💰", "54.2M ₺", "İşlem hacmi", "Bu ay"],
+            ].map(([icon, value, label, note]) => (
+              <article key={label}>
+                <span>{icon}</span>
+                <div>
+                  <strong>{value}</strong>
+                  <b>{label}</b>
+                  <small>{note}</small>
                 </div>
               </article>
             ))}
-          </div>
-        )}
-      </section>
+          </section>
+
+          <section className="panel categories">
+            <div className="panelHeader">
+              <h2>KATEGORİLER</h2>
+              <button type="button">Tüm Kategoriler ›</button>
+            </div>
+            <div className="categoryGrid">
+              {[
+                ["📱", "Telefon"],
+                ["💻", "Bilgisayar"],
+                ["🎮", "Oyun"],
+                ["⌚", "Saat"],
+                ["🚗", "Araç"],
+                ["🛋", "Ev & Yaşam"],
+                ["📷", "Kamera"],
+                ["💎", "Koleksiyon"],
+              ].map(([icon, name]) => (
+                <button type="button" key={name}>
+                  <span>{icon}</span>
+                  <strong>{name}</strong>
+                </button>
+              ))}
+            </div>
+          </section>
+
+          <section className="panel">
+            <div className="panelHeader">
+              <div className="titleWithBadge">
+                <h2>BUGÜN BİTENLER</h2>
+                <span>Son şans!</span>
+              </div>
+              <button type="button">Tümünü Gör ›</button>
+            </div>
+
+            <div className="endingGrid">
+              {demoProducts.map((product) => (
+                <article className="endingCard" key={product.id}>
+                  <div className="productImage">
+                    <span className="countdownBadge">{product.time}</span>
+                    <button type="button">♡</button>
+                    <img src={product.image} alt={product.title} />
+                  </div>
+                  <h3>{product.title}</h3>
+                  <div className="priceLine">
+                    <div>
+                      <span>Son teklif</span>
+                      <strong>{money(product.price)}</strong>
+                    </div>
+                    <small>{product.bids} teklif</small>
+                  </div>
+                  <button
+                    className="kapisButton"
+                    type="button"
+                    onClick={() => setMessage("Gerçek teklif sistemi bir sonraki adımda bağlanacak.")}
+                  >
+                    KAPIŞ!
+                  </button>
+                </article>
+              ))}
+            </div>
+          </section>
+
+          <section className="panel" id="live-auctions">
+            <div className="panelHeader">
+              <div className="titleWithDot">
+                <span />
+                <h2>CANLI AÇIK ARTIRMALAR</h2>
+              </div>
+              <button type="button" onClick={loadAuctions}>Yenile ›</button>
+            </div>
+
+            <div className="liveGrid">
+              {activeCards.slice(0, 5).map((auction) => (
+                <article className="liveCard" key={auction.id}>
+                  <div className="liveImage">
+                    <span className="liveBadge">● CANLI</span>
+                    <button type="button">♡</button>
+                    {auction.image_url ? (
+                      <img src={auction.image_url} alt={auction.title} />
+                    ) : (
+                      <div className="imageFallback">🔨</div>
+                    )}
+                  </div>
+                  <h3>{auction.title}</h3>
+                  <span className="sellerLine">✓ Doğrulanmış satıcı</span>
+                  <div className="liveMeta">
+                    <div>
+                      <span>Son teklif</span>
+                      <strong>{money(Number(auction.current_price))}</strong>
+                    </div>
+                    <small>{remainingTime(auction.ends_at)}</small>
+                  </div>
+                  <button
+                    className="kapisButton"
+                    type="button"
+                    onClick={() => setSelectedAuction(auction)}
+                  >
+                    KAPIŞ!
+                  </button>
+                </article>
+              ))}
+            </div>
+          </section>
+
+          <section className="bottomGrid">
+            <section className="panel compactPanel">
+              <div className="panelHeader">
+                <h2>AZ ÖNCE SATILANLAR</h2>
+                <button type="button">Tümü ›</button>
+              </div>
+              {[
+                ["Dyson Airwrap Complete", "8.100 ₺"],
+                ["Apple Watch Series 9", "13.250 ₺"],
+                ["iPhone 13 128GB", "17.750 ₺"],
+                ["PlayStation 5", "16.250 ₺"],
+              ].map(([name, price]) => (
+                <div className="soldRow" key={name}>
+                  <span>▣</span>
+                  <strong>{name}</strong>
+                  <b>{price}</b>
+                  <em>Satıldı</em>
+                </div>
+              ))}
+            </section>
+
+            <section className="panel compactPanel">
+              <div className="panelHeader">
+                <h2>PREMİUM SATICILAR</h2>
+                <button type="button">Tümü ›</button>
+              </div>
+              {premiumSellers.map((seller) => (
+                <div className="sellerRow" key={seller.name}>
+                  <span>{seller.icon}</span>
+                  <div>
+                    <strong>{seller.name}</strong>
+                    <small>★ {seller.score}</small>
+                  </div>
+                  <b>{seller.sales}</b>
+                </div>
+              ))}
+            </section>
+
+            <section className="sponsorCard">
+              <div>
+                <span>SPONSORLU</span>
+                <h2>AirPods Max</h2>
+                <p>KapışKapış Fırsatı!</p>
+                <button type="button">HEMEN KAP!</button>
+              </div>
+              <img
+                src="https://images.unsplash.com/photo-1613040809024-b4ef7ba99bc3?auto=format&fit=crop&w=800&q=80"
+                alt="AirPods Max"
+              />
+            </section>
+          </section>
+        </section>
+
+        <aside className="sidebar">
+          <section className="sidePanel activityPanel">
+            <div className="panelHeader">
+              <h2>CANLI AKTİVİTE</h2>
+              <button type="button">Tümü ›</button>
+            </div>
+
+            {activity.map((item, index) => (
+              <article className="activityItem" key={`${item.name}-${index}`}>
+                <span className="activityAvatar">{item.name.slice(0, 1)}</span>
+                <div>
+                  <p>
+                    <strong>{item.name}</strong>, {item.text}{" "}
+                    {item.value && <b>{item.value}</b>}
+                  </p>
+                  <small>{item.time}</small>
+                </div>
+              </article>
+            ))}
+
+            <div className="pulseCard">
+              <div>
+                <span>Şu anda</span>
+                <strong>{Math.max(421, auctions.length)}</strong>
+                <p>açık artırma canlı devam ediyor!</p>
+              </div>
+              <div className="pulseChart">╱╲╱╲╱╲</div>
+            </div>
+          </section>
+
+          <section className="sidePanel">
+            <div className="panelHeader">
+              <h2>EN ÇOK İZLENENLER</h2>
+              <button type="button">Tümü ›</button>
+            </div>
+            {mostViewed.map((item) => (
+              <div className="viewedRow" key={item.name}>
+                <span>{item.icon}</span>
+                <div>
+                  <strong>{item.name}</strong>
+                  <small>◉ {item.views}</small>
+                </div>
+              </div>
+            ))}
+          </section>
+
+          <section className="sidePanel">
+            <div className="panelHeader">
+              <h2>YAKINDA BAŞLAYACAKLAR</h2>
+              <button type="button">Tümü ›</button>
+            </div>
+            {startingSoon.map((item) => (
+              <div className="startingRow" key={item.name}>
+                <span>{item.icon}</span>
+                <div>
+                  <strong>{item.name}</strong>
+                  <small>Başlangıç: {item.price}</small>
+                  <b>⏱ {item.time}</b>
+                </div>
+              </div>
+            ))}
+          </section>
+        </aside>
+      </div>
 
       {user && (
-        <section className="profileStrip">
+        <section className="profileDock">
           <div>
             <span className="eyebrow">HESABIM</span>
             <h2>Profil bilgilerin</h2>
           </div>
-
           <div className="profileFields">
             <input
               value={profileName}
@@ -706,127 +852,42 @@ export default function HomePage() {
               placeholder="Ad soyad"
             />
             <button type="button" onClick={handleProfileSave} disabled={loading}>
-              Profili kaydet
+              Kaydet
             </button>
           </div>
         </section>
       )}
 
-      <footer>
-        <div>
-          <strong>KapışKapış</strong>
-          <span>Beğendiysen bekleme, KapışKapış kap!</span>
-        </div>
-        <small>© 2026 KapışKapış · Güvenli açık artırma platformu</small>
-      </footer>
-
-      <nav className="mobileNav" aria-label="Mobil menü">
-        <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
-          <span>⌂</span>
-          Ana sayfa
+      <nav className="bottomNav">
+        <button className="active" type="button">
+          <span>⌂</span>Ana Sayfa
         </button>
-        <button type="button" onClick={() => document.getElementById("auctions")?.scrollIntoView({ behavior: "smooth" })}>
-          <span>⌕</span>
-          Keşfet
+        <button type="button">
+          <span>⌕</span>Ara
         </button>
         <button
-          className="sellNavButton"
+          className="centerAction"
           type="button"
-          onClick={() => {
-            if (!user) {
-              setShowAuth(true);
-              return;
-            }
-            setShowSell(true);
-          }}
+          onClick={() => (user ? setShowSell(true) : setShowAuth(true))}
         >
-          <span>＋</span>
-          İlan ver
+          <span>＋</span>Kapıştır
         </button>
-        <button type="button" onClick={() => setMessage("Tekliflerim ekranı yakında eklenecek.")}>
-          <span>⌁</span>
-          Teklifler
+        <button type="button">
+          <span>♧</span>Bildirimler
         </button>
-        <button type="button" onClick={() => user ? window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" }) : setShowAuth(true)}>
-          <span>◉</span>
-          Profil
+        <button type="button" onClick={() => (user ? setMessage("Profilin aktif.") : setShowAuth(true))}>
+          <span>◉</span>Profil
         </button>
       </nav>
 
       {message && <div className="toast">{message}</div>}
 
-      {selectedAuction && (
-        <div className="modalBackdrop" onMouseDown={() => setSelectedAuction(null)}>
-          <section className="detailModal" onMouseDown={(event) => event.stopPropagation()}>
-            <button className="closeButton" type="button" onClick={() => setSelectedAuction(null)}>×</button>
-
-            <div className="detailMedia">
-              {selectedAuction.image_url ? (
-                <img src={selectedAuction.image_url} alt={selectedAuction.title} />
-              ) : (
-                <div className="detailPlaceholder">🔨</div>
-              )}
-              <span className="liveBadge">CANLI</span>
-            </div>
-
-            <div className="detailContent">
-              <div className="detailTopline">
-                <span>Doğrulanmış satıcı</span>
-                <strong>{remainingTime(selectedAuction.ends_at)}</strong>
-              </div>
-
-              <h2>{selectedAuction.title}</h2>
-              <p className="detailDescription">
-                {selectedAuction.description || "Ürün açıklaması eklenmemiş."}
-              </p>
-
-              <div className="detailPriceBox">
-                <div>
-                  <span>Güncel teklif</span>
-                  <strong>{money(Number(selectedAuction.current_price))}</strong>
-                </div>
-                <div>
-                  <span>Minimum artış</span>
-                  <strong>{money(Number(selectedAuction.min_increment))}</strong>
-                </div>
-              </div>
-
-              <div className="sellerCard">
-                <span className="sellerAvatar">K</span>
-                <div>
-                  <strong>KapışKapış satıcısı</strong>
-                  <small>Kimliği doğrulanmış · Güvenli işlem</small>
-                </div>
-                <span className="sellerScore">★ 4.9</span>
-              </div>
-
-              <button
-                className="detailBidButton"
-                type="button"
-                onClick={() => setMessage("Gerçek teklif sistemi sıradaki adımda eklenecek.")}
-              >
-                Teklif ver · sonraki minimum {money(Number(selectedAuction.current_price) + Number(selectedAuction.min_increment))}
-              </button>
-
-              <div className="detailSafety">
-                <span>🔒</span>
-                <div>
-                  <strong>KapışKapış koruması</strong>
-                  <small>Teklif ve kullanıcı işlemleri güvenli altyapıda saklanır.</small>
-                </div>
-              </div>
-            </div>
-          </section>
-        </div>
-      )}
-
       {showAuth && (
         <div className="modalBackdrop" onMouseDown={() => setShowAuth(false)}>
           <section className="modalCard" onMouseDown={(event) => event.stopPropagation()}>
             <button className="closeButton" type="button" onClick={() => setShowAuth(false)}>×</button>
-
             <div className="modalBrand">
-              <span className="brandMark">KK</span>
+              <span className="brandLogo">KK</span>
               <div>
                 <strong>KapışKapış</strong>
                 <small>Hesabına eriş</small>
@@ -858,11 +919,9 @@ export default function HomePage() {
                     value={fullName}
                     onChange={(event) => setFullName(event.target.value)}
                     placeholder="Ad soyad"
-                    autoComplete="name"
                   />
                 </label>
               )}
-
               <label>
                 E-posta
                 <input
@@ -870,11 +929,9 @@ export default function HomePage() {
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
                   placeholder="ornek@email.com"
-                  autoComplete="email"
                   required
                 />
               </label>
-
               <label>
                 Şifre
                 <input
@@ -882,12 +939,10 @@ export default function HomePage() {
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
                   placeholder="En az 6 karakter"
-                  autoComplete={mode === "login" ? "current-password" : "new-password"}
                   minLength={6}
                   required
                 />
               </label>
-
               <button className="modalPrimary" type="submit" disabled={loading}>
                 {loading
                   ? "İşleniyor..."
@@ -895,47 +950,39 @@ export default function HomePage() {
                     ? "Giriş yap"
                     : "Hesap oluştur"}
               </button>
-
               {mode === "login" && (
-                <button className="forgotButton" type="button" onClick={handleForgotPassword}>
+                <button className="linkButton" type="button" onClick={handleForgotPassword}>
                   Şifremi unuttum
                 </button>
               )}
             </form>
-
-            <p className="modalMessage">{message}</p>
           </section>
         </div>
       )}
 
       {showSell && (
         <div className="modalBackdrop" onMouseDown={() => setShowSell(false)}>
-          <section className="modalCard sellModal" onMouseDown={(event) => event.stopPropagation()}>
+          <section className="modalCard wideModal" onMouseDown={(event) => event.stopPropagation()}>
             <button className="closeButton" type="button" onClick={() => setShowSell(false)}>×</button>
-
             <span className="eyebrow">YENİ AÇIK ARTIRMA</span>
-            <h2>Ürününü yayınla</h2>
+            <h2>Ürününü kapıştır</h2>
 
             <form onSubmit={handleCreateAuction}>
-              <label>
-                Ürün fotoğrafı
-                <div className="photoUploader">
-                  <input
-                    className="fileInput"
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    onChange={handleImageChange}
-                    required
-                  />
-                  {imagePreview ? (
-                    <img className="photoPreview" src={imagePreview} alt="Ürün önizlemesi" />
-                  ) : (
-                    <div className="photoPlaceholder">
-                      <strong>Fotoğraf seç</strong>
-                      <span>JPG, PNG veya WEBP · en fazla 5 MB</span>
-                    </div>
-                  )}
-                </div>
+              <label className="imageUploader">
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={(event) => setAuctionImage(event.target.files?.[0] ?? null)}
+                />
+                {auctionImagePreview ? (
+                  <img src={auctionImagePreview} alt="Ürün önizlemesi" />
+                ) : (
+                  <div>
+                    <span>＋</span>
+                    <strong>Ürün fotoğrafı ekle</strong>
+                    <small>JPG, PNG veya WEBP · En fazla 5 MB</small>
+                  </div>
+                )}
               </label>
 
               <label>
@@ -944,7 +991,6 @@ export default function HomePage() {
                   value={auctionTitle}
                   onChange={(event) => setAuctionTitle(event.target.value)}
                   placeholder="Örnek: iPhone 15 Pro 256 GB"
-                  maxLength={100}
                   required
                 />
               </label>
@@ -956,7 +1002,6 @@ export default function HomePage() {
                   onChange={(event) => setAuctionDescription(event.target.value)}
                   placeholder="Ürünün durumunu ve özelliklerini yaz"
                   rows={4}
-                  maxLength={1000}
                 />
               </label>
 
@@ -986,7 +1031,10 @@ export default function HomePage() {
 
               <label>
                 Süre
-                <select value={durationHours} onChange={(event) => setDurationHours(event.target.value)}>
+                <select
+                  value={durationHours}
+                  onChange={(event) => setDurationHours(event.target.value)}
+                >
                   <option value="1">1 saat</option>
                   <option value="6">6 saat</option>
                   <option value="12">12 saat</option>
@@ -1004,6 +1052,45 @@ export default function HomePage() {
         </div>
       )}
 
+      {selectedAuction && (
+        <div className="modalBackdrop" onMouseDown={() => setSelectedAuction(null)}>
+          <section className="detailModal" onMouseDown={(event) => event.stopPropagation()}>
+            <button className="closeButton" type="button" onClick={() => setSelectedAuction(null)}>×</button>
+            <div className="detailImage">
+              {selectedAuction.image_url ? (
+                <img src={selectedAuction.image_url} alt={selectedAuction.title} />
+              ) : (
+                <div className="imageFallback">🔨</div>
+              )}
+            </div>
+            <div className="detailContent">
+              <span className="liveBadge">● CANLI</span>
+              <h2>{selectedAuction.title}</h2>
+              <p>{selectedAuction.description}</p>
+              <div className="detailPrice">
+                <span>Güncel teklif</span>
+                <strong>{money(Number(selectedAuction.current_price))}</strong>
+              </div>
+              <div className="detailInfo">
+                <span>Minimum artış</span>
+                <b>{money(Number(selectedAuction.min_increment))}</b>
+              </div>
+              <div className="detailInfo">
+                <span>Kalan süre</span>
+                <b>{remainingTime(selectedAuction.ends_at)}</b>
+              </div>
+              <button
+                className="kapisButton large"
+                type="button"
+                onClick={() => setMessage("Gerçek teklif sistemi sıradaki adımda bağlanacak.")}
+              >
+                KAPIŞ!
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+
       <style jsx>{`
         :global(*) {
           box-sizing: border-box;
@@ -1015,8 +1102,8 @@ export default function HomePage() {
 
         :global(body) {
           margin: 0;
-          background: #f5f6f8;
-          color: #15171d;
+          background: #05080c;
+          color: #f4f6f8;
           font-family: Inter, Arial, sans-serif;
         }
 
@@ -1031,912 +1118,1006 @@ export default function HomePage() {
           cursor: pointer;
         }
 
-        .appShell {
+        .app {
           min-height: 100vh;
+          padding-bottom: 92px;
+          background:
+            radial-gradient(circle at 15% 10%, rgba(255, 183, 0, 0.06), transparent 24%),
+            linear-gradient(180deg, #05080c 0%, #071018 55%, #05080c 100%);
         }
 
-        .topbar {
+        .navbar {
           position: sticky;
           top: 0;
-          z-index: 20;
-          display: flex;
+          z-index: 40;
+          display: grid;
+          grid-template-columns: auto minmax(260px, 1fr) auto;
           align-items: center;
-          justify-content: space-between;
-          gap: 20px;
-          padding: 16px clamp(18px, 4vw, 64px);
-          border-bottom: 1px solid #eceef2;
-          background: rgba(255, 255, 255, 0.94);
+          gap: 28px;
+          padding: 18px 28px;
+          border-bottom: 1px solid #1a222b;
+          background: rgba(5, 8, 12, 0.9);
           backdrop-filter: blur(18px);
         }
 
-        .brandButton {
+        .brand {
           display: flex;
           align-items: center;
           gap: 12px;
           border: 0;
           background: transparent;
-          text-align: left;
+          color: white;
         }
 
-        .brandMark {
+        .brandLogo {
           width: 44px;
           height: 44px;
           display: grid;
           place-items: center;
-          border-radius: 14px;
-          background: #111216;
-          color: #ffc63d;
-          font-weight: 950;
-          letter-spacing: -0.08em;
-          box-shadow: 0 8px 24px rgba(17, 18, 22, 0.18);
+          border-radius: 12px;
+          background: linear-gradient(135deg, #ffd35b, #f2a900);
+          color: #080a0d;
+          font-weight: 1000;
+          letter-spacing: -0.12em;
+          box-shadow: 0 10px 30px rgba(255, 187, 0, 0.24);
         }
 
-        .brandText {
-          display: grid;
-        }
-
-        .brandText strong {
-          font-size: 18px;
-        }
-
-        .brandText small {
-          color: #8a909d;
-          font-size: 11px;
-        }
-
-        .topActions {
-          display: flex;
-          align-items: center;
-          gap: 14px;
-        }
-
-        .livePill {
-          padding: 8px 11px;
-          border-radius: 999px;
-          background: #eaf8f0;
-          color: #18864d;
-          font-size: 11px;
-          font-weight: 900;
+        .brand strong {
+          font-size: 19px;
           letter-spacing: 0.04em;
         }
 
-        .loginButton {
-          border: 0;
-          border-radius: 12px;
-          padding: 11px 16px;
-          background: #111216;
-          color: white;
-          font-weight: 800;
+        .navSearch {
+          display: grid;
+          grid-template-columns: auto 1fr;
+          align-items: center;
+          gap: 12px;
+          max-width: 620px;
+          padding: 0 16px;
+          border: 1px solid #1f2832;
+          border-radius: 14px;
+          background: #10161d;
         }
 
-        .userMenu {
+        .navSearch span {
+          color: #8d98a5;
+          font-size: 22px;
+        }
+
+        .navSearch input {
+          border: 0;
+          outline: none;
+          padding: 13px 0;
+          background: transparent;
+          color: white;
+        }
+
+        .navActions {
           display: flex;
           align-items: center;
           gap: 10px;
         }
 
-        .userAvatar {
-          width: 40px;
-          height: 40px;
+        .sellButton {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          border: 1px solid #5a4410;
+          border-radius: 13px;
+          padding: 10px 15px;
+          background: #13100a;
+          color: #ffc43d;
+          font-weight: 850;
+        }
+
+        .sellButton span {
+          width: 22px;
+          height: 22px;
           display: grid;
           place-items: center;
           border-radius: 50%;
-          background: #ffc63d;
+          background: #ffc43d;
+          color: #080a0d;
+        }
+
+        .iconButton,
+        .profileButton {
+          position: relative;
+          width: 42px;
+          height: 42px;
+          display: grid;
+          place-items: center;
+          border: 0;
+          border-radius: 50%;
+          background: transparent;
+          color: white;
+          font-size: 22px;
+        }
+
+        .iconButton small {
+          position: absolute;
+          top: 1px;
+          right: 0;
+          width: 16px;
+          height: 16px;
+          display: grid;
+          place-items: center;
+          border-radius: 50%;
+          background: #ef4444;
+          color: white;
+          font-size: 9px;
           font-weight: 900;
         }
 
-        .userMenu div {
+        .profileButton span {
+          width: 36px;
+          height: 36px;
           display: grid;
+          place-items: center;
+          border: 2px solid #d9b24a;
+          border-radius: 50%;
+          background: #222b34;
+          font-weight: 900;
         }
 
-        .userMenu strong {
-          font-size: 13px;
+        .dashboard {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) 300px;
+          gap: 18px;
+          padding: 0 22px 36px;
         }
 
-        .userMenu button {
-          border: 0;
-          padding: 0;
-          background: transparent;
-          color: #969ca8;
-          font-size: 11px;
-          text-align: left;
+        .mainColumn {
+          min-width: 0;
         }
 
         .hero {
+          position: relative;
+          min-height: 330px;
           display: grid;
-          grid-template-columns: minmax(0, 1.7fr) minmax(240px, 0.7fr);
-          gap: 24px;
-          padding: clamp(48px, 8vw, 96px) clamp(18px, 5vw, 80px);
+          grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+          overflow: hidden;
+          margin-top: 4px;
+          border: 1px solid #202a34;
+          border-radius: 18px;
           background:
-            radial-gradient(circle at 80% 20%, rgba(255, 198, 61, 0.18), transparent 30%),
-            linear-gradient(135deg, #0c0d11, #191b22);
-          color: white;
+            radial-gradient(circle at 65% 45%, rgba(255, 176, 0, 0.22), transparent 30%),
+            linear-gradient(135deg, #080b0f 0%, #15100a 100%);
         }
 
-        .heroContent {
-          max-width: 760px;
+        .heroCopy {
+          position: relative;
+          z-index: 2;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          padding: 42px 30px;
         }
 
+        .heroKicker,
         .eyebrow {
-          display: inline-block;
-          margin-bottom: 14px;
-          color: #d89f0d;
-          font-size: 11px;
+          color: #d9a319;
+          font-size: 10px;
           font-weight: 950;
-          letter-spacing: 0.13em;
+          letter-spacing: 0.12em;
         }
 
         .hero h1 {
-          margin: 0;
-          font-size: clamp(46px, 7vw, 86px);
-          line-height: 0.96;
-          letter-spacing: -0.055em;
+          margin: 12px 0 0;
+          font-size: clamp(38px, 5vw, 68px);
+          line-height: 1.02;
+          letter-spacing: -0.05em;
+        }
+
+        .hero h1 em {
+          color: #ffc43d;
+          font-style: normal;
         }
 
         .hero p {
-          max-width: 590px;
-          margin: 24px 0 0;
-          color: #b9bec9;
-          font-size: clamp(16px, 2vw, 20px);
-          line-height: 1.55;
+          margin: 18px 0 0;
+          color: #c5cbd2;
+          font-size: 16px;
         }
 
         .heroActions {
           display: flex;
           flex-wrap: wrap;
           gap: 12px;
-          margin-top: 32px;
+          margin-top: 26px;
         }
 
-        .primaryCta,
-        .secondaryCta {
-          border-radius: 14px;
-          padding: 15px 18px;
+        .goldButton,
+        .outlineButton {
+          border-radius: 11px;
+          padding: 13px 16px;
           font-weight: 900;
         }
 
-        .primaryCta {
+        .goldButton {
           border: 0;
-          background: #ffc63d;
-          color: #111216;
+          background: linear-gradient(135deg, #ffd45f, #f6ad08);
+          color: #0b0d0f;
+          box-shadow: 0 12px 28px rgba(255, 184, 0, 0.18);
         }
 
-        .primaryCta span {
-          margin-left: 10px;
-        }
-
-        .secondaryCta {
-          border: 1px solid rgba(255, 255, 255, 0.15);
-          background: rgba(255, 255, 255, 0.04);
+        .outlineButton {
+          border: 1px solid #5d4a1b;
+          background: rgba(10, 12, 14, 0.72);
           color: white;
         }
 
-        .heroMetric {
-          align-self: end;
+        .heroTrust {
           display: grid;
-          padding: 26px;
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          border-radius: 24px;
-          background: rgba(255, 255, 255, 0.05);
-          backdrop-filter: blur(16px);
-        }
-
-        .metricLabel {
-          color: #ffc63d;
-          font-size: 11px;
-          font-weight: 950;
-          letter-spacing: 0.1em;
-        }
-
-        .heroMetric strong {
-          margin: 8px 0 2px;
-          font-size: 54px;
-          letter-spacing: -0.06em;
-        }
-
-        .heroMetric span:not(.metricLabel) {
-          color: white;
-          font-weight: 700;
-        }
-
-        .heroMetric small {
-          margin-top: 12px;
-          color: #9ca3af;
-        }
-
-
-        .trustStrip {
-          position: relative;
-          z-index: 3;
-          display: grid;
-          grid-template-columns: repeat(3, minmax(0, 1fr));
+          grid-template-columns: repeat(4, 1fr);
           gap: 12px;
-          margin: -26px clamp(18px, 5vw, 80px) 0;
-          padding: 16px;
-          border: 1px solid #e3e6eb;
-          border-radius: 22px;
-          background: rgba(255, 255, 255, 0.96);
-          box-shadow: 0 18px 50px rgba(20, 22, 28, 0.09);
-          backdrop-filter: blur(18px);
-        }
-
-        .trustStrip article {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          min-width: 0;
-          padding: 10px 14px;
-          border-radius: 16px;
-        }
-
-        .trustStrip article + article {
-          border-left: 1px solid #eceef2;
-        }
-
-        .trustIcon {
-          width: 38px;
-          height: 38px;
-          flex: 0 0 38px;
-          display: grid;
-          place-items: center;
-          border-radius: 12px;
-          background: #fff4d1;
-          color: #a87300;
-          font-weight: 950;
-        }
-
-        .trustStrip div {
-          display: grid;
-          min-width: 0;
-        }
-
-        .trustStrip strong {
-          font-size: 13px;
-        }
-
-        .trustStrip small {
-          margin-top: 3px;
-          overflow: hidden;
-          color: #8d939e;
-          font-size: 11px;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-        }
-
-        .searchSection {
-          padding: 28px clamp(18px, 5vw, 80px) 0;
-        }
-
-        .searchBar {
-          display: grid;
-          grid-template-columns: auto 1fr auto;
-          align-items: center;
-          gap: 12px;
-          padding: 10px 12px 10px 18px;
-          border: 1px solid #e0e3e8;
-          border-radius: 18px;
-          background: white;
-          box-shadow: 0 14px 40px rgba(23, 25, 31, 0.06);
-        }
-
-        .searchBar span {
-          color: #8b929f;
-          font-size: 24px;
-        }
-
-        .searchBar input {
-          border: 0;
-          outline: none;
-          padding: 11px 0;
-          background: transparent;
-        }
-
-        .searchBar button {
-          border: 0;
-          border-radius: 11px;
-          padding: 11px 14px;
-          background: #111216;
-          color: white;
-          font-weight: 800;
-        }
-
-        .categoryStrip {
-          display: grid;
-          grid-template-columns: repeat(5, minmax(150px, 1fr));
-          gap: 12px;
-          overflow-x: auto;
-          padding: 18px clamp(18px, 5vw, 80px);
-        }
-
-        .categoryStrip button {
-          min-width: 150px;
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          border: 1px solid #e2e5ea;
-          border-radius: 18px;
-          padding: 14px;
-          background: white;
-          color: #505662;
-          text-align: left;
-          transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
-        }
-
-        .categoryStrip button:hover {
-          transform: translateY(-2px);
-          border-color: #d7aa33;
-          box-shadow: 0 10px 26px rgba(27, 29, 35, 0.07);
-        }
-
-        .categoryStrip button > span {
-          width: 38px;
-          height: 38px;
-          flex: 0 0 38px;
-          display: grid;
-          place-items: center;
-          border-radius: 12px;
-          background: #f1f3f5;
-          color: #111216;
-          font-size: 20px;
-          font-weight: 950;
-        }
-
-        .categoryStrip button div {
-          display: grid;
-        }
-
-        .categoryStrip strong {
-          font-size: 13px;
-        }
-
-        .categoryStrip small {
-          margin-top: 3px;
-          color: #969ca7;
+          margin-top: 34px;
+          padding-top: 20px;
+          border-top: 1px solid #2a2d2f;
+          color: #bbc1c8;
           font-size: 10px;
         }
 
-        .categoryStrip .activeCategory {
-          border-color: #111216;
-          background: #111216;
-          color: white;
-        }
-
-        .categoryStrip .activeCategory > span {
-          background: #ffc63d;
-        }
-
-        .auctionSection {
-          padding: 22px clamp(18px, 5vw, 80px) 72px;
-        }
-
-        .sectionHeader {
-          display: flex;
-          align-items: flex-end;
-          justify-content: space-between;
-          gap: 20px;
-          margin-bottom: 22px;
-        }
-
-        .sectionHeader h2,
-        .profileStrip h2 {
-          margin: 0;
-          font-size: clamp(28px, 4vw, 42px);
-          letter-spacing: -0.04em;
-        }
-
-        .resultCount {
-          color: #8c929d;
-          font-size: 14px;
-        }
-
-        .auctionGrid {
-          display: grid;
-          grid-template-columns: repeat(3, minmax(0, 1fr));
-          gap: 18px;
-        }
-
-        .auctionCard {
-          overflow: hidden;
-          border: 1px solid #e3e6ea;
-          border-radius: 22px;
-          background: white;
-          box-shadow: 0 12px 34px rgba(24, 26, 31, 0.06);
-          transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-
-        .auctionCard:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 18px 44px rgba(24, 26, 31, 0.1);
-        }
-
-        .imagePlaceholder {
+        .heroVisual {
           position: relative;
-          min-height: 190px;
-          display: grid;
-          place-items: center;
+          min-height: 330px;
         }
 
-        .imageTone1 { background: linear-gradient(145deg, #e7e9ed, #cfd3d9); }
-        .imageTone2 { background: linear-gradient(145deg, #eee7df, #d9cfc3); }
-        .imageTone3 { background: linear-gradient(145deg, #e3e8e4, #c8d1cb); }
-        .imageTone4 { background: linear-gradient(145deg, #e8e3ed, #d1c8dc); }
-
-        .liveBadge {
+        .heroVisual img {
           position: absolute;
-          top: 14px;
-          left: 14px;
-          z-index: 2;
-          padding: 7px 9px;
-          border-radius: 999px;
-          background: #e54954;
-          color: white;
-          font-size: 10px;
-          font-weight: 950;
-          letter-spacing: 0.08em;
-        }
-
-        .trendBadge {
-          position: absolute;
-          left: 14px;
-          bottom: 14px;
-          z-index: 2;
-          padding: 7px 9px;
-          border-radius: 999px;
-          background: rgba(17, 18, 22, 0.88);
-          color: #ffc63d;
-          font-size: 9px;
-          font-weight: 950;
-          letter-spacing: 0.08em;
-          backdrop-filter: blur(8px);
-        }
-
-        .favoriteButton {
-          position: absolute;
-          top: 12px;
-          right: 12px;
-          z-index: 2;
-          width: 36px;
-          height: 36px;
-          display: grid;
-          place-items: center;
-          border: 1px solid rgba(255, 255, 255, 0.45);
-          border-radius: 50%;
-          background: rgba(255, 255, 255, 0.85);
-          color: #111216;
-          font-size: 20px;
-          backdrop-filter: blur(8px);
-        }
-
-        .favoriteButton:hover {
-          background: #ffc63d;
-        }
-
-        .categoryIcon {
-          font-size: 58px;
-          filter: grayscale(1);
-          opacity: 0.75;
-        }
-
-        .auctionImage {
-          width: 100%;
-          height: 190px;
+          right: 10%;
+          bottom: 0;
+          width: 45%;
+          max-height: 82%;
           object-fit: cover;
-          display: block;
+          border-radius: 24px 24px 0 0;
+          filter: saturate(0.8) contrast(1.05);
+          opacity: 0.92;
+          box-shadow: 0 0 70px rgba(255, 187, 0, 0.2);
         }
 
-        .cardBody {
-          padding: 18px;
+        .glow {
+          position: absolute;
+          inset: 20% 10%;
+          border-radius: 50%;
+          background: rgba(255, 174, 0, 0.18);
+          filter: blur(50px);
         }
 
-        .cardTopline,
-        .cardFooter,
-        .bidRow {
+        .floatingProduct {
+          position: absolute;
+          z-index: 2;
+          display: grid;
+          place-items: center;
+          border: 1px solid rgba(255, 194, 61, 0.25);
+          border-radius: 18px;
+          background: rgba(11, 14, 18, 0.78);
+          box-shadow: 0 14px 38px rgba(0, 0, 0, 0.28);
+          backdrop-filter: blur(14px);
+        }
+
+        .floatingProduct.watch {
+          top: 22%;
+          left: 7%;
+          width: 82px;
+          height: 82px;
+          font-size: 50px;
+          transform: rotate(-8deg);
+        }
+
+        .floatingProduct.game {
+          right: 4%;
+          bottom: 6%;
+          width: 100px;
+          height: 100px;
+          font-size: 60px;
+          transform: rotate(8deg);
+        }
+
+        .floatingProduct.laptop {
+          left: 18%;
+          bottom: 2%;
+          width: 110px;
+          height: 82px;
+          font-size: 54px;
+          transform: rotate(-4deg);
+        }
+
+        .stats {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 12px;
+          margin: 16px 0;
+          padding: 14px;
+          border: 1px solid #1d2731;
+          border-radius: 16px;
+          background: #0a1016;
+        }
+
+        .stats article {
           display: flex;
           align-items: center;
-          justify-content: space-between;
           gap: 12px;
+          padding: 10px 12px;
         }
 
-        .cardTopline {
-          color: #8c929d;
-          font-size: 11px;
-        }
-
-        .cardTopline strong {
-          color: #e54954;
-        }
-
-        .cardBody h3 {
-          margin: 14px 0 8px;
-          font-size: 20px;
-          letter-spacing: -0.025em;
-        }
-
-        .cardBody p {
-          min-height: 42px;
-          margin: 0;
-          color: #7b818d;
-          font-size: 13px;
-          line-height: 1.55;
-        }
-
-        .bidRow {
-          margin: 20px 0 14px;
-        }
-
-        .bidRow div {
+        .stats article > span {
+          width: 42px;
+          height: 42px;
           display: grid;
-        }
-
-        .bidRow span {
-          color: #8d939f;
-          font-size: 11px;
-        }
-
-        .bidRow strong {
-          margin-top: 3px;
+          place-items: center;
+          border-radius: 50%;
+          background: rgba(255, 187, 0, 0.14);
           font-size: 22px;
         }
 
-        .bidRow button {
-          border: 0;
-          border-radius: 11px;
-          padding: 11px 13px;
-          background: #111216;
-          color: white;
-          font-weight: 850;
+        .stats div {
+          display: grid;
         }
 
-        .cardFooter {
-          padding-top: 14px;
-          border-top: 1px solid #eceef2;
-          color: #9096a1;
+        .stats strong {
+          color: #ffc43d;
+          font-size: 22px;
+        }
+
+        .stats b {
+          margin-top: 2px;
+          font-size: 11px;
+        }
+
+        .stats small {
+          margin-top: 3px;
+          color: #7f8a96;
+          font-size: 9px;
+        }
+
+        .panel,
+        .sidePanel {
+          border: 1px solid #1b2530;
+          border-radius: 16px;
+          background: #091017;
+          box-shadow: 0 14px 34px rgba(0, 0, 0, 0.16);
+        }
+
+        .panel {
+          margin-bottom: 16px;
+          padding: 14px;
+        }
+
+        .sidePanel {
+          padding: 14px;
+        }
+
+        .panelHeader {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          margin-bottom: 12px;
+        }
+
+        .panelHeader h2 {
+          margin: 0;
+          font-size: 13px;
+          letter-spacing: 0.02em;
+        }
+
+        .panelHeader button {
+          border: 0;
+          background: transparent;
+          color: #9ba4ae;
           font-size: 10px;
         }
 
-        .emptyState {
+        .categoryGrid {
+          display: grid;
+          grid-template-columns: repeat(8, minmax(88px, 1fr));
+          gap: 10px;
+        }
+
+        .categoryGrid button {
+          min-height: 98px;
           display: grid;
           place-items: center;
-          padding: 56px 24px;
-          border: 1px dashed #d6d9df;
-          border-radius: 24px;
-          background: white;
-          text-align: center;
-        }
-
-        .emptyIcon {
-          font-size: 48px;
-        }
-
-        .emptyState h3 {
-          margin: 14px 0 6px;
-        }
-
-        .emptyState p {
-          color: #8d939e;
-        }
-
-        .emptyState button {
-          border: 0;
+          gap: 8px;
+          border: 1px solid #26313c;
           border-radius: 12px;
-          padding: 12px 16px;
-          background: #ffc63d;
+          background: linear-gradient(145deg, #0c131a, #111922);
+          color: white;
+        }
+
+        .categoryGrid span {
+          font-size: 34px;
+        }
+
+        .categoryGrid strong {
+          font-size: 10px;
+        }
+
+        .titleWithBadge,
+        .titleWithDot {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+
+        .titleWithBadge span {
+          padding: 5px 8px;
+          border-radius: 999px;
+          background: rgba(239, 68, 68, 0.16);
+          color: #ff706f;
+          font-size: 9px;
           font-weight: 900;
         }
 
-        .profileStrip {
+        .titleWithDot > span {
+          width: 10px;
+          height: 10px;
+          border-radius: 50%;
+          background: #24c96b;
+          box-shadow: 0 0 12px rgba(36, 201, 107, 0.5);
+        }
+
+        .endingGrid {
           display: grid;
-          grid-template-columns: 1fr minmax(300px, 0.8fr);
-          align-items: end;
-          gap: 24px;
-          margin: 0 clamp(18px, 5vw, 80px) 72px;
-          padding: 28px;
-          border-radius: 24px;
-          background: #111216;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 10px;
+        }
+
+        .endingCard,
+        .liveCard {
+          overflow: hidden;
+          border: 1px solid #25303b;
+          border-radius: 13px;
+          background: linear-gradient(180deg, #0b1117, #080d12);
+        }
+
+        .endingCard {
+          padding: 10px;
+        }
+
+        .productImage,
+        .liveImage {
+          position: relative;
+          overflow: hidden;
+          border-radius: 10px;
+          background: #0c1116;
+        }
+
+        .productImage {
+          height: 160px;
+        }
+
+        .productImage img,
+        .liveImage img,
+        .detailImage img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+
+        .countdownBadge,
+        .liveBadge {
+          position: absolute;
+          top: 8px;
+          left: 8px;
+          z-index: 2;
+          padding: 5px 7px;
+          border-radius: 7px;
           color: white;
+          font-size: 9px;
+          font-weight: 950;
+        }
+
+        .countdownBadge {
+          background: #d94a4f;
+        }
+
+        .liveBadge {
+          background: #1aa75d;
+        }
+
+        .productImage button,
+        .liveImage button {
+          position: absolute;
+          top: 7px;
+          right: 7px;
+          z-index: 2;
+          width: 30px;
+          height: 30px;
+          border: 0;
+          border-radius: 50%;
+          background: rgba(8, 11, 14, 0.66);
+          color: white;
+          font-size: 17px;
+        }
+
+        .endingCard h3,
+        .liveCard h3 {
+          margin: 11px 0 8px;
+          font-size: 13px;
+        }
+
+        .priceLine,
+        .liveMeta {
+          display: flex;
+          align-items: end;
+          justify-content: space-between;
+          gap: 8px;
+        }
+
+        .priceLine div,
+        .liveMeta div {
+          display: grid;
+        }
+
+        .priceLine span,
+        .liveMeta span {
+          color: #84909c;
+          font-size: 9px;
+        }
+
+        .priceLine strong,
+        .liveMeta strong {
+          margin-top: 3px;
+          color: #ffc43d;
+          font-size: 17px;
+        }
+
+        .priceLine small,
+        .liveMeta small {
+          color: #a7afb8;
+          font-size: 9px;
+        }
+
+        .kapisButton {
+          width: 100%;
+          margin-top: 10px;
+          border: 0;
+          border-radius: 8px;
+          padding: 10px;
+          background: linear-gradient(135deg, #ffd45f, #f3aa00);
+          color: #0a0c0f;
+          font-weight: 950;
+          font-size: 11px;
+        }
+
+        .kapisButton.large {
+          padding: 14px;
+          font-size: 14px;
+        }
+
+        .liveGrid {
+          display: grid;
+          grid-template-columns: repeat(5, minmax(0, 1fr));
+          gap: 10px;
+        }
+
+        .liveCard {
+          padding: 9px;
+        }
+
+        .liveImage {
+          height: 120px;
+        }
+
+        .sellerLine {
+          color: #7796bb;
+          font-size: 9px;
+        }
+
+        .imageFallback {
+          width: 100%;
+          height: 100%;
+          display: grid;
+          place-items: center;
+          font-size: 54px;
+        }
+
+        .bottomGrid {
+          display: grid;
+          grid-template-columns: 1fr 1fr 1.15fr;
+          gap: 16px;
+        }
+
+        .compactPanel {
+          margin: 0;
+        }
+
+        .soldRow,
+        .sellerRow,
+        .viewedRow,
+        .startingRow {
+          display: grid;
+          align-items: center;
+          gap: 10px;
+          padding: 9px 0;
+          border-top: 1px solid #18222c;
+        }
+
+        .soldRow {
+          grid-template-columns: auto 1fr auto auto;
+        }
+
+        .soldRow span {
+          color: #a6b0ba;
+        }
+
+        .soldRow strong,
+        .soldRow b {
+          font-size: 10px;
+        }
+
+        .soldRow em {
+          color: #2bcf73;
+          font-size: 9px;
+          font-style: normal;
+        }
+
+        .sellerRow {
+          grid-template-columns: auto 1fr auto;
+        }
+
+        .sellerRow > span {
+          width: 34px;
+          height: 34px;
+          display: grid;
+          place-items: center;
+          border-radius: 50%;
+          background: #ffc43d;
+          color: #0a0c0f;
+          font-size: 10px;
+          font-weight: 950;
+        }
+
+        .sellerRow div {
+          display: grid;
+        }
+
+        .sellerRow strong,
+        .sellerRow b {
+          font-size: 10px;
+        }
+
+        .sellerRow small {
+          color: #ffc43d;
+          font-size: 9px;
+        }
+
+        .sponsorCard {
+          position: relative;
+          min-height: 210px;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          overflow: hidden;
+          border: 1px solid #49350f;
+          border-radius: 16px;
+          background: linear-gradient(135deg, #2b1b08, #0b0d0f);
+        }
+
+        .sponsorCard > div {
+          position: relative;
+          z-index: 2;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          padding: 24px;
+        }
+
+        .sponsorCard span {
+          color: #8a7650;
+          font-size: 8px;
+        }
+
+        .sponsorCard h2 {
+          margin: 10px 0 4px;
+          font-size: 28px;
+        }
+
+        .sponsorCard p {
+          margin: 0;
+          color: #d4d7dc;
+        }
+
+        .sponsorCard button {
+          align-self: flex-start;
+          margin-top: 18px;
+          border: 0;
+          border-radius: 8px;
+          padding: 10px 13px;
+          background: #ffc43d;
+          color: #0b0d0f;
+          font-weight: 900;
+        }
+
+        .sponsorCard img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          opacity: 0.72;
+          mask-image: linear-gradient(to right, transparent, black 40%);
+        }
+
+        .sidebar {
+          display: grid;
+          align-content: start;
+          gap: 16px;
+          padding-top: 4px;
+        }
+
+        .activityItem {
+          display: grid;
+          grid-template-columns: auto 1fr;
+          gap: 9px;
+          padding: 10px 0;
+          border-top: 1px solid #18222c;
+        }
+
+        .activityAvatar {
+          width: 32px;
+          height: 32px;
+          display: grid;
+          place-items: center;
+          border-radius: 50%;
+          background: linear-gradient(135deg, #303a45, #141a20);
+          font-size: 11px;
+          font-weight: 900;
+        }
+
+        .activityItem p {
+          margin: 0;
+          color: #c4cad1;
+          font-size: 10px;
+          line-height: 1.45;
+        }
+
+        .activityItem p strong {
+          color: white;
+        }
+
+        .activityItem p b {
+          color: #ffc43d;
+        }
+
+        .activityItem small {
+          color: #717c88;
+          font-size: 8px;
+        }
+
+        .pulseCard {
+          display: grid;
+          grid-template-columns: 1fr auto;
+          align-items: center;
+          gap: 10px;
+          margin-top: 14px;
+          padding: 14px;
+          border: 1px solid #5a4210;
+          border-radius: 12px;
+          background: linear-gradient(135deg, #2a1d08, #11100c);
+        }
+
+        .pulseCard div:first-child {
+          display: grid;
+        }
+
+        .pulseCard span,
+        .pulseCard p {
+          color: #d8dde3;
+          font-size: 9px;
+        }
+
+        .pulseCard strong {
+          color: #ffc43d;
+          font-size: 18px;
+        }
+
+        .pulseCard p {
+          margin: 3px 0 0;
+        }
+
+        .pulseChart {
+          color: #ffc43d;
+          letter-spacing: -2px;
+        }
+
+        .viewedRow,
+        .startingRow {
+          grid-template-columns: auto 1fr;
+        }
+
+        .viewedRow > span,
+        .startingRow > span {
+          width: 48px;
+          height: 48px;
+          display: grid;
+          place-items: center;
+          border-radius: 9px;
+          background: #111923;
+          font-size: 26px;
+        }
+
+        .viewedRow div,
+        .startingRow div {
+          display: grid;
+        }
+
+        .viewedRow strong,
+        .startingRow strong {
+          font-size: 10px;
+        }
+
+        .viewedRow small,
+        .startingRow small {
+          margin-top: 3px;
+          color: #8a95a1;
+          font-size: 8px;
+        }
+
+        .startingRow b {
+          margin-top: 4px;
+          color: #ffc43d;
+          font-size: 9px;
+        }
+
+        .profileDock {
+          display: grid;
+          grid-template-columns: 1fr minmax(280px, 0.7fr);
+          align-items: center;
+          gap: 18px;
+          margin: 0 22px 24px;
+          padding: 22px;
+          border: 1px solid #1c2630;
+          border-radius: 16px;
+          background: #0a1016;
+        }
+
+        .profileDock h2 {
+          margin: 4px 0 0;
         }
 
         .profileFields {
           display: grid;
           grid-template-columns: 1fr auto;
-          gap: 10px;
+          gap: 8px;
         }
 
-        .profileFields input {
-          border: 1px solid #353841;
-          border-radius: 12px;
-          padding: 13px;
-          background: #1c1e24;
+        .profileFields input,
+        form input,
+        form textarea,
+        form select {
+          width: 100%;
+          border: 1px solid #2a3540;
+          border-radius: 10px;
+          padding: 12px;
+          background: #0b1219;
           color: white;
           outline: none;
         }
 
         .profileFields button {
           border: 0;
-          border-radius: 12px;
-          padding: 13px 15px;
-          background: #ffc63d;
+          border-radius: 10px;
+          padding: 12px 15px;
+          background: #ffc43d;
           font-weight: 900;
         }
 
-        footer {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 20px;
-          padding: 28px clamp(18px, 5vw, 80px) 92px;
-          border-top: 1px solid #e3e5e9;
-          color: #858b96;
-          font-size: 13px;
-        }
-
-        footer div {
-          display: grid;
-          gap: 4px;
-        }
-
-        footer strong {
-          color: #15171d;
-        }
-
-        .mobileNav {
+        .bottomNav {
           position: fixed;
-          left: 50%;
-          bottom: 16px;
-          z-index: 40;
-          display: none;
-          width: min(calc(100% - 24px), 520px);
+          left: 22px;
+          right: 22px;
+          bottom: 14px;
+          z-index: 45;
+          display: grid;
           grid-template-columns: repeat(5, 1fr);
           padding: 8px;
-          border: 1px solid rgba(255, 255, 255, 0.12);
-          border-radius: 22px;
-          background: rgba(17, 18, 22, 0.94);
-          box-shadow: 0 18px 54px rgba(0, 0, 0, 0.25);
-          transform: translateX(-50%);
+          border: 1px solid #1c2630;
+          border-radius: 18px;
+          background: rgba(8, 13, 18, 0.94);
+          box-shadow: 0 16px 50px rgba(0, 0, 0, 0.42);
           backdrop-filter: blur(18px);
         }
 
-        .mobileNav button {
+        .bottomNav button {
           display: grid;
           place-items: center;
-          gap: 3px;
+          gap: 2px;
           border: 0;
-          border-radius: 14px;
-          padding: 8px 4px;
           background: transparent;
-          color: #c4c8d0;
+          color: #a4adb7;
           font-size: 9px;
           font-weight: 800;
         }
 
-        .mobileNav button span {
-          font-size: 18px;
+        .bottomNav button span {
+          font-size: 21px;
         }
 
-        .mobileNav .sellNavButton {
-          margin-top: -22px;
-          background: #ffc63d;
-          color: #111216;
-          box-shadow: 0 10px 28px rgba(255, 198, 61, 0.28);
+        .bottomNav .active {
+          color: #ffc43d;
         }
 
-        .mobileNav .sellNavButton span {
-          font-size: 24px;
+        .bottomNav .centerAction {
+          margin-top: -24px;
+        }
+
+        .bottomNav .centerAction span {
+          width: 54px;
+          height: 54px;
+          display: grid;
+          place-items: center;
+          border: 4px solid #3d2c07;
+          border-radius: 50%;
+          background: #ffc43d;
+          color: #0b0d0f;
+          box-shadow: 0 0 30px rgba(255, 196, 61, 0.35);
         }
 
         .toast {
           position: fixed;
-          right: 20px;
-          bottom: 20px;
-          z-index: 60;
-          max-width: min(420px, calc(100vw - 40px));
-          padding: 14px 16px;
-          border-radius: 14px;
-          background: #111216;
+          right: 22px;
+          bottom: 92px;
+          z-index: 70;
+          max-width: 420px;
+          padding: 13px 15px;
+          border: 1px solid #33404d;
+          border-radius: 12px;
+          background: #0d151d;
           color: white;
-          box-shadow: 0 18px 50px rgba(0, 0, 0, 0.2);
-          font-size: 13px;
-        }
-
-        .detailModal {
-          position: relative;
-          width: min(100%, 920px);
-          max-height: calc(100vh - 40px);
-          overflow-y: auto;
-          display: grid;
-          grid-template-columns: minmax(0, 1.08fr) minmax(330px, 0.92fr);
-          border-radius: 26px;
-          background: white;
-          box-shadow: 0 34px 110px rgba(0, 0, 0, 0.38);
-        }
-
-        .detailMedia {
-          position: relative;
-          min-height: 560px;
-          overflow: hidden;
-          border-radius: 26px 0 0 26px;
-          background: linear-gradient(145deg, #eceef1, #d6dae0);
-        }
-
-        .detailMedia img {
-          width: 100%;
-          height: 100%;
-          min-height: 560px;
-          object-fit: cover;
-        }
-
-        .detailPlaceholder {
-          min-height: 560px;
-          display: grid;
-          place-items: center;
-          font-size: 84px;
-          filter: grayscale(1);
-          opacity: 0.62;
-        }
-
-        .detailContent {
-          display: grid;
-          align-content: start;
-          padding: 34px;
-        }
-
-        .detailTopline {
-          display: flex;
-          justify-content: space-between;
-          gap: 16px;
-          color: #8d939e;
           font-size: 11px;
-        }
-
-        .detailTopline strong {
-          color: #e54954;
-        }
-
-        .detailContent h2 {
-          margin: 18px 0 10px;
-          font-size: clamp(28px, 4vw, 42px);
-          line-height: 1.05;
-          letter-spacing: -0.045em;
-        }
-
-        .detailDescription {
-          margin: 0;
-          color: #737a86;
-          line-height: 1.65;
-        }
-
-        .detailPriceBox {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 10px;
-          margin: 26px 0 16px;
-        }
-
-        .detailPriceBox > div {
-          display: grid;
-          gap: 5px;
-          padding: 16px;
-          border-radius: 16px;
-          background: #f4f5f7;
-        }
-
-        .detailPriceBox span {
-          color: #8d939e;
-          font-size: 11px;
-        }
-
-        .detailPriceBox strong {
-          font-size: 20px;
-        }
-
-        .sellerCard {
-          display: grid;
-          grid-template-columns: auto 1fr auto;
-          align-items: center;
-          gap: 12px;
-          margin: 8px 0 18px;
-          padding: 14px;
-          border: 1px solid #e5e7eb;
-          border-radius: 16px;
-        }
-
-        .sellerAvatar {
-          width: 42px;
-          height: 42px;
-          display: grid;
-          place-items: center;
-          border-radius: 50%;
-          background: #111216;
-          color: #ffc63d;
-          font-weight: 950;
-        }
-
-        .sellerCard div {
-          display: grid;
-          gap: 3px;
-        }
-
-        .sellerCard small {
-          color: #9197a2;
-        }
-
-        .sellerScore {
-          color: #a87300;
-          font-weight: 900;
-        }
-
-        .detailBidButton {
-          border: 0;
-          border-radius: 14px;
-          padding: 16px;
-          background: #ffc63d;
-          color: #111216;
-          font-weight: 950;
-        }
-
-        .detailSafety {
-          display: flex;
-          align-items: center;
-          gap: 11px;
-          margin-top: 14px;
-          padding: 14px;
-          border-radius: 15px;
-          background: #edf8f1;
-        }
-
-        .detailSafety div {
-          display: grid;
-          gap: 3px;
-        }
-
-        .detailSafety small {
-          color: #6b7b70;
+          box-shadow: 0 16px 44px rgba(0, 0, 0, 0.34);
         }
 
         .modalBackdrop {
           position: fixed;
           inset: 0;
-          z-index: 50;
+          z-index: 80;
           display: grid;
           place-items: center;
-          padding: 20px;
-          background: rgba(7, 8, 11, 0.72);
-          backdrop-filter: blur(10px);
+          padding: 18px;
+          background: rgba(2, 5, 8, 0.82);
+          backdrop-filter: blur(12px);
+        }
+
+        .modalCard,
+        .detailModal {
+          position: relative;
+          width: min(100%, 460px);
+          max-height: calc(100vh - 36px);
+          overflow-y: auto;
+          border: 1px solid #2a3540;
+          border-radius: 18px;
+          background: #091017;
+          box-shadow: 0 30px 100px rgba(0, 0, 0, 0.5);
         }
 
         .modalCard {
-          position: relative;
-          width: min(100%, 460px);
-          max-height: calc(100vh - 40px);
-          overflow-y: auto;
-          padding: 28px;
-          border-radius: 24px;
-          background: white;
-          box-shadow: 0 30px 100px rgba(0, 0, 0, 0.35);
+          padding: 24px;
         }
 
-        .sellModal {
-          width: min(100%, 620px);
+        .wideModal {
+          width: min(100%, 640px);
         }
 
         .closeButton {
           position: absolute;
-          top: 14px;
-          right: 14px;
-          width: 36px;
-          height: 36px;
+          top: 12px;
+          right: 12px;
+          z-index: 3;
+          width: 34px;
+          height: 34px;
           border: 0;
           border-radius: 50%;
-          background: #f0f2f5;
-          color: #444a55;
-          font-size: 22px;
+          background: #17212b;
+          color: white;
+          font-size: 20px;
         }
 
         .modalBrand {
           display: flex;
           align-items: center;
           gap: 12px;
-          margin-bottom: 22px;
+          margin-bottom: 20px;
         }
 
         .modalBrand div {
@@ -1944,68 +2125,48 @@ export default function HomePage() {
         }
 
         .modalBrand small {
-          color: #9096a1;
+          color: #8b96a2;
         }
 
         .tabs {
           display: grid;
           grid-template-columns: 1fr 1fr;
-          gap: 8px;
-          margin-bottom: 20px;
+          gap: 6px;
+          margin-bottom: 18px;
           padding: 5px;
-          border-radius: 14px;
-          background: #f1f3f5;
+          border-radius: 12px;
+          background: #111923;
         }
 
         .tabs button {
           border: 0;
-          border-radius: 10px;
-          padding: 11px;
+          border-radius: 9px;
+          padding: 10px;
           background: transparent;
-          color: #7f8591;
-          font-weight: 850;
+          color: #88939f;
+          font-weight: 800;
         }
 
         .tabs button.active {
-          background: white;
-          color: #111216;
-          box-shadow: 0 4px 14px rgba(17, 18, 22, 0.08);
+          background: #ffc43d;
+          color: #0a0c0f;
         }
 
         form {
           display: grid;
-          gap: 15px;
+          gap: 14px;
         }
 
-        label {
+        form label {
           display: grid;
           gap: 7px;
-          color: #555b66;
-          font-size: 12px;
+          color: #b8c0c8;
+          font-size: 11px;
           font-weight: 800;
         }
 
-        input,
-        textarea,
-        select {
-          width: 100%;
-          border: 1px solid #dfe2e7;
-          border-radius: 12px;
-          padding: 13px 14px;
-          background: white;
-          color: #17191f;
-          outline: none;
-        }
-
-        textarea {
+        form textarea {
           resize: vertical;
-        }
-
-        input:focus,
-        textarea:focus,
-        select:focus {
-          border-color: #d89f0d;
-          box-shadow: 0 0 0 3px rgba(216, 159, 13, 0.12);
         }
 
         .formGrid {
@@ -2014,179 +2175,241 @@ export default function HomePage() {
           gap: 12px;
         }
 
-        .photoUploader {
-          position: relative;
-          overflow: hidden;
-          min-height: 190px;
-          border: 1px dashed #cfd4dc;
-          border-radius: 16px;
-          background: #f7f8fa;
-        }
-
-        .fileInput {
-          position: absolute;
-          inset: 0;
-          z-index: 2;
-          width: 100%;
-          height: 100%;
-          cursor: pointer;
-          opacity: 0;
-        }
-
-        .photoPreview {
-          width: 100%;
-          height: 240px;
-          display: block;
-          object-fit: cover;
-        }
-
-        .photoPlaceholder {
-          min-height: 190px;
-          display: grid;
-          place-content: center;
-          justify-items: center;
-          gap: 7px;
-          padding: 24px;
-          color: #737b87;
-          text-align: center;
-        }
-
-        .photoPlaceholder strong {
-          color: #191b20;
-          font-size: 16px;
-        }
-
-        .photoPlaceholder span {
-          font-size: 11px;
-          font-weight: 600;
-        }
-
         .modalPrimary {
           border: 0;
-          border-radius: 12px;
-          padding: 14px;
-          background: #111216;
-          color: white;
-          font-weight: 900;
+          border-radius: 10px;
+          padding: 13px;
+          background: #ffc43d;
+          color: #0a0c0f;
+          font-weight: 950;
         }
 
-        .forgotButton {
+        .linkButton {
           border: 0;
           background: transparent;
-          color: #c88f00;
+          color: #ffc43d;
           font-weight: 800;
         }
 
-        .modalMessage {
-          margin: 16px 0 0;
-          color: #8a909b;
-          font-size: 12px;
-          line-height: 1.5;
+        .imageUploader {
+          overflow: hidden;
+          min-height: 190px;
+          border: 1px dashed #536170;
+          border-radius: 14px;
+          background: #0c141c;
+          cursor: pointer;
         }
 
-        @media (max-width: 980px) {
-          .auctionGrid {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-          }
+        .imageUploader input {
+          display: none;
+        }
 
-          .hero {
+        .imageUploader img {
+          width: 100%;
+          height: 220px;
+          object-fit: cover;
+        }
+
+        .imageUploader > div {
+          min-height: 190px;
+          display: grid;
+          place-items: center;
+          align-content: center;
+          gap: 8px;
+          color: #aeb6bf;
+        }
+
+        .imageUploader > div span {
+          font-size: 34px;
+        }
+
+        .imageUploader > div small {
+          color: #76818c;
+        }
+
+        .detailModal {
+          width: min(100%, 900px);
+          display: grid;
+          grid-template-columns: 1.1fr 0.9fr;
+          overflow: hidden;
+        }
+
+        .detailImage {
+          min-height: 500px;
+          background: #0b1117;
+        }
+
+        .detailContent {
+          position: relative;
+          padding: 34px;
+        }
+
+        .detailContent .liveBadge {
+          position: static;
+          display: inline-flex;
+        }
+
+        .detailContent h2 {
+          margin: 18px 0 10px;
+          font-size: 30px;
+        }
+
+        .detailContent p {
+          color: #929da8;
+          line-height: 1.6;
+        }
+
+        .detailPrice {
+          display: grid;
+          margin: 28px 0;
+          padding: 18px;
+          border: 1px solid #3c300f;
+          border-radius: 13px;
+          background: #151207;
+        }
+
+        .detailPrice span {
+          color: #9b9587;
+          font-size: 10px;
+        }
+
+        .detailPrice strong {
+          margin-top: 4px;
+          color: #ffc43d;
+          font-size: 34px;
+        }
+
+        .detailInfo {
+          display: flex;
+          justify-content: space-between;
+          padding: 12px 0;
+          border-bottom: 1px solid #202a34;
+          color: #9aa4ae;
+          font-size: 12px;
+        }
+
+        .detailInfo b {
+          color: white;
+        }
+
+        @media (max-width: 1180px) {
+          .dashboard {
             grid-template-columns: 1fr;
           }
 
-          .heroMetric {
-            max-width: 420px;
+          .sidebar {
+            grid-template-columns: repeat(3, 1fr);
+          }
+
+          .categoryGrid {
+            grid-template-columns: repeat(4, minmax(88px, 1fr));
+          }
+
+          .liveGrid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
           }
         }
 
         @media (max-width: 820px) {
-          .trustStrip {
+          .navbar {
+            grid-template-columns: 1fr auto;
+            gap: 12px;
+          }
+
+          .navSearch {
+            grid-column: 1 / -1;
+            grid-row: 2;
+            max-width: none;
+          }
+
+          .brand strong,
+          .sellButton,
+          .iconButton {
+            display: none;
+          }
+
+          .dashboard {
+            padding: 0 12px 28px;
+          }
+
+          .hero {
             grid-template-columns: 1fr;
-            margin-top: -16px;
           }
 
-          .trustStrip article + article {
-            border-top: 1px solid #eceef2;
-            border-left: 0;
+          .heroVisual {
+            display: none;
           }
 
-          .categoryStrip {
-            display: flex;
+          .heroTrust {
+            grid-template-columns: repeat(2, 1fr);
+          }
+
+          .stats {
+            grid-template-columns: repeat(2, 1fr);
+          }
+
+          .endingGrid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+
+          .liveGrid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+
+          .bottomGrid,
+          .sidebar {
+            grid-template-columns: 1fr;
+          }
+
+          .profileDock {
+            grid-template-columns: 1fr;
+            margin: 0 12px 24px;
           }
         }
 
-        @media (max-width: 760px) {
+        @media (max-width: 560px) {
+          .heroCopy {
+            padding: 30px 20px;
+          }
+
+          .hero h1 {
+            font-size: 42px;
+          }
+
+          .categoryGrid {
+            display: flex;
+            overflow-x: auto;
+          }
+
+          .categoryGrid button {
+            min-width: 90px;
+          }
+
+          .endingGrid,
+          .liveGrid {
+            grid-template-columns: 1fr;
+          }
+
+          .stats {
+            grid-template-columns: 1fr;
+          }
+
           .detailModal {
             grid-template-columns: 1fr;
           }
 
-          .detailMedia,
-          .detailMedia img,
-          .detailPlaceholder {
-            min-height: 300px;
+          .detailImage {
+            min-height: 280px;
           }
 
-          .detailMedia {
-            border-radius: 26px 26px 0 0;
-          }
-
-          .detailContent {
-            padding: 24px;
-          }
-
-          .detailPriceBox {
-            grid-template-columns: 1fr;
-          }
-        }
-
-        @media (max-width: 680px) {
-          .topbar {
-            align-items: flex-start;
-          }
-
-          .livePill {
-            display: none;
-          }
-
-          .brandText small,
-          .userMenu strong {
-            display: none;
-          }
-
-          .hero {
-            padding-top: 52px;
-          }
-
-          .hero h1 {
-            font-size: 50px;
-          }
-
-          .auctionGrid {
+          .formGrid,
+          .profileFields {
             grid-template-columns: 1fr;
           }
 
-          .sectionHeader,
-          .profileStrip,
-          footer {
-            align-items: stretch;
-            grid-template-columns: 1fr;
-            flex-direction: column;
-          }
-
-          .mobileNav {
-            display: grid;
-          }
-
-          .profileFields,
-          .formGrid {
-            grid-template-columns: 1fr;
-          }
-
-          .searchBar {
-            grid-template-columns: auto 1fr;
-          }
-
-          .searchBar button {
-            grid-column: 1 / -1;
+          .bottomNav {
+            left: 10px;
+            right: 10px;
           }
         }
       `}</style>
