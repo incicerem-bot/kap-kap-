@@ -17,6 +17,7 @@ export default function HomePage() {
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("Oturum kontrol ediliyor...");
   const [loading, setLoading] = useState(false);
+  const [profileName, setProfileName] = useState("");
 
   useEffect(() => {
     const supabase = getSupabaseBrowserClient();
@@ -37,6 +38,7 @@ export default function HomePage() {
       }
 
       setUser(data.session?.user ?? null);
+      setProfileName(data.session?.user?.user_metadata?.full_name ?? "");
       setMessage(
         data.session?.user
           ? "KapışKapış hesabına giriş yapıldı."
@@ -49,6 +51,7 @@ export default function HomePage() {
     } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!mounted) return;
       setUser(session?.user ?? null);
+      setProfileName(session?.user?.user_metadata?.full_name ?? "");
       setMessage(
         session?.user
           ? "KapışKapış hesabına giriş yapıldı."
@@ -131,6 +134,64 @@ export default function HomePage() {
     }
   }
 
+  async function handleForgotPassword() {
+    const supabase = getSupabaseBrowserClient();
+    const cleanEmail = email.trim().toLowerCase();
+
+    if (!supabase) {
+      setMessage("Supabase bağlantısı bulunamadı.");
+      return;
+    }
+
+    if (!cleanEmail) {
+      setMessage("Önce e-posta adresini yaz.");
+      return;
+    }
+
+    setLoading(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
+      redirectTo: window.location.origin,
+    });
+    setLoading(false);
+
+    if (error) {
+      setMessage(`Şifre sıfırlama hatası: ${error.message}`);
+      return;
+    }
+
+    setMessage("Şifre sıfırlama bağlantısı e-posta adresine gönderildi.");
+  }
+
+  async function handleProfileSave() {
+    const supabase = getSupabaseBrowserClient();
+
+    if (!supabase) {
+      setMessage("Supabase bağlantısı bulunamadı.");
+      return;
+    }
+
+    if (profileName.trim().length < 2) {
+      setMessage("Ad soyad en az 2 karakter olmalı.");
+      return;
+    }
+
+    setLoading(true);
+    const { data, error } = await supabase.auth.updateUser({
+      data: {
+        full_name: profileName.trim(),
+      },
+    });
+    setLoading(false);
+
+    if (error) {
+      setMessage(`Profil güncelleme hatası: ${error.message}`);
+      return;
+    }
+
+    setUser(data.user);
+    setMessage("Profil bilgilerin kaydedildi.");
+  }
+
   async function handleSignOut() {
     const supabase = getSupabaseBrowserClient();
 
@@ -172,6 +233,25 @@ export default function HomePage() {
               <span>Hesap e-postası</span>
               <strong>{user.email}</strong>
             </div>
+
+            <label>
+              Ad soyad
+              <input
+                value={profileName}
+                onChange={(event) => setProfileName(event.target.value)}
+                placeholder="Ad soyad"
+                autoComplete="name"
+              />
+            </label>
+
+            <button
+              className="primaryButton"
+              type="button"
+              onClick={handleProfileSave}
+              disabled={loading}
+            >
+              {loading ? "Kaydediliyor..." : "Profili kaydet"}
+            </button>
 
             <p className="message">{message}</p>
 
@@ -256,6 +336,17 @@ export default function HomePage() {
                     ? "Giriş yap"
                     : "Hesap oluştur"}
               </button>
+
+              {mode === "login" && (
+                <button
+                  className="linkButton"
+                  type="button"
+                  onClick={handleForgotPassword}
+                  disabled={loading}
+                >
+                  Şifremi unuttum
+                </button>
+              )}
             </form>
 
             <p className="message">{message}</p>
@@ -405,6 +496,15 @@ export default function HomePage() {
           border: 1px solid #374151;
           background: transparent;
           color: white;
+        }
+
+        .linkButton {
+          border: 0;
+          background: transparent;
+          color: #ffcb47;
+          cursor: pointer;
+          font-weight: 700;
+          padding: 4px;
         }
 
         button:disabled {
