@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import {
   getSupabaseBrowserClient,
@@ -22,15 +22,39 @@ type Auction = {
   created_at: string;
 };
 
+function money(value: number) {
+  return new Intl.NumberFormat("tr-TR", {
+    style: "currency",
+    currency: "TRY",
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+function remainingTime(endsAt: string) {
+  const diff = new Date(endsAt).getTime() - Date.now();
+
+  if (diff <= 0) return "Sona erdi";
+
+  const hours = Math.floor(diff / 3_600_000);
+  const minutes = Math.floor((diff % 3_600_000) / 60_000);
+
+  if (hours >= 24) {
+    return `${Math.floor(hours / 24)} gün ${hours % 24} saat`;
+  }
+
+  return `${hours} sa ${minutes} dk`;
+}
+
 export default function HomePage() {
   const [mode, setMode] = useState<AuthMode>("login");
   const [user, setUser] = useState<User | null>(null);
   const [fullName, setFullName] = useState("");
+  const [profileName, setProfileName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("Oturum kontrol ediliyor...");
   const [loading, setLoading] = useState(false);
-  const [profileName, setProfileName] = useState("");
+
   const [auctions, setAuctions] = useState<Auction[]>([]);
   const [auctionTitle, setAuctionTitle] = useState("");
   const [auctionDescription, setAuctionDescription] = useState("");
@@ -38,9 +62,12 @@ export default function HomePage() {
   const [minIncrement, setMinIncrement] = useState("100");
   const [durationHours, setDurationHours] = useState("24");
 
+  const [showAuth, setShowAuth] = useState(false);
+  const [showSell, setShowSell] = useState(false);
+  const [query, setQuery] = useState("");
+
   async function loadAuctions() {
     const supabase = getSupabaseBrowserClient();
-
     if (!supabase) return;
 
     const { data, error } = await supabase
@@ -50,7 +77,7 @@ export default function HomePage() {
       )
       .eq("status", "active")
       .order("created_at", { ascending: false })
-      .limit(20);
+      .limit(24);
 
     if (error) {
       setMessage(`İlanlar yüklenemedi: ${error.message}`);
@@ -88,9 +115,7 @@ export default function HomePage() {
           .eq("id", data.session.user.id)
           .maybeSingle();
 
-        if (profile?.full_name) {
-          setProfileName(profile.full_name);
-        }
+        if (profile?.full_name) setProfileName(profile.full_name);
       }
 
       setMessage(
@@ -106,6 +131,7 @@ export default function HomePage() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!mounted) return;
+
       setUser(session?.user ?? null);
       setProfileName(session?.user?.user_metadata?.full_name ?? "");
       setMessage(
@@ -175,6 +201,7 @@ export default function HomePage() {
           setUser(data.user);
           setProfileName(fullName.trim());
           setMessage("Hesabın oluşturuldu ve giriş yapıldı.");
+          setShowAuth(false);
         } else {
           setMessage(
             "Hesabın oluşturuldu. E-posta adresine gelen doğrulama bağlantısına tıkla."
@@ -192,7 +219,9 @@ export default function HomePage() {
         }
 
         setUser(data.user);
+        setProfileName(data.user.user_metadata?.full_name ?? "");
         setMessage("KapışKapış hesabına giriş yapıldı.");
+        setShowAuth(false);
       }
     } finally {
       setLoading(false);
@@ -230,18 +259,19 @@ export default function HomePage() {
   async function handleProfileSave() {
     const supabase = getSupabaseBrowserClient();
 
-    if (!supabase) {
-      setMessage("Supabase bağlantısı bulunamadı.");
+    if (!supabase || !user) {
+      setMessage("Önce giriş yapmalısın.");
       return;
     }
 
-    if (profileName.trim().length < 2) {
+    const cleanName = profileName.trim();
+
+    if (cleanName.length < 2) {
       setMessage("Ad soyad en az 2 karakter olmalı.");
       return;
     }
 
     setLoading(true);
-    const cleanName = profileName.trim();
 
     const { data, error } = await supabase.auth.updateUser({
       data: {
@@ -271,7 +301,7 @@ export default function HomePage() {
     }
 
     setUser(data.user);
-    setMessage("Profil bilgilerin veritabanına kaydedildi.");
+    setMessage("Profil bilgilerin kaydedildi.");
   }
 
   async function handleCreateAuction(event: FormEvent<HTMLFormElement>) {
@@ -281,6 +311,7 @@ export default function HomePage() {
 
     if (!supabase || !user) {
       setMessage("İlan vermek için giriş yapmalısın.");
+      setShowAuth(true);
       return;
     }
 
@@ -338,12 +369,12 @@ export default function HomePage() {
     setMinIncrement("100");
     setDurationHours("24");
     setMessage("İlanın yayınlandı.");
+    setShowSell(false);
     await loadAuctions();
   }
 
   async function handleSignOut() {
     const supabase = getSupabaseBrowserClient();
-
     if (!supabase) return;
 
     setLoading(true);
@@ -361,156 +392,236 @@ export default function HomePage() {
     setMessage("Güvenli şekilde çıkış yapıldı.");
   }
 
+  const filteredAuctions = useMemo(() => {
+    const normalized = query.trim().toLocaleLowerCase("tr");
+    if (!normalized) return auctions;
+
+    return auctions.filter((auction) =>
+      `${auction.title} ${auction.description}`
+        .toLocaleLowerCase("tr")
+        .includes(normalized)
+    );
+  }, [auctions, query]);
+
   return (
-    <main className="page">
-      <section className="brand">
-        <div className="logo">KK</div>
-        <div>
-          <h1>KapışKapış</h1>
-          <p>Beğendiysen bekleme, KapışKapış kap!</p>
+    <main className="appShell">
+      <header className="topbar">
+        <button className="brandButton" type="button" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
+          <span className="brandMark">KK</span>
+          <span className="brandText">
+            <strong>KapışKapış</strong>
+            <small>Teklif ver, değerini bul</small>
+          </span>
+        </button>
+
+        <div className="topActions">
+          <span className="livePill">● SUPABASE CANLI</span>
+
+          {user ? (
+            <div className="userMenu">
+              <span className="userAvatar">
+                {(profileName || user.email || "K").slice(0, 1).toLocaleUpperCase("tr")}
+              </span>
+              <div>
+                <strong>{profileName || "Kullanıcı"}</strong>
+                <button type="button" onClick={handleSignOut}>Çıkış yap</button>
+              </div>
+            </div>
+          ) : (
+            <button
+              className="loginButton"
+              type="button"
+              onClick={() => setShowAuth(true)}
+            >
+              Giriş yap
+            </button>
+          )}
+        </div>
+      </header>
+
+      <section className="hero">
+        <div className="heroContent">
+          <span className="eyebrow">CANLI AÇIK ARTIRMALAR</span>
+          <h1>
+            İkinci el ürünün
+            <br />
+            gerçek değerini bul.
+          </h1>
+          <p>
+            Doğrulanmış kullanıcılar, güvenli teklifler ve gerçek zamanlı
+            açık artırmalar.
+          </p>
+
+          <div className="heroActions">
+            <button
+              className="primaryCta"
+              type="button"
+              onClick={() => {
+                if (!user) {
+                  setShowAuth(true);
+                  return;
+                }
+                setShowSell(true);
+              }}
+            >
+              Ürününü açık artırmaya çıkar <span>→</span>
+            </button>
+
+            <button className="secondaryCta" type="button" onClick={() => document.getElementById("auctions")?.scrollIntoView({ behavior: "smooth" })}>
+              Canlı ilanları keşfet
+            </button>
+          </div>
+        </div>
+
+        <div className="heroMetric">
+          <span className="metricLabel">CANLI PAZAR</span>
+          <strong>{auctions.length}</strong>
+          <span>Aktif açık artırma</span>
+          <small>Supabase üzerinden anlık yükleniyor</small>
         </div>
       </section>
 
-      <section className="card">
-        {user ? (
-          <>
-            <span className="status success">● CANLI BAĞLANTI</span>
-            <h2>Hoş geldin</h2>
-            <p className="muted">{user.user_metadata?.full_name || user.email}</p>
+      <section className="searchSection">
+        <div className="searchBar">
+          <span>⌕</span>
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Telefon, bilgisayar, oyun konsolu ara..."
+          />
+          <button type="button" onClick={loadAuctions}>Yenile</button>
+        </div>
+      </section>
 
-            <div className="accountBox">
-              <span>Hesap e-postası</span>
-              <strong>{user.email}</strong>
+      <section className="categoryStrip">
+        {["Tümü", "Telefon", "Bilgisayar", "Oyun", "Ev & Yaşam"].map((item) => (
+          <button type="button" key={item}>{item}</button>
+        ))}
+      </section>
+
+      <section className="auctionSection" id="auctions">
+        <div className="sectionHeader">
+          <div>
+            <span className="eyebrow">ŞU ANDA CANLI</span>
+            <h2>Kaçırılmayacak açık artırmalar</h2>
+          </div>
+          <span className="resultCount">{filteredAuctions.length} ilan</span>
+        </div>
+
+        {filteredAuctions.length === 0 ? (
+          <div className="emptyState">
+            <div className="emptyIcon">⌛</div>
+            <h3>Henüz aktif ilan yok</h3>
+            <p>İlk açık artırmayı sen başlat.</p>
+            <button
+              type="button"
+              onClick={() => {
+                if (!user) {
+                  setShowAuth(true);
+                  return;
+                }
+                setShowSell(true);
+              }}
+            >
+              İlan oluştur
+            </button>
+          </div>
+        ) : (
+          <div className="auctionGrid">
+            {filteredAuctions.map((auction, index) => (
+              <article className="auctionCard" key={auction.id}>
+                <div className={`imagePlaceholder imageTone${(index % 4) + 1}`}>
+                  <span className="liveBadge">CANLI</span>
+                  <span className="categoryIcon">🔨</span>
+                </div>
+
+                <div className="cardBody">
+                  <div className="cardTopline">
+                    <span>Doğrulanmış satıcı</span>
+                    <strong>{remainingTime(auction.ends_at)}</strong>
+                  </div>
+
+                  <h3>{auction.title}</h3>
+                  <p>{auction.description || "Ürün açıklaması eklenmemiş."}</p>
+
+                  <div className="bidRow">
+                    <div>
+                      <span>Güncel teklif</span>
+                      <strong>{money(Number(auction.current_price))}</strong>
+                    </div>
+
+                    <button type="button" onClick={() => setMessage("Teklif sistemi sıradaki adımda aktif edilecek.")}>
+                      Teklif ver
+                    </button>
+                  </div>
+
+                  <div className="cardFooter">
+                    <span>Minimum artış: {money(Number(auction.min_increment))}</span>
+                    <span>{new Date(auction.ends_at).toLocaleDateString("tr-TR")}</span>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {user && (
+        <section className="profileStrip">
+          <div>
+            <span className="eyebrow">HESABIM</span>
+            <h2>Profil bilgilerin</h2>
+          </div>
+
+          <div className="profileFields">
+            <input
+              value={profileName}
+              onChange={(event) => setProfileName(event.target.value)}
+              placeholder="Ad soyad"
+            />
+            <button type="button" onClick={handleProfileSave} disabled={loading}>
+              Profili kaydet
+            </button>
+          </div>
+        </section>
+      )}
+
+      <footer>
+        <strong>KapışKapış</strong>
+        <span>Beğendiysen bekleme, KapışKapış kap!</span>
+      </footer>
+
+      {message && <div className="toast">{message}</div>}
+
+      {showAuth && (
+        <div className="modalBackdrop" onMouseDown={() => setShowAuth(false)}>
+          <section className="modalCard" onMouseDown={(event) => event.stopPropagation()}>
+            <button className="closeButton" type="button" onClick={() => setShowAuth(false)}>×</button>
+
+            <div className="modalBrand">
+              <span className="brandMark">KK</span>
+              <div>
+                <strong>KapışKapış</strong>
+                <small>Hesabına eriş</small>
+              </div>
             </div>
 
-            <label>
-              Ad soyad
-              <input
-                value={profileName}
-                onChange={(event) => setProfileName(event.target.value)}
-                placeholder="Ad soyad"
-                autoComplete="name"
-              />
-            </label>
-
-            <button
-              className="primaryButton"
-              type="button"
-              onClick={handleProfileSave}
-              disabled={loading}
-            >
-              {loading ? "Kaydediliyor..." : "Profili kaydet"}
-            </button>
-
-            <div className="divider" />
-
-            <h2>İlk açık artırmanı oluştur</h2>
-            <form onSubmit={handleCreateAuction}>
-              <label>
-                İlan başlığı
-                <input
-                  value={auctionTitle}
-                  onChange={(event) => setAuctionTitle(event.target.value)}
-                  placeholder="Örnek: iPhone 15 Pro 256 GB"
-                  maxLength={100}
-                  required
-                />
-              </label>
-
-              <label>
-                Açıklama
-                <textarea
-                  value={auctionDescription}
-                  onChange={(event) => setAuctionDescription(event.target.value)}
-                  placeholder="Ürünün durumunu ve özelliklerini yaz"
-                  rows={4}
-                  maxLength={1000}
-                />
-              </label>
-
-              <div className="formGrid">
-                <label>
-                  Başlangıç fiyatı
-                  <input
-                    type="number"
-                    min="1"
-                    step="1"
-                    value={startPrice}
-                    onChange={(event) => setStartPrice(event.target.value)}
-                    required
-                  />
-                </label>
-
-                <label>
-                  Minimum artış
-                  <input
-                    type="number"
-                    min="1"
-                    step="1"
-                    value={minIncrement}
-                    onChange={(event) => setMinIncrement(event.target.value)}
-                    required
-                  />
-                </label>
-              </div>
-
-              <label>
-                Açık artırma süresi
-                <select
-                  value={durationHours}
-                  onChange={(event) => setDurationHours(event.target.value)}
-                >
-                  <option value="1">1 saat</option>
-                  <option value="6">6 saat</option>
-                  <option value="12">12 saat</option>
-                  <option value="24">24 saat</option>
-                  <option value="72">3 gün</option>
-                  <option value="168">7 gün</option>
-                </select>
-              </label>
-
-              <button className="primaryButton" type="submit" disabled={loading}>
-                {loading ? "Yayınlanıyor..." : "Açık artırmayı yayınla"}
-              </button>
-            </form>
-
-            <p className="message">{message}</p>
-
-            <button
-              className="secondaryButton"
-              type="button"
-              onClick={handleSignOut}
-              disabled={loading}
-            >
-              {loading ? "İşleniyor..." : "Çıkış yap"}
-            </button>
-          </>
-        ) : (
-          <>
             <div className="tabs">
               <button
                 type="button"
-                className={mode === "login" ? "tab active" : "tab"}
-                onClick={() => {
-                  setMode("login");
-                  setMessage("Hesabına giriş yap.");
-                }}
+                className={mode === "login" ? "active" : ""}
+                onClick={() => setMode("login")}
               >
                 Giriş yap
               </button>
               <button
                 type="button"
-                className={mode === "register" ? "tab active" : "tab"}
-                onClick={() => {
-                  setMode("register");
-                  setMessage("Yeni KapışKapış hesabını oluştur.");
-                }}
+                className={mode === "register" ? "active" : ""}
+                onClick={() => setMode("register")}
               >
                 Kayıt ol
               </button>
             </div>
-
-            <h2>{mode === "login" ? "Tekrar hoş geldin" : "Kapışmaya katıl"}</h2>
 
             <form onSubmit={handleSubmit}>
               {mode === "register" && (
@@ -519,7 +630,7 @@ export default function HomePage() {
                   <input
                     value={fullName}
                     onChange={(event) => setFullName(event.target.value)}
-                    placeholder="Kemal Akar"
+                    placeholder="Ad soyad"
                     autoComplete="name"
                   />
                 </label>
@@ -550,7 +661,7 @@ export default function HomePage() {
                 />
               </label>
 
-              <button className="primaryButton" type="submit" disabled={loading}>
+              <button className="modalPrimary" type="submit" disabled={loading}>
                 {loading
                   ? "İşleniyor..."
                   : mode === "login"
@@ -559,278 +670,737 @@ export default function HomePage() {
               </button>
 
               {mode === "login" && (
-                <button
-                  className="linkButton"
-                  type="button"
-                  onClick={handleForgotPassword}
-                  disabled={loading}
-                >
+                <button className="forgotButton" type="button" onClick={handleForgotPassword}>
                   Şifremi unuttum
                 </button>
               )}
             </form>
 
-            <p className="message">{message}</p>
-          </>
-        )}
-      </section>
-
-      <section className="card auctionListCard">
-        <div className="sectionHeading">
-          <div>
-            <span className="status success">● GERÇEK VERİ</span>
-            <h2>Canlı açık artırmalar</h2>
-          </div>
-          <button className="refreshButton" type="button" onClick={loadAuctions}>
-            Yenile
-          </button>
+            <p className="modalMessage">{message}</p>
+          </section>
         </div>
+      )}
 
-        {auctions.length === 0 ? (
-          <p className="muted">
-            Henüz aktif ilan yok. Giriş yapıp ilk açık artırmayı sen başlat.
-          </p>
-        ) : (
-          <div className="auctionList">
-            {auctions.map((auction) => (
-              <article className="auctionItem" key={auction.id}>
-                <div>
-                  <h3>{auction.title}</h3>
-                  <p>{auction.description || "Açıklama eklenmemiş."}</p>
-                </div>
-                <div className="auctionMeta">
-                  <span>Güncel fiyat</span>
-                  <strong>
-                    {Number(auction.current_price).toLocaleString("tr-TR")} TL
-                  </strong>
-                  <small>
-                    Bitiş:{" "}
-                    {new Date(auction.ends_at).toLocaleString("tr-TR", {
-                      dateStyle: "short",
-                      timeStyle: "short",
-                    })}
-                  </small>
-                </div>
-              </article>
-            ))}
-          </div>
-        )}
-      </section>
+      {showSell && (
+        <div className="modalBackdrop" onMouseDown={() => setShowSell(false)}>
+          <section className="modalCard sellModal" onMouseDown={(event) => event.stopPropagation()}>
+            <button className="closeButton" type="button" onClick={() => setShowSell(false)}>×</button>
+
+            <span className="eyebrow">YENİ AÇIK ARTIRMA</span>
+            <h2>Ürününü yayınla</h2>
+
+            <form onSubmit={handleCreateAuction}>
+              <label>
+                İlan başlığı
+                <input
+                  value={auctionTitle}
+                  onChange={(event) => setAuctionTitle(event.target.value)}
+                  placeholder="Örnek: iPhone 15 Pro 256 GB"
+                  maxLength={100}
+                  required
+                />
+              </label>
+
+              <label>
+                Açıklama
+                <textarea
+                  value={auctionDescription}
+                  onChange={(event) => setAuctionDescription(event.target.value)}
+                  placeholder="Ürünün durumunu ve özelliklerini yaz"
+                  rows={4}
+                  maxLength={1000}
+                />
+              </label>
+
+              <div className="formGrid">
+                <label>
+                  Başlangıç fiyatı
+                  <input
+                    type="number"
+                    min="1"
+                    value={startPrice}
+                    onChange={(event) => setStartPrice(event.target.value)}
+                    required
+                  />
+                </label>
+
+                <label>
+                  Minimum artış
+                  <input
+                    type="number"
+                    min="1"
+                    value={minIncrement}
+                    onChange={(event) => setMinIncrement(event.target.value)}
+                    required
+                  />
+                </label>
+              </div>
+
+              <label>
+                Süre
+                <select value={durationHours} onChange={(event) => setDurationHours(event.target.value)}>
+                  <option value="1">1 saat</option>
+                  <option value="6">6 saat</option>
+                  <option value="12">12 saat</option>
+                  <option value="24">24 saat</option>
+                  <option value="72">3 gün</option>
+                  <option value="168">7 gün</option>
+                </select>
+              </label>
+
+              <button className="modalPrimary" type="submit" disabled={loading}>
+                {loading ? "Yayınlanıyor..." : "Açık artırmayı yayınla"}
+              </button>
+            </form>
+          </section>
+        </div>
+      )}
 
       <style jsx>{`
         :global(*) {
           box-sizing: border-box;
         }
 
+        :global(html) {
+          scroll-behavior: smooth;
+        }
+
         :global(body) {
           margin: 0;
-          background:
-            radial-gradient(circle at top, rgba(255, 183, 3, 0.16), transparent 32%),
-            #08090c;
-          color: #f8fafc;
-          font-family: Arial, sans-serif;
+          background: #f5f6f8;
+          color: #15171d;
+          font-family: Inter, Arial, sans-serif;
         }
 
-        .page {
+        button,
+        input,
+        textarea,
+        select {
+          font: inherit;
+        }
+
+        button {
+          cursor: pointer;
+        }
+
+        .appShell {
           min-height: 100vh;
-          display: grid;
-          place-items: center;
-          align-content: center;
-          gap: 28px;
-          padding: 24px;
         }
 
-        .brand {
+        .topbar {
+          position: sticky;
+          top: 0;
+          z-index: 20;
           display: flex;
           align-items: center;
-          gap: 16px;
-          width: min(100%, 720px);
+          justify-content: space-between;
+          gap: 20px;
+          padding: 16px clamp(18px, 4vw, 64px);
+          border-bottom: 1px solid #eceef2;
+          background: rgba(255, 255, 255, 0.94);
+          backdrop-filter: blur(18px);
         }
 
-        .logo {
-          width: 64px;
-          height: 64px;
+        .brandButton {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          border: 0;
+          background: transparent;
+          text-align: left;
+        }
+
+        .brandMark {
+          width: 44px;
+          height: 44px;
           display: grid;
           place-items: center;
-          border-radius: 18px;
-          background: #ffb703;
-          color: #08090c;
-          font-size: 24px;
+          border-radius: 14px;
+          background: #111216;
+          color: #ffc63d;
+          font-weight: 950;
+          letter-spacing: -0.08em;
+          box-shadow: 0 8px 24px rgba(17, 18, 22, 0.18);
+        }
+
+        .brandText {
+          display: grid;
+        }
+
+        .brandText strong {
+          font-size: 18px;
+        }
+
+        .brandText small {
+          color: #8a909d;
+          font-size: 11px;
+        }
+
+        .topActions {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+        }
+
+        .livePill {
+          padding: 8px 11px;
+          border-radius: 999px;
+          background: #eaf8f0;
+          color: #18864d;
+          font-size: 11px;
           font-weight: 900;
-          box-shadow: 0 12px 40px rgba(255, 183, 3, 0.22);
+          letter-spacing: 0.04em;
         }
 
-        h1,
-        h2,
-        p {
-          margin-top: 0;
+        .loginButton {
+          border: 0;
+          border-radius: 12px;
+          padding: 11px 16px;
+          background: #111216;
+          color: white;
+          font-weight: 800;
         }
 
-        h1 {
-          margin-bottom: 4px;
-          font-size: clamp(32px, 8vw, 48px);
+        .userMenu {
+          display: flex;
+          align-items: center;
+          gap: 10px;
         }
 
-        .brand p {
-          margin-bottom: 0;
-          color: #a7afbf;
+        .userAvatar {
+          width: 40px;
+          height: 40px;
+          display: grid;
+          place-items: center;
+          border-radius: 50%;
+          background: #ffc63d;
+          font-weight: 900;
         }
 
-        .card {
-          width: min(100%, 720px);
-          padding: 28px;
-          border: 1px solid #252a34;
+        .userMenu div {
+          display: grid;
+        }
+
+        .userMenu strong {
+          font-size: 13px;
+        }
+
+        .userMenu button {
+          border: 0;
+          padding: 0;
+          background: transparent;
+          color: #969ca8;
+          font-size: 11px;
+          text-align: left;
+        }
+
+        .hero {
+          display: grid;
+          grid-template-columns: minmax(0, 1.7fr) minmax(240px, 0.7fr);
+          gap: 24px;
+          padding: clamp(48px, 8vw, 96px) clamp(18px, 5vw, 80px);
+          background:
+            radial-gradient(circle at 80% 20%, rgba(255, 198, 61, 0.18), transparent 30%),
+            linear-gradient(135deg, #0c0d11, #191b22);
+          color: white;
+        }
+
+        .heroContent {
+          max-width: 760px;
+        }
+
+        .eyebrow {
+          display: inline-block;
+          margin-bottom: 14px;
+          color: #d89f0d;
+          font-size: 11px;
+          font-weight: 950;
+          letter-spacing: 0.13em;
+        }
+
+        .hero h1 {
+          margin: 0;
+          font-size: clamp(46px, 7vw, 86px);
+          line-height: 0.96;
+          letter-spacing: -0.055em;
+        }
+
+        .hero p {
+          max-width: 590px;
+          margin: 24px 0 0;
+          color: #b9bec9;
+          font-size: clamp(16px, 2vw, 20px);
+          line-height: 1.55;
+        }
+
+        .heroActions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 12px;
+          margin-top: 32px;
+        }
+
+        .primaryCta,
+        .secondaryCta {
+          border-radius: 14px;
+          padding: 15px 18px;
+          font-weight: 900;
+        }
+
+        .primaryCta {
+          border: 0;
+          background: #ffc63d;
+          color: #111216;
+        }
+
+        .primaryCta span {
+          margin-left: 10px;
+        }
+
+        .secondaryCta {
+          border: 1px solid rgba(255, 255, 255, 0.15);
+          background: rgba(255, 255, 255, 0.04);
+          color: white;
+        }
+
+        .heroMetric {
+          align-self: end;
+          display: grid;
+          padding: 26px;
+          border: 1px solid rgba(255, 255, 255, 0.1);
           border-radius: 24px;
-          background: rgba(17, 20, 27, 0.94);
-          box-shadow: 0 24px 80px rgba(0, 0, 0, 0.38);
+          background: rgba(255, 255, 255, 0.05);
+          backdrop-filter: blur(16px);
+        }
+
+        .metricLabel {
+          color: #ffc63d;
+          font-size: 11px;
+          font-weight: 950;
+          letter-spacing: 0.1em;
+        }
+
+        .heroMetric strong {
+          margin: 8px 0 2px;
+          font-size: 54px;
+          letter-spacing: -0.06em;
+        }
+
+        .heroMetric span:not(.metricLabel) {
+          color: white;
+          font-weight: 700;
+        }
+
+        .heroMetric small {
+          margin-top: 12px;
+          color: #9ca3af;
+        }
+
+        .searchSection {
+          padding: 24px clamp(18px, 5vw, 80px) 0;
+        }
+
+        .searchBar {
+          display: grid;
+          grid-template-columns: auto 1fr auto;
+          align-items: center;
+          gap: 12px;
+          padding: 10px 12px 10px 18px;
+          border: 1px solid #e0e3e8;
+          border-radius: 18px;
+          background: white;
+          box-shadow: 0 14px 40px rgba(23, 25, 31, 0.06);
+        }
+
+        .searchBar span {
+          color: #8b929f;
+          font-size: 24px;
+        }
+
+        .searchBar input {
+          border: 0;
+          outline: none;
+          padding: 11px 0;
+          background: transparent;
+        }
+
+        .searchBar button {
+          border: 0;
+          border-radius: 11px;
+          padding: 11px 14px;
+          background: #111216;
+          color: white;
+          font-weight: 800;
+        }
+
+        .categoryStrip {
+          display: flex;
+          gap: 10px;
+          overflow-x: auto;
+          padding: 18px clamp(18px, 5vw, 80px);
+        }
+
+        .categoryStrip button {
+          flex: 0 0 auto;
+          border: 1px solid #e2e5ea;
+          border-radius: 999px;
+          padding: 10px 15px;
+          background: white;
+          color: #505662;
+          font-weight: 750;
+        }
+
+        .auctionSection {
+          padding: 22px clamp(18px, 5vw, 80px) 72px;
+        }
+
+        .sectionHeader {
+          display: flex;
+          align-items: flex-end;
+          justify-content: space-between;
+          gap: 20px;
+          margin-bottom: 22px;
+        }
+
+        .sectionHeader h2,
+        .profileStrip h2 {
+          margin: 0;
+          font-size: clamp(28px, 4vw, 42px);
+          letter-spacing: -0.04em;
+        }
+
+        .resultCount {
+          color: #8c929d;
+          font-size: 14px;
+        }
+
+        .auctionGrid {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 18px;
+        }
+
+        .auctionCard {
+          overflow: hidden;
+          border: 1px solid #e3e6ea;
+          border-radius: 22px;
+          background: white;
+          box-shadow: 0 12px 34px rgba(24, 26, 31, 0.06);
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .auctionCard:hover {
+          transform: translateY(-4px);
+          box-shadow: 0 18px 44px rgba(24, 26, 31, 0.1);
+        }
+
+        .imagePlaceholder {
+          position: relative;
+          min-height: 190px;
+          display: grid;
+          place-items: center;
+        }
+
+        .imageTone1 { background: linear-gradient(145deg, #e7e9ed, #cfd3d9); }
+        .imageTone2 { background: linear-gradient(145deg, #eee7df, #d9cfc3); }
+        .imageTone3 { background: linear-gradient(145deg, #e3e8e4, #c8d1cb); }
+        .imageTone4 { background: linear-gradient(145deg, #e8e3ed, #d1c8dc); }
+
+        .liveBadge {
+          position: absolute;
+          top: 14px;
+          left: 14px;
+          padding: 7px 9px;
+          border-radius: 999px;
+          background: #e54954;
+          color: white;
+          font-size: 10px;
+          font-weight: 950;
+          letter-spacing: 0.08em;
+        }
+
+        .categoryIcon {
+          font-size: 58px;
+          filter: grayscale(1);
+          opacity: 0.75;
+        }
+
+        .cardBody {
+          padding: 18px;
+        }
+
+        .cardTopline,
+        .cardFooter,
+        .bidRow {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+        }
+
+        .cardTopline {
+          color: #8c929d;
+          font-size: 11px;
+        }
+
+        .cardTopline strong {
+          color: #e54954;
+        }
+
+        .cardBody h3 {
+          margin: 14px 0 8px;
+          font-size: 20px;
+          letter-spacing: -0.025em;
+        }
+
+        .cardBody p {
+          min-height: 42px;
+          margin: 0;
+          color: #7b818d;
+          font-size: 13px;
+          line-height: 1.55;
+        }
+
+        .bidRow {
+          margin: 20px 0 14px;
+        }
+
+        .bidRow div {
+          display: grid;
+        }
+
+        .bidRow span {
+          color: #8d939f;
+          font-size: 11px;
+        }
+
+        .bidRow strong {
+          margin-top: 3px;
+          font-size: 22px;
+        }
+
+        .bidRow button {
+          border: 0;
+          border-radius: 11px;
+          padding: 11px 13px;
+          background: #111216;
+          color: white;
+          font-weight: 850;
+        }
+
+        .cardFooter {
+          padding-top: 14px;
+          border-top: 1px solid #eceef2;
+          color: #9096a1;
+          font-size: 10px;
+        }
+
+        .emptyState {
+          display: grid;
+          place-items: center;
+          padding: 56px 24px;
+          border: 1px dashed #d6d9df;
+          border-radius: 24px;
+          background: white;
+          text-align: center;
+        }
+
+        .emptyIcon {
+          font-size: 48px;
+        }
+
+        .emptyState h3 {
+          margin: 14px 0 6px;
+        }
+
+        .emptyState p {
+          color: #8d939e;
+        }
+
+        .emptyState button {
+          border: 0;
+          border-radius: 12px;
+          padding: 12px 16px;
+          background: #ffc63d;
+          font-weight: 900;
+        }
+
+        .profileStrip {
+          display: grid;
+          grid-template-columns: 1fr minmax(300px, 0.8fr);
+          align-items: end;
+          gap: 24px;
+          margin: 0 clamp(18px, 5vw, 80px) 72px;
+          padding: 28px;
+          border-radius: 24px;
+          background: #111216;
+          color: white;
+        }
+
+        .profileFields {
+          display: grid;
+          grid-template-columns: 1fr auto;
+          gap: 10px;
+        }
+
+        .profileFields input {
+          border: 1px solid #353841;
+          border-radius: 12px;
+          padding: 13px;
+          background: #1c1e24;
+          color: white;
+          outline: none;
+        }
+
+        .profileFields button {
+          border: 0;
+          border-radius: 12px;
+          padding: 13px 15px;
+          background: #ffc63d;
+          font-weight: 900;
+        }
+
+        footer {
+          display: flex;
+          justify-content: space-between;
+          gap: 20px;
+          padding: 24px clamp(18px, 5vw, 80px);
+          border-top: 1px solid #e3e5e9;
+          color: #858b96;
+          font-size: 13px;
+        }
+
+        footer strong {
+          color: #15171d;
+        }
+
+        .toast {
+          position: fixed;
+          right: 20px;
+          bottom: 20px;
+          z-index: 60;
+          max-width: min(420px, calc(100vw - 40px));
+          padding: 14px 16px;
+          border-radius: 14px;
+          background: #111216;
+          color: white;
+          box-shadow: 0 18px 50px rgba(0, 0, 0, 0.2);
+          font-size: 13px;
+        }
+
+        .modalBackdrop {
+          position: fixed;
+          inset: 0;
+          z-index: 50;
+          display: grid;
+          place-items: center;
+          padding: 20px;
+          background: rgba(7, 8, 11, 0.72);
+          backdrop-filter: blur(10px);
+        }
+
+        .modalCard {
+          position: relative;
+          width: min(100%, 460px);
+          max-height: calc(100vh - 40px);
+          overflow-y: auto;
+          padding: 28px;
+          border-radius: 24px;
+          background: white;
+          box-shadow: 0 30px 100px rgba(0, 0, 0, 0.35);
+        }
+
+        .sellModal {
+          width: min(100%, 620px);
+        }
+
+        .closeButton {
+          position: absolute;
+          top: 14px;
+          right: 14px;
+          width: 36px;
+          height: 36px;
+          border: 0;
+          border-radius: 50%;
+          background: #f0f2f5;
+          color: #444a55;
+          font-size: 22px;
+        }
+
+        .modalBrand {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          margin-bottom: 22px;
+        }
+
+        .modalBrand div {
+          display: grid;
+        }
+
+        .modalBrand small {
+          color: #9096a1;
         }
 
         .tabs {
           display: grid;
           grid-template-columns: 1fr 1fr;
           gap: 8px;
-          margin-bottom: 26px;
+          margin-bottom: 20px;
           padding: 5px;
           border-radius: 14px;
-          background: #090b10;
+          background: #f1f3f5;
         }
 
-        .tab {
+        .tabs button {
           border: 0;
           border-radius: 10px;
-          padding: 12px;
+          padding: 11px;
           background: transparent;
-          color: #98a2b3;
-          cursor: pointer;
-          font-weight: 700;
+          color: #7f8591;
+          font-weight: 850;
         }
 
-        .tab.active {
-          background: #ffb703;
-          color: #111318;
+        .tabs button.active {
+          background: white;
+          color: #111216;
+          box-shadow: 0 4px 14px rgba(17, 18, 22, 0.08);
         }
 
         form {
           display: grid;
-          gap: 16px;
+          gap: 15px;
         }
 
         label {
           display: grid;
-          gap: 8px;
-          color: #cbd5e1;
-          font-size: 14px;
-          font-weight: 700;
+          gap: 7px;
+          color: #555b66;
+          font-size: 12px;
+          font-weight: 800;
         }
 
         input,
         textarea,
         select {
           width: 100%;
-          border: 1px solid #303642;
+          border: 1px solid #dfe2e7;
           border-radius: 12px;
-          padding: 14px;
-          background: #0b0d12;
-          color: white;
-          font: inherit;
+          padding: 13px 14px;
+          background: white;
+          color: #17191f;
           outline: none;
         }
 
         textarea {
           resize: vertical;
-          min-height: 110px;
         }
 
         input:focus,
         textarea:focus,
         select:focus {
-          border-color: #ffb703;
-          box-shadow: 0 0 0 3px rgba(255, 183, 3, 0.12);
-        }
-
-        .primaryButton,
-        .secondaryButton {
-          width: 100%;
-          border-radius: 12px;
-          padding: 14px 18px;
-          cursor: pointer;
-          font-weight: 900;
-          font-size: 15px;
-        }
-
-        .primaryButton {
-          border: 0;
-          background: #ffb703;
-          color: #101216;
-        }
-
-        .secondaryButton {
-          border: 1px solid #374151;
-          background: transparent;
-          color: white;
-        }
-
-        .linkButton {
-          border: 0;
-          background: transparent;
-          color: #ffcb47;
-          cursor: pointer;
-          font-weight: 700;
-          padding: 4px;
-        }
-
-        button:disabled {
-          cursor: not-allowed;
-          opacity: 0.55;
-        }
-
-        .message {
-          margin: 18px 0 0;
-          color: #aeb7c5;
-          line-height: 1.5;
-          font-size: 14px;
-        }
-
-        .muted {
-          color: #aeb7c5;
-        }
-
-        .status {
-          display: inline-flex;
-          margin-bottom: 18px;
-          padding: 7px 10px;
-          border-radius: 999px;
-          font-size: 12px;
-          font-weight: 900;
-        }
-
-        .success {
-          background: rgba(34, 197, 94, 0.12);
-          color: #4ade80;
-        }
-
-        .accountBox {
-          display: grid;
-          gap: 6px;
-          margin: 24px 0;
-          padding: 16px;
-          border-radius: 14px;
-          background: #0b0d12;
-        }
-
-        .accountBox span {
-          color: #8d97a8;
-          font-size: 12px;
-        }
-
-        .accountBox strong {
-          overflow-wrap: anywhere;
-        }
-
-        .divider {
-          height: 1px;
-          margin: 28px 0;
-          background: #252a34;
+          border-color: #d89f0d;
+          box-shadow: 0 0 0 3px rgba(216, 159, 13, 0.12);
         }
 
         .formGrid {
@@ -839,78 +1409,88 @@ export default function HomePage() {
           gap: 12px;
         }
 
-        .auctionListCard {
-          margin-bottom: 40px;
-        }
-
-        .sectionHeading {
-          display: flex;
-          align-items: flex-start;
-          justify-content: space-between;
-          gap: 16px;
-        }
-
-        .refreshButton {
-          border: 1px solid #374151;
-          border-radius: 10px;
-          padding: 10px 12px;
-          background: transparent;
+        .modalPrimary {
+          border: 0;
+          border-radius: 12px;
+          padding: 14px;
+          background: #111216;
           color: white;
-          cursor: pointer;
-          font-weight: 700;
+          font-weight: 900;
         }
 
-        .auctionList {
-          display: grid;
-          gap: 12px;
+        .forgotButton {
+          border: 0;
+          background: transparent;
+          color: #c88f00;
+          font-weight: 800;
         }
 
-        .auctionItem {
-          display: grid;
-          grid-template-columns: 1fr auto;
-          gap: 18px;
-          padding: 18px;
-          border: 1px solid #2c323d;
-          border-radius: 16px;
-          background: #0b0d12;
+        .modalMessage {
+          margin: 16px 0 0;
+          color: #8a909b;
+          font-size: 12px;
+          line-height: 1.5;
         }
 
-        .auctionItem h3 {
-          margin: 0 0 8px;
-        }
+        @media (max-width: 980px) {
+          .auctionGrid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
 
-        .auctionItem p {
-          margin-bottom: 0;
-          color: #9ca6b5;
-          line-height: 1.45;
-        }
-
-        .auctionMeta {
-          display: grid;
-          align-content: center;
-          justify-items: end;
-          min-width: 150px;
-        }
-
-        .auctionMeta span,
-        .auctionMeta small {
-          color: #8d97a8;
-        }
-
-        .auctionMeta strong {
-          margin: 4px 0 8px;
-          color: #ffcb47;
-          font-size: 20px;
-        }
-
-        @media (max-width: 620px) {
-          .formGrid,
-          .auctionItem {
+          .hero {
             grid-template-columns: 1fr;
           }
 
-          .auctionMeta {
-            justify-items: start;
+          .heroMetric {
+            max-width: 420px;
+          }
+        }
+
+        @media (max-width: 680px) {
+          .topbar {
+            align-items: flex-start;
+          }
+
+          .livePill {
+            display: none;
+          }
+
+          .brandText small,
+          .userMenu strong {
+            display: none;
+          }
+
+          .hero {
+            padding-top: 52px;
+          }
+
+          .hero h1 {
+            font-size: 50px;
+          }
+
+          .auctionGrid {
+            grid-template-columns: 1fr;
+          }
+
+          .sectionHeader,
+          .profileStrip,
+          footer {
+            align-items: stretch;
+            grid-template-columns: 1fr;
+            flex-direction: column;
+          }
+
+          .profileFields,
+          .formGrid {
+            grid-template-columns: 1fr;
+          }
+
+          .searchBar {
+            grid-template-columns: auto 1fr;
+          }
+
+          .searchBar button {
+            grid-column: 1 / -1;
           }
         }
       `}</style>
