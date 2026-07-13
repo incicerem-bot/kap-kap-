@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import {
   getSupabaseBrowserClient,
@@ -20,6 +20,7 @@ type Auction = {
   ends_at: string;
   status: "active" | "ended" | "cancelled";
   created_at: string;
+  image_url: string | null;
 };
 
 function money(value: number) {
@@ -61,6 +62,8 @@ export default function HomePage() {
   const [startPrice, setStartPrice] = useState("1000");
   const [minIncrement, setMinIncrement] = useState("100");
   const [durationHours, setDurationHours] = useState("24");
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState("");
 
   const [showAuth, setShowAuth] = useState(false);
   const [showSell, setShowSell] = useState(false);
@@ -73,7 +76,7 @@ export default function HomePage() {
     const { data, error } = await supabase
       .from("auctions")
       .select(
-        "id, seller_id, title, description, start_price, current_price, min_increment, ends_at, status, created_at"
+        "id, seller_id, title, description, start_price, current_price, min_increment, ends_at, status, created_at, image_url"
       )
       .eq("status", "active")
       .order("created_at", { ascending: false })
@@ -304,6 +307,33 @@ export default function HomePage() {
     setMessage("Profil bilgilerin kaydedildi.");
   }
 
+
+  function handleImageChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0] ?? null;
+
+    if (!file) {
+      setImageFile(null);
+      setImagePreview("");
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      setMessage("Yalnızca görsel dosyası yükleyebilirsin.");
+      event.target.value = "";
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setMessage("Ürün fotoğrafı en fazla 5 MB olabilir.");
+      event.target.value = "";
+      return;
+    }
+
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+    setMessage("Fotoğraf seçildi. İlanı yayınladığında yüklenecek.");
+  }
+
   async function handleCreateAuction(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -338,12 +368,42 @@ export default function HomePage() {
       return;
     }
 
-    setLoading(true);
-    setMessage("İlan Supabase'e kaydediliyor...");
+    if (!imageFile) {
+      setMessage("En az bir ürün fotoğrafı seç.");
+      return;
+    }
 
+    setLoading(true);
+    setMessage("Fotoğraf yükleniyor...");
+
+    const extension = imageFile.name.split(".").pop()?.toLowerCase() || "jpg";
+    const safeExtension = extension.replace(/[^a-z0-9]/g, "") || "jpg";
+    const objectPath = `${user.id}/${crypto.randomUUID()}.${safeExtension}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("auction-images")
+      .upload(objectPath, imageFile, {
+        cacheControl: "3600",
+        upsert: false,
+        contentType: imageFile.type,
+      });
+
+    if (uploadError) {
+      setLoading(false);
+      setMessage(`Fotoğraf yükleme hatası: ${uploadError.message}`);
+      return;
+    }
+
+    const { data: publicUrlData } = supabase.storage
+      .from("auction-images")
+      .getPublicUrl(objectPath);
+
+    const imageUrl = publicUrlData.publicUrl;
     const endsAt = new Date(
       Date.now() + parsedDurationHours * 60 * 60 * 1000
     ).toISOString();
+
+    setMessage("İlan Supabase'e kaydediliyor...");
 
     const { error } = await supabase.from("auctions").insert({
       seller_id: user.id,
@@ -354,7 +414,12 @@ export default function HomePage() {
       min_increment: parsedMinIncrement,
       ends_at: endsAt,
       status: "active",
+      image_url: imageUrl,
     });
+
+    if (error) {
+      await supabase.storage.from("auction-images").remove([objectPath]);
+    }
 
     setLoading(false);
 
@@ -368,7 +433,10 @@ export default function HomePage() {
     setStartPrice("1000");
     setMinIncrement("100");
     setDurationHours("24");
-    setMessage("İlanın yayınlandı.");
+    setImageFile(null);
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
+    setImagePreview("");
+    setMessage("Fotoğraflı ilanın yayınlandı.");
     setShowSell(false);
     await loadAuctions();
   }
@@ -532,7 +600,15 @@ export default function HomePage() {
               <article className="auctionCard" key={auction.id}>
                 <div className={`imagePlaceholder imageTone${(index % 4) + 1}`}>
                   <span className="liveBadge">CANLI</span>
-                  <span className="categoryIcon">🔨</span>
+                  {auction.image_url ? (
+                    <img
+                      className="auctionImage"
+                      src={auction.image_url}
+                      alt={auction.title}
+                    />
+                  ) : (
+                    <span className="categoryIcon">🔨</span>
+                  )}
                 </div>
 
                 <div className="cardBody">
@@ -690,6 +766,27 @@ export default function HomePage() {
             <h2>Ürününü yayınla</h2>
 
             <form onSubmit={handleCreateAuction}>
+              <label>
+                Ürün fotoğrafı
+                <div className="photoUploader">
+                  <input
+                    className="fileInput"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={handleImageChange}
+                    required
+                  />
+                  {imagePreview ? (
+                    <img className="photoPreview" src={imagePreview} alt="Ürün önizlemesi" />
+                  ) : (
+                    <div className="photoPlaceholder">
+                      <strong>Fotoğraf seç</strong>
+                      <span>JPG, PNG veya WEBP · en fazla 5 MB</span>
+                    </div>
+                  )}
+                </div>
+              </label>
+
               <label>
                 İlan başlığı
                 <input
@@ -1125,6 +1222,13 @@ export default function HomePage() {
           opacity: 0.75;
         }
 
+        .auctionImage {
+          width: 100%;
+          height: 190px;
+          object-fit: cover;
+          display: block;
+        }
+
         .cardBody {
           padding: 18px;
         }
@@ -1407,6 +1511,53 @@ export default function HomePage() {
           display: grid;
           grid-template-columns: 1fr 1fr;
           gap: 12px;
+        }
+
+        .photoUploader {
+          position: relative;
+          overflow: hidden;
+          min-height: 190px;
+          border: 1px dashed #cfd4dc;
+          border-radius: 16px;
+          background: #f7f8fa;
+        }
+
+        .fileInput {
+          position: absolute;
+          inset: 0;
+          z-index: 2;
+          width: 100%;
+          height: 100%;
+          cursor: pointer;
+          opacity: 0;
+        }
+
+        .photoPreview {
+          width: 100%;
+          height: 240px;
+          display: block;
+          object-fit: cover;
+        }
+
+        .photoPlaceholder {
+          min-height: 190px;
+          display: grid;
+          place-content: center;
+          justify-items: center;
+          gap: 7px;
+          padding: 24px;
+          color: #737b87;
+          text-align: center;
+        }
+
+        .photoPlaceholder strong {
+          color: #191b20;
+          font-size: 16px;
+        }
+
+        .photoPlaceholder span {
+          font-size: 11px;
+          font-weight: 600;
         }
 
         .modalPrimary {
