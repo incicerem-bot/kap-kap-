@@ -39,6 +39,19 @@ export default function HomePage() {
 
       setUser(data.session?.user ?? null);
       setProfileName(data.session?.user?.user_metadata?.full_name ?? "");
+
+      if (data.session?.user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("full_name")
+          .eq("id", data.session.user.id)
+          .maybeSingle();
+
+        if (profile?.full_name) {
+          setProfileName(profile.full_name);
+        }
+      }
+
       setMessage(
         data.session?.user
           ? "KapışKapış hesabına giriş yapıldı."
@@ -107,8 +120,17 @@ export default function HomePage() {
           return;
         }
 
+        if (data.user) {
+          await supabase.from("profiles").upsert({
+            id: data.user.id,
+            full_name: fullName.trim(),
+            email: cleanEmail,
+          });
+        }
+
         if (data.session) {
           setUser(data.user);
+          setProfileName(fullName.trim());
           setMessage("Hesabın oluşturuldu ve giriş yapıldı.");
         } else {
           setMessage(
@@ -176,11 +198,28 @@ export default function HomePage() {
     }
 
     setLoading(true);
+    const cleanName = profileName.trim();
+
     const { data, error } = await supabase.auth.updateUser({
       data: {
-        full_name: profileName.trim(),
+        full_name: cleanName,
       },
     });
+
+    if (!error && data.user) {
+      const { error: profileError } = await supabase.from("profiles").upsert({
+        id: data.user.id,
+        full_name: cleanName,
+        email: data.user.email ?? "",
+      });
+
+      if (profileError) {
+        setLoading(false);
+        setMessage(`Profil tablosu hatası: ${profileError.message}`);
+        return;
+      }
+    }
+
     setLoading(false);
 
     if (error) {
@@ -189,7 +228,7 @@ export default function HomePage() {
     }
 
     setUser(data.user);
-    setMessage("Profil bilgilerin kaydedildi.");
+    setMessage("Profil bilgilerin veritabanına kaydedildi.");
   }
 
   async function handleSignOut() {
