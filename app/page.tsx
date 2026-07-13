@@ -25,6 +25,14 @@ type Auction = {
 
 type SelectedAuction = Auction | null;
 
+type Bid = {
+  id: string;
+  auction_id: string;
+  bidder_id: string;
+  amount: number;
+  created_at: string;
+};
+
 const demoProducts = [
   {
     id: "demo-macbook",
@@ -142,6 +150,8 @@ export default function HomePage() {
   const [showSell, setShowSell] = useState(false);
   const [selectedAuction, setSelectedAuction] = useState<SelectedAuction>(null);
   const [query, setQuery] = useState("");
+  const [bidAmount, setBidAmount] = useState("");
+  const [bidHistory, setBidHistory] = useState<Bid[]>([]);
 
   async function loadAuctions() {
     const supabase = getSupabaseBrowserClient();
@@ -162,6 +172,25 @@ export default function HomePage() {
     }
 
     setAuctions((data ?? []) as Auction[]);
+  }
+
+  async function loadBidHistory(auctionId: string) {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) return;
+
+    const { data, error } = await supabase
+      .from("bids")
+      .select("id, auction_id, bidder_id, amount, created_at")
+      .eq("auction_id", auctionId)
+      .order("amount", { ascending: false })
+      .limit(10);
+
+    if (error) {
+      setMessage(`Teklif geçmişi yüklenemedi: ${error.message}`);
+      return;
+    }
+
+    setBidHistory((data ?? []) as Bid[]);
   }
 
   useEffect(() => {
@@ -204,6 +233,36 @@ export default function HomePage() {
 
     void loadAuctions();
 
+    const realtimeChannel = supabase
+      .channel("kapiskapis-live-auctions")
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "auctions" },
+        (payload) => {
+          const updated = payload.new as Auction;
+          setAuctions((current) =>
+            current.map((auction) =>
+              auction.id === updated.id ? { ...auction, ...updated } : auction
+            )
+          );
+          setSelectedAuction((current) =>
+            current?.id === updated.id ? { ...current, ...updated } : current
+          );
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "bids" },
+        (payload) => {
+          const bid = payload.new as Bid;
+          setBidHistory((current) => {
+            if (selectedAuction?.id !== bid.auction_id) return current;
+            return [bid, ...current].slice(0, 10);
+          });
+        }
+      )
+      .subscribe();
+
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -220,8 +279,9 @@ export default function HomePage() {
     return () => {
       mounted = false;
       subscription.unsubscribe();
+      void supabase.removeChannel(realtimeChannel);
     };
-  }, []);
+  }, [selectedAuction?.id]);
 
   useEffect(() => {
     if (!auctionImage) {
@@ -469,6 +529,62 @@ export default function HomePage() {
     }
   }
 
+  async function openAuctionDetail(auction: Auction) {
+    setSelectedAuction(auction);
+    setBidAmount(String(Number(auction.current_price) + Number(auction.min_increment)));
+    await loadBidHistory(auction.id);
+  }
+
+  async function handlePlaceBid(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const supabase = getSupabaseBrowserClient();
+
+    if (!supabase || !user || !selectedAuction) {
+      setShowAuth(true);
+      return;
+    }
+
+    const amount = Number(bidAmount);
+
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setMessage("Geçerli bir teklif tutarı gir.");
+      return;
+    }
+
+    setLoading(true);
+
+    const { data, error } = await supabase.rpc("place_bid", {
+      p_auction_id: selectedAuction.id,
+      p_amount: amount,
+    });
+
+    setLoading(false);
+
+    if (error) {
+      setMessage(`Teklif hatası: ${error.message}`);
+      return;
+    }
+
+    const updatedPrice = Number(data);
+
+    setSelectedAuction((current) =>
+      current ? { ...current, current_price: updatedPrice } : current
+    );
+    setAuctions((current) =>
+      current.map((auction) =>
+        auction.id === selectedAuction.id
+          ? { ...auction, current_price: updatedPrice }
+          : auction
+      )
+    );
+    setBidAmount(
+      String(updatedPrice + Number(selectedAuction.min_increment))
+    );
+    setMessage("Teklifin başarıyla verildi.");
+    await loadBidHistory(selectedAuction.id);
+  }
+
   async function handleSignOut() {
     const supabase = getSupabaseBrowserClient();
     if (!supabase) return;
@@ -712,7 +828,7 @@ export default function HomePage() {
                   <button
                     className="kapisButton"
                     type="button"
-                    onClick={() => setSelectedAuction(auction)}
+                    onClick={() => void openAuctionDetail(auction)}
                   >
                     KAPIŞ!
                   </button>
@@ -1079,13 +1195,50 @@ export default function HomePage() {
                 <span>Kalan süre</span>
                 <b>{remainingTime(selectedAuction.ends_at)}</b>
               </div>
-              <button
-                className="kapisButton large"
-                type="button"
-                onClick={() => setMessage("Gerçek teklif sistemi sıradaki adımda bağlanacak.")}
-              >
-                KAPIŞ!
-              </button>
+              <form className="bidForm" onSubmit={handlePlaceBid}>
+                <label>
+                  Teklif tutarın
+                  <div className="bidInputWrap">
+                    <input
+                      type="number"
+                      min={Number(selectedAuction.current_price) + Number(selectedAuction.min_increment)}
+                      step="1"
+                      value={bidAmount}
+                      onChange={(event) => setBidAmount(event.target.value)}
+                      required
+                    />
+                    <span>₺</span>
+                  </div>
+                </label>
+
+                <button className="kapisButton large" type="submit" disabled={loading}>
+                  {loading ? "Teklif veriliyor..." : "KAPIŞ! (Teklif Ver)"}
+                </button>
+              </form>
+
+              <div className="bidHistory">
+                <div className="bidHistoryHeader">
+                  <strong>Son teklifler</strong>
+                  <span>{bidHistory.length} kayıt</span>
+                </div>
+
+                {bidHistory.length === 0 ? (
+                  <p className="emptyBidHistory">Henüz teklif verilmedi.</p>
+                ) : (
+                  bidHistory.map((bid, index) => (
+                    <div className="bidHistoryRow" key={bid.id}>
+                      <span>#{index + 1}</span>
+                      <strong>{money(Number(bid.amount))}</strong>
+                      <small>
+                        {new Date(bid.created_at).toLocaleTimeString("tr-TR", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </small>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
           </section>
         </div>
@@ -2290,6 +2443,76 @@ export default function HomePage() {
 
         .detailInfo b {
           color: white;
+        }
+
+        .bidForm {
+          margin-top: 18px;
+        }
+
+        .bidInputWrap {
+          display: grid;
+          grid-template-columns: 1fr auto;
+          align-items: center;
+          border: 1px solid #3c4652;
+          border-radius: 10px;
+          background: #0b1219;
+        }
+
+        .bidInputWrap input {
+          border: 0;
+          background: transparent;
+        }
+
+        .bidInputWrap span {
+          padding-right: 14px;
+          color: #ffc43d;
+          font-weight: 900;
+        }
+
+        .bidHistory {
+          margin-top: 22px;
+          padding-top: 18px;
+          border-top: 1px solid #202a34;
+        }
+
+        .bidHistoryHeader,
+        .bidHistoryRow {
+          display: grid;
+          grid-template-columns: 1fr auto;
+          align-items: center;
+          gap: 10px;
+        }
+
+        .bidHistoryHeader {
+          margin-bottom: 8px;
+        }
+
+        .bidHistoryHeader span {
+          color: #7f8a96;
+          font-size: 9px;
+        }
+
+        .bidHistoryRow {
+          grid-template-columns: auto 1fr auto;
+          padding: 9px 0;
+          border-top: 1px solid #17212b;
+        }
+
+        .bidHistoryRow span,
+        .bidHistoryRow small {
+          color: #7f8a96;
+          font-size: 9px;
+        }
+
+        .bidHistoryRow strong {
+          color: #ffc43d;
+          font-size: 12px;
+        }
+
+        .emptyBidHistory {
+          margin: 0;
+          color: #7f8a96;
+          font-size: 10px;
         }
 
         @media (max-width: 1180px) {
