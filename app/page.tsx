@@ -1,46 +1,80 @@
 "use client";
 
-import { supabaseConfigured } from "@/lib/supabase";
+import { useEffect, useState } from "react";
+import {
+  getSupabaseBrowserClient,
+  supabaseConfigurationReady,
+} from "../lib/supabase";
 
 export default function HomePage() {
+  const [status, setStatus] = useState("Kontrol ediliyor...");
+
+  useEffect(() => {
+    if (!supabaseConfigurationReady) {
+      setStatus("⚠️ Supabase ayarlanmamış.");
+      return;
+    }
+
+    const supabase = getSupabaseBrowserClient();
+
+    if (!supabase) {
+      setStatus("❌ Supabase bağlantısı kurulamadı.");
+      return;
+    }
+
+    supabase.auth.getSession().then(({ error }) => {
+      if (error) {
+        setStatus("❌ Bağlantı hatası");
+      } else {
+        setStatus("✅ KapışKapış Beta hazır!");
+      }
+    });
+  }, []);
+
   return (
-    <main className="page-shell">
-      <header className="topbar">
-        <div className="brand-mark">KK</div>
-        <div>
-          <h1>KapışKapış</h1>
-          <p>Beğendiysen bekleme, KapışKapış kap!</p>
-        </div>
-      </header>
+    <main
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
+        alignItems: "center",
+        background: "#0f172a",
+        color: "white",
+        fontFamily: "Arial, sans-serif",
+        textAlign: "center",
+        padding: "20px",
+      }}
+    >
+      <h1
+        style={{
+          fontSize: "56px",
+          marginBottom: "10px",
+          color: "#ffb703",
+        }}
+      >
+        KapışKapış
+      </h1>
 
-      <section className="hero">
-        <span className={supabaseConfigured ? "status live" : "status preview"}>
-          {supabaseConfigured ? "SUPABASE BAĞLI" : "KURULUM HAZIR"}
-        </span>
-        <h2>Temiz proje başarıyla çalışıyor.</h2>
-        <p>
-          Bu temel sürüm yalnızca sağlam altyapıyı doğrular. Sonraki adımda gerçek kayıt ve giriş
-          ekranını ekleyeceğiz.
-        </p>
-      </section>
+      <h2
+        style={{
+          fontWeight: 400,
+          marginBottom: "30px",
+        }}
+      >
+        Açık Artırma Platformu
+      </h2>
 
-      <section className="steps">
-        <article>
-          <strong>1</strong>
-          <h3>Temiz GitHub</h3>
-          <p>Kopya veya yanlış konumlanmış dosya yok.</p>
-        </article>
-        <article>
-          <strong>2</strong>
-          <h3>Vercel uyumlu</h3>
-          <p>Standart Next.js klasör yapısı kullanılıyor.</p>
-        </article>
-        <article>
-          <strong>3</strong>
-          <h3>Supabase hazır</h3>
-          <p>Ortam değişkenleri eklenince canlı bağlantı açılır.</p>
-        </article>
-      </section>
+      <div
+        style={{
+          background: "#1e293b",
+          padding: "20px 30px",
+          borderRadius: "12px",
+          fontSize: "20px",
+        }}
+      >
+        {status}
+      </div>
     </main>
   );
 }
