@@ -29,7 +29,7 @@ export default function HomePage() {
 
     let mounted = true;
 
-    void supabase.auth.getSession().then(({ data, error }) => {
+    void supabase.auth.getSession().then(async ({ data, error }) => {
       if (!mounted) return;
 
       if (error) {
