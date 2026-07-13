@@ -3,32 +3,37 @@
 import { useEffect, useState } from "react";
 import {
   getSupabaseBrowserClient,
-  supabaseConfigurationReady,
+  supabaseConfigured,
 } from "../lib/supabase";
 
 export default function HomePage() {
   const [status, setStatus] = useState("Kontrol ediliyor...");
 
   useEffect(() => {
-    if (!supabaseConfigurationReady) {
-      setStatus("⚠️ Supabase ayarlanmamış.");
-      return;
-    }
-
-    const supabase = getSupabaseBrowserClient();
-
-    if (!supabase) {
-      setStatus("❌ Supabase bağlantısı kurulamadı.");
-      return;
-    }
-
-    supabase.auth.getSession().then(({ error }) => {
-      if (error) {
-        setStatus("❌ Bağlantı hatası");
-      } else {
-        setStatus("✅ KapışKapış Beta hazır!");
+    async function checkConnection() {
+      if (!supabaseConfigured) {
+        setStatus("⚠️ Supabase ayarlanmamış.");
+        return;
       }
-    });
+
+      const supabase = getSupabaseBrowserClient();
+
+      if (!supabase) {
+        setStatus("❌ Supabase bağlantısı kurulamadı.");
+        return;
+      }
+
+      const { error } = await supabase.auth.getSession();
+
+      if (error) {
+        setStatus(`❌ Bağlantı hatası: ${error.message}`);
+        return;
+      }
+
+      setStatus("✅ KapışKapış Beta hazır!");
+    }
+
+    void checkConnection();
   }, []);
 
   return (
@@ -40,7 +45,7 @@ export default function HomePage() {
         justifyContent: "center",
         alignItems: "center",
         background: "#0f172a",
-        color: "white",
+        color: "#ffffff",
         fontFamily: "Arial, sans-serif",
         textAlign: "center",
         padding: "20px",
@@ -71,6 +76,8 @@ export default function HomePage() {
           padding: "20px 30px",
           borderRadius: "12px",
           fontSize: "20px",
+          maxWidth: "520px",
+          width: "100%",
         }}
       >
         {status}
