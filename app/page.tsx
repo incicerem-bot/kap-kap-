@@ -549,6 +549,30 @@ export default function HomePage() {
         </div>
       </section>
 
+      <section className="trustStrip">
+        <article>
+          <span className="trustIcon">✓</span>
+          <div>
+            <strong>Doğrulanmış hesaplar</strong>
+            <small>Güvenli kullanıcı topluluğu</small>
+          </div>
+        </article>
+        <article>
+          <span className="trustIcon">⚡</span>
+          <div>
+            <strong>Anlık açık artırma</strong>
+            <small>Teklifler saniyeler içinde güncellenir</small>
+          </div>
+        </article>
+        <article>
+          <span className="trustIcon">🔒</span>
+          <div>
+            <strong>Korumalı işlem</strong>
+            <small>Alıcı ve satıcı odaklı güvenlik</small>
+          </div>
+        </article>
+      </section>
+
       <section className="searchSection">
         <div className="searchBar">
           <span>⌕</span>
@@ -562,8 +586,24 @@ export default function HomePage() {
       </section>
 
       <section className="categoryStrip">
-        {["Tümü", "Telefon", "Bilgisayar", "Oyun", "Ev & Yaşam"].map((item) => (
-          <button type="button" key={item}>{item}</button>
+        {[
+          { name: "Tümü", icon: "✦", note: "Tüm ilanlar" },
+          { name: "Telefon", icon: "◫", note: "Akıllı telefonlar" },
+          { name: "Bilgisayar", icon: "▰", note: "Laptop & masaüstü" },
+          { name: "Oyun", icon: "◇", note: "Konsol & ekipman" },
+          { name: "Ev & Yaşam", icon: "⌂", note: "Ev ürünleri" },
+        ].map((item, index) => (
+          <button
+            type="button"
+            key={item.name}
+            className={index === 0 ? "activeCategory" : ""}
+          >
+            <span>{item.icon}</span>
+            <div>
+              <strong>{item.name}</strong>
+              <small>{item.note}</small>
+            </div>
+          </button>
         ))}
       </section>
 
@@ -600,6 +640,15 @@ export default function HomePage() {
               <article className="auctionCard" key={auction.id}>
                 <div className={`imagePlaceholder imageTone${(index % 4) + 1}`}>
                   <span className="liveBadge">CANLI</span>
+                  {index < 3 && <span className="trendBadge">ÖNE ÇIKAN</span>}
+                  <button
+                    className="favoriteButton"
+                    type="button"
+                    aria-label="Favorilere ekle"
+                    onClick={() => setMessage("Favoriler sıradaki adımda gerçek veriye bağlanacak.")}
+                  >
+                    ♡
+                  </button>
                   {auction.image_url ? (
                     <img
                       className="auctionImage"
@@ -663,9 +712,45 @@ export default function HomePage() {
       )}
 
       <footer>
-        <strong>KapışKapış</strong>
-        <span>Beğendiysen bekleme, KapışKapış kap!</span>
+        <div>
+          <strong>KapışKapış</strong>
+          <span>Beğendiysen bekleme, KapışKapış kap!</span>
+        </div>
+        <small>© 2026 KapışKapış · Güvenli açık artırma platformu</small>
       </footer>
+
+      <nav className="mobileNav" aria-label="Mobil menü">
+        <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
+          <span>⌂</span>
+          Ana sayfa
+        </button>
+        <button type="button" onClick={() => document.getElementById("auctions")?.scrollIntoView({ behavior: "smooth" })}>
+          <span>⌕</span>
+          Keşfet
+        </button>
+        <button
+          className="sellNavButton"
+          type="button"
+          onClick={() => {
+            if (!user) {
+              setShowAuth(true);
+              return;
+            }
+            setShowSell(true);
+          }}
+        >
+          <span>＋</span>
+          İlan ver
+        </button>
+        <button type="button" onClick={() => setMessage("Tekliflerim ekranı yakında eklenecek.")}>
+          <span>⌁</span>
+          Teklifler
+        </button>
+        <button type="button" onClick={() => user ? window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" }) : setShowAuth(true)}>
+          <span>◉</span>
+          Profil
+        </button>
+      </nav>
 
       {message && <div className="toast">{message}</div>}
 
@@ -1093,8 +1178,67 @@ export default function HomePage() {
           color: #9ca3af;
         }
 
+
+        .trustStrip {
+          position: relative;
+          z-index: 3;
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 12px;
+          margin: -26px clamp(18px, 5vw, 80px) 0;
+          padding: 16px;
+          border: 1px solid #e3e6eb;
+          border-radius: 22px;
+          background: rgba(255, 255, 255, 0.96);
+          box-shadow: 0 18px 50px rgba(20, 22, 28, 0.09);
+          backdrop-filter: blur(18px);
+        }
+
+        .trustStrip article {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          min-width: 0;
+          padding: 10px 14px;
+          border-radius: 16px;
+        }
+
+        .trustStrip article + article {
+          border-left: 1px solid #eceef2;
+        }
+
+        .trustIcon {
+          width: 38px;
+          height: 38px;
+          flex: 0 0 38px;
+          display: grid;
+          place-items: center;
+          border-radius: 12px;
+          background: #fff4d1;
+          color: #a87300;
+          font-weight: 950;
+        }
+
+        .trustStrip div {
+          display: grid;
+          min-width: 0;
+        }
+
+        .trustStrip strong {
+          font-size: 13px;
+        }
+
+        .trustStrip small {
+          margin-top: 3px;
+          overflow: hidden;
+          color: #8d939e;
+          font-size: 11px;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
         .searchSection {
-          padding: 24px clamp(18px, 5vw, 80px) 0;
+          padding: 28px clamp(18px, 5vw, 80px) 0;
         }
 
         .searchBar {
@@ -1131,20 +1275,68 @@ export default function HomePage() {
         }
 
         .categoryStrip {
-          display: flex;
-          gap: 10px;
+          display: grid;
+          grid-template-columns: repeat(5, minmax(150px, 1fr));
+          gap: 12px;
           overflow-x: auto;
           padding: 18px clamp(18px, 5vw, 80px);
         }
 
         .categoryStrip button {
-          flex: 0 0 auto;
+          min-width: 150px;
+          display: flex;
+          align-items: center;
+          gap: 12px;
           border: 1px solid #e2e5ea;
-          border-radius: 999px;
-          padding: 10px 15px;
+          border-radius: 18px;
+          padding: 14px;
           background: white;
           color: #505662;
-          font-weight: 750;
+          text-align: left;
+          transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+        }
+
+        .categoryStrip button:hover {
+          transform: translateY(-2px);
+          border-color: #d7aa33;
+          box-shadow: 0 10px 26px rgba(27, 29, 35, 0.07);
+        }
+
+        .categoryStrip button > span {
+          width: 38px;
+          height: 38px;
+          flex: 0 0 38px;
+          display: grid;
+          place-items: center;
+          border-radius: 12px;
+          background: #f1f3f5;
+          color: #111216;
+          font-size: 20px;
+          font-weight: 950;
+        }
+
+        .categoryStrip button div {
+          display: grid;
+        }
+
+        .categoryStrip strong {
+          font-size: 13px;
+        }
+
+        .categoryStrip small {
+          margin-top: 3px;
+          color: #969ca7;
+          font-size: 10px;
+        }
+
+        .categoryStrip .activeCategory {
+          border-color: #111216;
+          background: #111216;
+          color: white;
+        }
+
+        .categoryStrip .activeCategory > span {
+          background: #ffc63d;
         }
 
         .auctionSection {
@@ -1207,6 +1399,7 @@ export default function HomePage() {
           position: absolute;
           top: 14px;
           left: 14px;
+          z-index: 2;
           padding: 7px 9px;
           border-radius: 999px;
           background: #e54954;
@@ -1214,6 +1407,42 @@ export default function HomePage() {
           font-size: 10px;
           font-weight: 950;
           letter-spacing: 0.08em;
+        }
+
+        .trendBadge {
+          position: absolute;
+          left: 14px;
+          bottom: 14px;
+          z-index: 2;
+          padding: 7px 9px;
+          border-radius: 999px;
+          background: rgba(17, 18, 22, 0.88);
+          color: #ffc63d;
+          font-size: 9px;
+          font-weight: 950;
+          letter-spacing: 0.08em;
+          backdrop-filter: blur(8px);
+        }
+
+        .favoriteButton {
+          position: absolute;
+          top: 12px;
+          right: 12px;
+          z-index: 2;
+          width: 36px;
+          height: 36px;
+          display: grid;
+          place-items: center;
+          border: 1px solid rgba(255, 255, 255, 0.45);
+          border-radius: 50%;
+          background: rgba(255, 255, 255, 0.85);
+          color: #111216;
+          font-size: 20px;
+          backdrop-filter: blur(8px);
+        }
+
+        .favoriteButton:hover {
+          background: #ffc63d;
         }
 
         .categoryIcon {
@@ -1366,16 +1595,67 @@ export default function HomePage() {
 
         footer {
           display: flex;
+          align-items: center;
           justify-content: space-between;
           gap: 20px;
-          padding: 24px clamp(18px, 5vw, 80px);
+          padding: 28px clamp(18px, 5vw, 80px) 92px;
           border-top: 1px solid #e3e5e9;
           color: #858b96;
           font-size: 13px;
         }
 
+        footer div {
+          display: grid;
+          gap: 4px;
+        }
+
         footer strong {
           color: #15171d;
+        }
+
+        .mobileNav {
+          position: fixed;
+          left: 50%;
+          bottom: 16px;
+          z-index: 40;
+          display: none;
+          width: min(calc(100% - 24px), 520px);
+          grid-template-columns: repeat(5, 1fr);
+          padding: 8px;
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          border-radius: 22px;
+          background: rgba(17, 18, 22, 0.94);
+          box-shadow: 0 18px 54px rgba(0, 0, 0, 0.25);
+          transform: translateX(-50%);
+          backdrop-filter: blur(18px);
+        }
+
+        .mobileNav button {
+          display: grid;
+          place-items: center;
+          gap: 3px;
+          border: 0;
+          border-radius: 14px;
+          padding: 8px 4px;
+          background: transparent;
+          color: #c4c8d0;
+          font-size: 9px;
+          font-weight: 800;
+        }
+
+        .mobileNav button span {
+          font-size: 18px;
+        }
+
+        .mobileNav .sellNavButton {
+          margin-top: -22px;
+          background: #ffc63d;
+          color: #111216;
+          box-shadow: 0 10px 28px rgba(255, 198, 61, 0.28);
+        }
+
+        .mobileNav .sellNavButton span {
+          font-size: 24px;
         }
 
         .toast {
@@ -1597,6 +1877,22 @@ export default function HomePage() {
           }
         }
 
+        @media (max-width: 820px) {
+          .trustStrip {
+            grid-template-columns: 1fr;
+            margin-top: -16px;
+          }
+
+          .trustStrip article + article {
+            border-top: 1px solid #eceef2;
+            border-left: 0;
+          }
+
+          .categoryStrip {
+            display: flex;
+          }
+        }
+
         @media (max-width: 680px) {
           .topbar {
             align-items: flex-start;
@@ -1629,6 +1925,10 @@ export default function HomePage() {
             align-items: stretch;
             grid-template-columns: 1fr;
             flex-direction: column;
+          }
+
+          .mobileNav {
+            display: grid;
           }
 
           .profileFields,
