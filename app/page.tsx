@@ -67,6 +67,7 @@ export default function HomePage() {
 
   const [showAuth, setShowAuth] = useState(false);
   const [showSell, setShowSell] = useState(false);
+  const [selectedAuction, setSelectedAuction] = useState<Auction | null>(null);
   const [query, setQuery] = useState("");
 
   async function loadAuctions() {
@@ -675,8 +676,8 @@ export default function HomePage() {
                       <strong>{money(Number(auction.current_price))}</strong>
                     </div>
 
-                    <button type="button" onClick={() => setMessage("Teklif sistemi sıradaki adımda aktif edilecek.")}>
-                      Teklif ver
+                    <button type="button" onClick={() => setSelectedAuction(auction)}>
+                      Detayı aç
                     </button>
                   </div>
 
@@ -753,6 +754,71 @@ export default function HomePage() {
       </nav>
 
       {message && <div className="toast">{message}</div>}
+
+      {selectedAuction && (
+        <div className="modalBackdrop" onMouseDown={() => setSelectedAuction(null)}>
+          <section className="detailModal" onMouseDown={(event) => event.stopPropagation()}>
+            <button className="closeButton" type="button" onClick={() => setSelectedAuction(null)}>×</button>
+
+            <div className="detailMedia">
+              {selectedAuction.image_url ? (
+                <img src={selectedAuction.image_url} alt={selectedAuction.title} />
+              ) : (
+                <div className="detailPlaceholder">🔨</div>
+              )}
+              <span className="liveBadge">CANLI</span>
+            </div>
+
+            <div className="detailContent">
+              <div className="detailTopline">
+                <span>Doğrulanmış satıcı</span>
+                <strong>{remainingTime(selectedAuction.ends_at)}</strong>
+              </div>
+
+              <h2>{selectedAuction.title}</h2>
+              <p className="detailDescription">
+                {selectedAuction.description || "Ürün açıklaması eklenmemiş."}
+              </p>
+
+              <div className="detailPriceBox">
+                <div>
+                  <span>Güncel teklif</span>
+                  <strong>{money(Number(selectedAuction.current_price))}</strong>
+                </div>
+                <div>
+                  <span>Minimum artış</span>
+                  <strong>{money(Number(selectedAuction.min_increment))}</strong>
+                </div>
+              </div>
+
+              <div className="sellerCard">
+                <span className="sellerAvatar">K</span>
+                <div>
+                  <strong>KapışKapış satıcısı</strong>
+                  <small>Kimliği doğrulanmış · Güvenli işlem</small>
+                </div>
+                <span className="sellerScore">★ 4.9</span>
+              </div>
+
+              <button
+                className="detailBidButton"
+                type="button"
+                onClick={() => setMessage("Gerçek teklif sistemi sıradaki adımda eklenecek.")}
+              >
+                Teklif ver · sonraki minimum {money(Number(selectedAuction.current_price) + Number(selectedAuction.min_increment))}
+              </button>
+
+              <div className="detailSafety">
+                <span>🔒</span>
+                <div>
+                  <strong>KapışKapış koruması</strong>
+                  <small>Teklif ve kullanıcı işlemleri güvenli altyapıda saklanır.</small>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      )}
 
       {showAuth && (
         <div className="modalBackdrop" onMouseDown={() => setShowAuth(false)}>
@@ -1672,6 +1738,161 @@ export default function HomePage() {
           font-size: 13px;
         }
 
+        .detailModal {
+          position: relative;
+          width: min(100%, 920px);
+          max-height: calc(100vh - 40px);
+          overflow-y: auto;
+          display: grid;
+          grid-template-columns: minmax(0, 1.08fr) minmax(330px, 0.92fr);
+          border-radius: 26px;
+          background: white;
+          box-shadow: 0 34px 110px rgba(0, 0, 0, 0.38);
+        }
+
+        .detailMedia {
+          position: relative;
+          min-height: 560px;
+          overflow: hidden;
+          border-radius: 26px 0 0 26px;
+          background: linear-gradient(145deg, #eceef1, #d6dae0);
+        }
+
+        .detailMedia img {
+          width: 100%;
+          height: 100%;
+          min-height: 560px;
+          object-fit: cover;
+        }
+
+        .detailPlaceholder {
+          min-height: 560px;
+          display: grid;
+          place-items: center;
+          font-size: 84px;
+          filter: grayscale(1);
+          opacity: 0.62;
+        }
+
+        .detailContent {
+          display: grid;
+          align-content: start;
+          padding: 34px;
+        }
+
+        .detailTopline {
+          display: flex;
+          justify-content: space-between;
+          gap: 16px;
+          color: #8d939e;
+          font-size: 11px;
+        }
+
+        .detailTopline strong {
+          color: #e54954;
+        }
+
+        .detailContent h2 {
+          margin: 18px 0 10px;
+          font-size: clamp(28px, 4vw, 42px);
+          line-height: 1.05;
+          letter-spacing: -0.045em;
+        }
+
+        .detailDescription {
+          margin: 0;
+          color: #737a86;
+          line-height: 1.65;
+        }
+
+        .detailPriceBox {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 10px;
+          margin: 26px 0 16px;
+        }
+
+        .detailPriceBox > div {
+          display: grid;
+          gap: 5px;
+          padding: 16px;
+          border-radius: 16px;
+          background: #f4f5f7;
+        }
+
+        .detailPriceBox span {
+          color: #8d939e;
+          font-size: 11px;
+        }
+
+        .detailPriceBox strong {
+          font-size: 20px;
+        }
+
+        .sellerCard {
+          display: grid;
+          grid-template-columns: auto 1fr auto;
+          align-items: center;
+          gap: 12px;
+          margin: 8px 0 18px;
+          padding: 14px;
+          border: 1px solid #e5e7eb;
+          border-radius: 16px;
+        }
+
+        .sellerAvatar {
+          width: 42px;
+          height: 42px;
+          display: grid;
+          place-items: center;
+          border-radius: 50%;
+          background: #111216;
+          color: #ffc63d;
+          font-weight: 950;
+        }
+
+        .sellerCard div {
+          display: grid;
+          gap: 3px;
+        }
+
+        .sellerCard small {
+          color: #9197a2;
+        }
+
+        .sellerScore {
+          color: #a87300;
+          font-weight: 900;
+        }
+
+        .detailBidButton {
+          border: 0;
+          border-radius: 14px;
+          padding: 16px;
+          background: #ffc63d;
+          color: #111216;
+          font-weight: 950;
+        }
+
+        .detailSafety {
+          display: flex;
+          align-items: center;
+          gap: 11px;
+          margin-top: 14px;
+          padding: 14px;
+          border-radius: 15px;
+          background: #edf8f1;
+        }
+
+        .detailSafety div {
+          display: grid;
+          gap: 3px;
+        }
+
+        .detailSafety small {
+          color: #6b7b70;
+        }
+
         .modalBackdrop {
           position: fixed;
           inset: 0;
@@ -1890,6 +2111,30 @@ export default function HomePage() {
 
           .categoryStrip {
             display: flex;
+          }
+        }
+
+        @media (max-width: 760px) {
+          .detailModal {
+            grid-template-columns: 1fr;
+          }
+
+          .detailMedia,
+          .detailMedia img,
+          .detailPlaceholder {
+            min-height: 300px;
+          }
+
+          .detailMedia {
+            border-radius: 26px 26px 0 0;
+          }
+
+          .detailContent {
+            padding: 24px;
+          }
+
+          .detailPriceBox {
+            grid-template-columns: 1fr;
           }
         }
 
