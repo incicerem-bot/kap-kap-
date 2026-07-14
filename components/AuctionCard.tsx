@@ -35,6 +35,7 @@ type AuctionCardProps = {
   isFavorite: boolean;
   onToggleFavorite: (auctionId: string) => void;
   onOpenDetail: (auction: Auction) => void;
+  pricePulse?: boolean;
 };
 
 export default function AuctionCard({
@@ -42,9 +43,10 @@ export default function AuctionCard({
   isFavorite,
   onToggleFavorite,
   onOpenDetail,
+  pricePulse = false,
 }: AuctionCardProps) {
   return (
-    <article className="liveCard">
+    <article className={`liveCard ${pricePulse ? "pricePulseCard" : ""}`}>
       <div className="liveImage">
         <span className="liveBadge">CANLI</span>
         <button
@@ -70,7 +72,9 @@ export default function AuctionCard({
       <div className="liveMeta">
         <div>
           <span>Güncel teklif</span>
-          <strong>{money(Number(auction.current_price))}</strong>
+          <strong className={pricePulse ? "pricePulseText" : ""}>
+            {money(Number(auction.current_price))}
+          </strong>
         </div>
         <small>{remainingTime(auction.ends_at)}</small>
       </div>

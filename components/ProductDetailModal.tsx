@@ -41,6 +41,7 @@ type ProductDetailModalProps = {
   onBidAmountChange: (value: string) => void;
   onSubmitBid: (event: FormEvent<HTMLFormElement>) => void;
   onToggleFavorite: (auctionId: string) => void;
+  pricePulse?: boolean;
 };
 
 export default function ProductDetailModal(props: ProductDetailModalProps) {
@@ -81,7 +82,9 @@ export default function ProductDetailModal(props: ProductDetailModalProps) {
           <div className="auctionPulse">
             <div>
               <span>Güncel teklif</span>
-              <strong>{money(Number(auction.current_price))}</strong>
+              <strong className={props.pricePulse ? "pricePulseText" : ""}>
+                {money(Number(auction.current_price))}
+              </strong>
             </div>
             <div className="countdownBox">
               <span>Kalan süre</span>
