@@ -9,12 +9,31 @@ export type AuctionCategory =
   | "camera"
   | "collection";
 
+export type ProductType =
+  | "smartphone"
+  | "laptop"
+  | "game_console"
+  | "television"
+  | "smartwatch"
+  | "camera"
+  | "car"
+  | "furniture";
+
+export type ProductSpecifications = Record<
+  string,
+  string | number | boolean | null
+>;
+
 export type Auction = {
   id: string;
   seller_id: string;
   title: string;
   description: string;
   category: AuctionCategory;
+  product_type?: ProductType | null;
+  brand?: string | null;
+  model?: string | null;
+  specifications?: ProductSpecifications | null;
   start_price: number;
   current_price: number;
   min_increment: number;

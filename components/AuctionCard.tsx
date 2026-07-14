@@ -71,6 +71,11 @@ export default function AuctionCard({
 
       <span className="categoryBadge">{categoryLabels[auction.category || "all"]}</span>
       <h3>{auction.title}</h3>
+      {(auction.brand || auction.model) && (
+        <span className="productModelLine">
+          {[auction.brand, auction.model].filter(Boolean).join(" · ")}
+        </span>
+      )}
       <span className="sellerLine">Doğrulanmış satıcı</span>
 
       <div className="liveMeta">

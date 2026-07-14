@@ -94,6 +94,49 @@ export default function ProductDetailModal(props: ProductDetailModalProps) {
             </div>
           </div>
 
+          {(auction.brand || auction.model) && (
+            <div className="productIdentityBar">
+              <div>
+                <span>Marka</span>
+                <strong>{auction.brand || "Belirtilmedi"}</strong>
+              </div>
+              <div>
+                <span>Model</span>
+                <strong>{auction.model || "Belirtilmedi"}</strong>
+              </div>
+            </div>
+          )}
+
+          {auction.specifications &&
+            Object.keys(auction.specifications).length > 0 && (
+              <section className="technicalSpecs">
+                <div className="technicalSpecsHeader">
+                  <span>TEKNİK DETAYLAR</span>
+                  <strong>Ürün özellikleri</strong>
+                </div>
+                <div className="technicalSpecsGrid">
+                  {Object.entries(auction.specifications).map(([key, value]) => (
+                    <div key={key}>
+                      <span>
+                        {key
+                          .replaceAll("_", " ")
+                          .replace(/\w/g, (letter) =>
+                            letter.toLocaleUpperCase("tr")
+                          )}
+                      </span>
+                      <strong>
+                        {value === "yes"
+                          ? "Var"
+                          : value === "no"
+                            ? "Yok"
+                            : String(value)}
+                      </strong>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
           <div className="bidRules">
             <div>
               <span>Başlangıç fiyatı</span>
