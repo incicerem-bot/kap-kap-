@@ -3310,3 +3310,179 @@ input,textarea,select { width:100%; border:1px solid #2a3540; border-radius:10px
     grid-template-columns: 1fr;
   }
 }
+
+
+.liveListingOption {
+  padding: 14px;
+  border: 1px solid #394652;
+  border-radius: 12px;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(255, 196, 61, .09), transparent 42%),
+    #0a1118;
+}
+
+.liveListingOptionHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.liveListingOptionHead > div {
+  display: grid;
+  gap: 4px;
+}
+
+.liveListingOptionHead > div > span,
+.liveAuctionControlCard > div:first-child > span {
+  color: #ffc43d;
+  font-size: 8px;
+  font-weight: 950;
+  letter-spacing: .14em;
+}
+
+.liveListingOptionHead strong,
+.liveAuctionControlCard > div:first-child > strong {
+  font-size: 11px;
+}
+
+.liveListingOptionHead small,
+.liveAuctionControlCard > div:first-child > small {
+  max-width: 560px;
+  color: #7f8a96;
+  font-size: 8px;
+  line-height: 1.5;
+}
+
+.liveSwitch {
+  position: relative;
+  width: 46px;
+  height: 26px;
+  flex: 0 0 46px;
+}
+
+.liveSwitch input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.liveSwitch > span {
+  position: absolute;
+  inset: 0;
+  border: 1px solid #3d4853;
+  border-radius: 999px;
+  background: #111a22;
+  transition: .2s ease;
+}
+
+.liveSwitch > span::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #69747f;
+  transition: .2s ease;
+}
+
+.liveSwitch input:checked + span {
+  border-color: #8f6d20;
+  background: rgba(255, 196, 61, .16);
+}
+
+.liveSwitch input:checked + span::after {
+  left: 23px;
+  background: #ffc43d;
+}
+
+.liveStartCheck {
+  display: flex !important;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #222d37;
+  color: #aeb7c0 !important;
+  font-size: 8px !important;
+}
+
+.liveStartCheck input {
+  width: auto !important;
+}
+
+.liveBadgeClosed {
+  border-color: #555f69 !important;
+  background: rgba(85, 95, 105, .18) !important;
+  color: #a7b0b8 !important;
+}
+
+.liveBadgeOpen {
+  box-shadow: 0 0 0 4px rgba(225, 67, 75, .08);
+}
+
+.liveAuctionControlCard {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 14px;
+  border: 1px solid #5c4718;
+  border-radius: 12px;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(255, 196, 61, .1), transparent 40%),
+    #0a1118;
+}
+
+.liveAuctionControlCard > div:first-child {
+  display: grid;
+  gap: 4px;
+}
+
+.liveAuctionControlActions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.liveAuctionControlActions button {
+  min-height: 40px;
+  border-radius: 9px;
+  padding: 9px 11px;
+  font-size: 8px;
+  font-weight: 950;
+}
+
+.startLiveAuctionButton {
+  border: 0;
+  background: #e1434b;
+  color: white;
+}
+
+.closeLiveAuctionButton {
+  border: 1px solid #6b383c;
+  background: rgba(107, 56, 60, .1);
+  color: #e77c82;
+}
+
+.liveAuctionControlActions .openLiveRoomButton {
+  margin: 0;
+}
+
+.liveAuctionControlActions .openLiveRoomButton:disabled {
+  border-color: #39434d;
+  background: #101820;
+  color: #65707b;
+  cursor: not-allowed;
+}
+
+@media (max-width: 560px) {
+  .liveListingOptionHead {
+    align-items: flex-start;
+  }
+
+  .liveAuctionControlActions {
+    grid-template-columns: 1fr;
+  }
+}

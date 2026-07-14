@@ -129,6 +129,9 @@ export default function HomePage() {
   const [startPrice, setStartPrice] = useState("1000");
   const [minIncrement, setMinIncrement] = useState("100");
   const [durationHours, setDurationHours] = useState("24");
+  const [auctionLiveEnabled, setAuctionLiveEnabled] = useState(false);
+  const [auctionLiveStartOpen, setAuctionLiveStartOpen] = useState(false);
+  const [liveControlLoading, setLiveControlLoading] = useState(false);
   const [auctionImage, setAuctionImage] = useState<File | null>(null);
   const [auctionImagePreview, setAuctionImagePreview] = useState("");
 
@@ -325,7 +328,7 @@ export default function HomePage() {
 
     const { data, error } = await supabase
       .from("auctions")
-      .select("id, seller_id, title, description, category, product_type, brand, model, specifications, start_price, current_price, min_increment, ends_at, status, image_url, created_at")
+      .select("id, seller_id, title, description, category, product_type, brand, model, specifications, live_enabled, live_is_open, live_opened_at, start_price, current_price, min_increment, ends_at, status, image_url, created_at")
       .eq("status", "active")
       .order("created_at", { ascending: false });
 
@@ -436,7 +439,7 @@ export default function HomePage() {
 
     const { data, error } = await supabase
       .from("auctions")
-      .select("id, seller_id, title, description, category, product_type, brand, model, specifications, start_price, current_price, min_increment, ends_at, status, image_url, created_at")
+      .select("id, seller_id, title, description, category, product_type, brand, model, specifications, live_enabled, live_is_open, live_opened_at, start_price, current_price, min_increment, ends_at, status, image_url, created_at")
       .eq("id", notification.auction_id)
       .maybeSingle();
 
@@ -738,6 +741,22 @@ export default function HomePage() {
       void supabase.removeChannel(realtimeChannel);
     };
   }, [selectedAuction?.id]);
+
+  useEffect(() => {
+    if (
+      showLiveRoom &&
+      selectedAuction?.live_enabled &&
+      !selectedAuction.live_is_open
+    ) {
+      setShowLiveRoom(false);
+      setMessage("İlan sahibi canlı açık artırma odasını kapattı.");
+    }
+  }, [
+    showLiveRoom,
+    selectedAuction?.id,
+    selectedAuction?.live_enabled,
+    selectedAuction?.live_is_open,
+  ]);
 
   useEffect(() => {
     if (!auctionImage) {
@@ -1340,7 +1359,7 @@ export default function HomePage() {
     const { data: auctionRows, error: auctionError } = await supabase
       .from("auctions")
       .select(
-        "id, seller_id, title, description, category, product_type, brand, model, specifications, start_price, current_price, min_increment, ends_at, status, image_url, created_at"
+        "id, seller_id, title, description, category, product_type, brand, model, specifications, live_enabled, live_is_open, live_opened_at, start_price, current_price, min_increment, ends_at, status, image_url, created_at"
       )
       .in("id", auctionIds);
 
@@ -1422,7 +1441,7 @@ export default function HomePage() {
       supabase
         .from("auctions")
         .select(
-          "id, seller_id, title, description, category, product_type, brand, model, specifications, start_price, current_price, min_increment, ends_at, status, image_url, created_at"
+          "id, seller_id, title, description, category, product_type, brand, model, specifications, live_enabled, live_is_open, live_opened_at, start_price, current_price, min_increment, ends_at, status, image_url, created_at"
         )
         .eq("seller_id", user.id)
         .eq("status", "active")
@@ -1477,7 +1496,7 @@ export default function HomePage() {
           ? supabase
               .from("auctions")
               .select(
-                "id, seller_id, title, description, category, product_type, brand, model, specifications, start_price, current_price, min_increment, ends_at, status, image_url, created_at"
+                "id, seller_id, title, description, category, product_type, brand, model, specifications, live_enabled, live_is_open, live_opened_at, start_price, current_price, min_increment, ends_at, status, image_url, created_at"
               )
               .in("id", bidAuctionIds)
           : Promise.resolve({ data: [] }),
@@ -1485,7 +1504,7 @@ export default function HomePage() {
           ? supabase
               .from("auctions")
               .select(
-                "id, seller_id, title, description, category, product_type, brand, model, specifications, start_price, current_price, min_increment, ends_at, status, image_url, created_at"
+                "id, seller_id, title, description, category, product_type, brand, model, specifications, live_enabled, live_is_open, live_opened_at, start_price, current_price, min_increment, ends_at, status, image_url, created_at"
               )
               .in("id", favoriteAuctionIds)
           : Promise.resolve({ data: [] }),
@@ -1493,7 +1512,7 @@ export default function HomePage() {
           ? supabase
               .from("auctions")
               .select(
-                "id, seller_id, title, description, category, product_type, brand, model, specifications, start_price, current_price, min_increment, ends_at, status, image_url, created_at"
+                "id, seller_id, title, description, category, product_type, brand, model, specifications, live_enabled, live_is_open, live_opened_at, start_price, current_price, min_increment, ends_at, status, image_url, created_at"
               )
               .in("id", wonAuctionIds)
           : Promise.resolve({ data: [] }),
@@ -1720,7 +1739,7 @@ export default function HomePage() {
       const { data: auctionRows } = await supabase
         .from("auctions")
         .select(
-          "id, seller_id, title, description, category, product_type, brand, model, specifications, start_price, current_price, min_increment, ends_at, status, image_url, created_at"
+          "id, seller_id, title, description, category, product_type, brand, model, specifications, live_enabled, live_is_open, live_opened_at, start_price, current_price, min_increment, ends_at, status, image_url, created_at"
         )
         .in("id", auctionIds);
 
@@ -1855,7 +1874,7 @@ export default function HomePage() {
       supabase
         .from("auctions")
         .select(
-          "id, seller_id, title, description, category, product_type, brand, model, specifications, start_price, current_price, min_increment, ends_at, status, image_url, created_at"
+          "id, seller_id, title, description, category, product_type, brand, model, specifications, live_enabled, live_is_open, live_opened_at, start_price, current_price, min_increment, ends_at, status, image_url, created_at"
         )
         .eq("seller_id", sellerId)
         .eq("status", "active")
@@ -2179,6 +2198,12 @@ export default function HomePage() {
       brand: auctionBrand.trim(),
       model: auctionModel.trim(),
       specifications: auctionSpecifications,
+      live_enabled: auctionLiveEnabled,
+      live_is_open: auctionLiveEnabled && auctionLiveStartOpen,
+      live_opened_at:
+        auctionLiveEnabled && auctionLiveStartOpen
+          ? new Date().toISOString()
+          : null,
       start_price: Number(startPrice),
       starting_bid: Number(startPrice),
       current_bid: Number(startPrice),
@@ -2208,10 +2233,73 @@ export default function HomePage() {
     setStartPrice("1000");
     setMinIncrement("100");
     setDurationHours("24");
+    setAuctionLiveEnabled(false);
+    setAuctionLiveStartOpen(false);
     setAuctionImage(null);
     setShowSell(false);
     await loadAuctions();
     setMessage("İlan yayınlandı.");
+  }
+
+  async function toggleAuctionLiveStatus() {
+    const supabase = getSupabaseBrowserClient();
+
+    if (!supabase || !user || !selectedAuction) return;
+
+    if (selectedAuction.seller_id !== user.id) {
+      setMessage("Canlı odayı yalnızca ilan sahibi yönetebilir.");
+      return;
+    }
+
+    if (!selectedAuction.live_enabled) {
+      setMessage("Bu ilan canlı açık artırma özelliğiyle oluşturulmamış.");
+      return;
+    }
+
+    setLiveControlLoading(true);
+
+    const nextOpen = !Boolean(selectedAuction.live_is_open);
+
+    const { data, error } = await supabase.rpc(
+      "set_auction_live_status",
+      {
+        p_auction_id: selectedAuction.id,
+        p_is_open: nextOpen,
+      }
+    );
+
+    setLiveControlLoading(false);
+
+    if (error) {
+      setMessage(`Canlı oda güncellenemedi: ${error.message}`);
+      return;
+    }
+
+    const updated = {
+      ...selectedAuction,
+      ...(data as Auction),
+      live_is_open: nextOpen,
+      live_opened_at: nextOpen
+        ? new Date().toISOString()
+        : selectedAuction.live_opened_at ?? null,
+    };
+
+    setSelectedAuction(updated);
+    setAuctions((current) =>
+      current.map((auction) =>
+        auction.id === updated.id ? { ...auction, ...updated } : auction
+      )
+    );
+
+    if (!nextOpen) {
+      setShowLiveRoom(false);
+    }
+
+    setMessage(
+      nextOpen
+        ? "Canlı açık artırma odası açıldı."
+        : "Canlı açık artırma odası kapatıldı."
+    );
   }
 
   function handleOpenSell() {
@@ -2410,6 +2498,8 @@ export default function HomePage() {
         startPrice={startPrice}
         minIncrement={minIncrement}
         durationHours={durationHours}
+        liveEnabled={auctionLiveEnabled}
+        liveStartOpen={auctionLiveStartOpen}
         imagePreview={auctionImagePreview}
         onClose={() => setShowSell(false)}
         onTitleChange={setAuctionTitle}
@@ -2446,6 +2536,11 @@ export default function HomePage() {
         onStartPriceChange={setStartPrice}
         onMinIncrementChange={setMinIncrement}
         onDurationChange={setDurationHours}
+        onLiveEnabledChange={(enabled) => {
+          setAuctionLiveEnabled(enabled);
+          if (!enabled) setAuctionLiveStartOpen(false);
+        }}
+        onLiveStartOpenChange={setAuctionLiveStartOpen}
         onImageChange={setAuctionImage}
         onSubmit={handleCreateAuction}
       />
@@ -2740,8 +2835,19 @@ export default function HomePage() {
         onToggleFavorite={(id) => void toggleFavorite(id)}
         onOpenLiveRoom={() => {
           if (!selectedAuction) return;
+          if (!selectedAuction.live_enabled) {
+            setMessage("Bu ilanda canlı açık artırma özelliği bulunmuyor.");
+            return;
+          }
+          if (!selectedAuction.live_is_open) {
+            setMessage("Canlı açık artırma odası şu anda kapalı.");
+            return;
+          }
           setShowLiveRoom(true);
         }}
+        currentUserId={user?.id || ""}
+        liveControlLoading={liveControlLoading}
+        onToggleLiveStatus={() => void toggleAuctionLiveStatus()}
         sellerTrust={sellerTrust}
         sellerTrustLoading={sellerTrustLoading}
         onOpenSellerReviews={() => setShowSellerReviews(true)}
