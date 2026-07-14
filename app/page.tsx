@@ -1094,13 +1094,35 @@ export default function HomePage() {
                       Min. artış {money(Number(auction.min_increment))}
                     </small>
                   </div>
-                  <button
-                    className="kapisButton"
-                    type="button"
-                    onClick={() => void openAuctionDetail(auction)}
-                  >
-                    KAPIŞ!
-                  </button>
+                  <div className="cardActions">
+                    <button
+                      className={`favoriteTextButton ${
+                        favoriteAuctionIds.includes(auction.id)
+                          ? "favoriteTextActive"
+                          : ""
+                      }`}
+                      type="button"
+                      disabled={auction.id.startsWith("demo-")}
+                      onClick={() => void toggleFavorite(auction.id)}
+                    >
+                      <span>
+                        {favoriteAuctionIds.includes(auction.id) ? "♥" : "♡"}
+                      </span>
+                      {auction.id.startsWith("demo-")
+                        ? "Örnek ilan"
+                        : favoriteAuctionIds.includes(auction.id)
+                          ? "Favorilerde"
+                          : "Favoriye ekle"}
+                    </button>
+
+                    <button
+                      className="kapisButton"
+                      type="button"
+                      onClick={() => void openAuctionDetail(auction)}
+                    >
+                      KAPIŞ!
+                    </button>
+                  </div>
                 </article>
               ))}
             </div>
@@ -1184,13 +1206,35 @@ export default function HomePage() {
                     </div>
                     <small>{remainingTime(auction.ends_at)}</small>
                   </div>
-                  <button
-                    className="kapisButton"
-                    type="button"
-                    onClick={() => void openAuctionDetail(auction)}
-                  >
-                    KAPIŞ!
-                  </button>
+                  <div className="cardActions">
+                    <button
+                      className={`favoriteTextButton ${
+                        favoriteAuctionIds.includes(auction.id)
+                          ? "favoriteTextActive"
+                          : ""
+                      }`}
+                      type="button"
+                      disabled={auction.id.startsWith("demo-")}
+                      onClick={() => void toggleFavorite(auction.id)}
+                    >
+                      <span>
+                        {favoriteAuctionIds.includes(auction.id) ? "♥" : "♡"}
+                      </span>
+                      {auction.id.startsWith("demo-")
+                        ? "Örnek ilan"
+                        : favoriteAuctionIds.includes(auction.id)
+                          ? "Favorilerde"
+                          : "Favoriye ekle"}
+                    </button>
+
+                    <button
+                      className="kapisButton"
+                      type="button"
+                      onClick={() => void openAuctionDetail(auction)}
+                    >
+                      KAPIŞ!
+                    </button>
+                  </div>
                 </article>
               ))}
             </div>
@@ -2442,6 +2486,49 @@ export default function HomePage() {
           color: #0a0c0f;
           font-weight: 950;
           font-size: 11px;
+        }
+
+        .cardActions {
+          display: grid;
+          grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+          gap: 7px;
+          margin-top: 10px;
+        }
+
+        .cardActions .kapisButton {
+          margin-top: 0;
+        }
+
+        .favoriteTextButton {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          border: 1px solid #303b46;
+          border-radius: 8px;
+          padding: 9px 7px;
+          background: #0b1219;
+          color: #aab3bc;
+          font-size: 9px;
+          font-weight: 850;
+        }
+
+        .favoriteTextButton span {
+          color: #c89b32;
+          font-size: 14px;
+          line-height: 1;
+        }
+
+        .favoriteTextButton:hover:not(:disabled),
+        .favoriteTextButton.favoriteTextActive {
+          border-color: #8b6b22;
+          background: rgba(200, 155, 50, 0.1);
+          color: #ffc43d;
+        }
+
+        .favoriteTextButton:disabled {
+          cursor: not-allowed;
+          opacity: 0.42;
         }
 
         .kapisButton.large {
