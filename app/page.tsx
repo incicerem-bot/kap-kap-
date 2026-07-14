@@ -8,6 +8,8 @@ import {
 } from "../lib/supabase";
 
 type AuthMode = "login" | "register";
+type AuctionFilter = "all" | "ending" | "new" | "popular";
+type AuctionSort = "recommended" | "ending" | "price-low" | "price-high";
 
 type Auction = {
   id: string;
@@ -150,6 +152,8 @@ export default function HomePage() {
   const [showSell, setShowSell] = useState(false);
   const [selectedAuction, setSelectedAuction] = useState<SelectedAuction>(null);
   const [query, setQuery] = useState("");
+  const [activeFilter, setActiveFilter] = useState<AuctionFilter>("all");
+  const [sortMode, setSortMode] = useState<AuctionSort>("recommended");
   const [bidAmount, setBidAmount] = useState("");
   const [bidHistory, setBidHistory] = useState<Bid[]>([]);
 
@@ -601,14 +605,63 @@ export default function HomePage() {
 
   const filteredAuctions = useMemo(() => {
     const normalized = query.trim().toLocaleLowerCase("tr");
-    if (!normalized) return auctions;
 
-    return auctions.filter((auction) =>
-      `${auction.title} ${auction.description}`
-        .toLocaleLowerCase("tr")
-        .includes(normalized)
-    );
-  }, [auctions, query]);
+    let result = auctions.filter((auction) => {
+      if (
+        normalized &&
+        !`${auction.title} ${auction.description}`
+          .toLocaleLowerCase("tr")
+          .includes(normalized)
+      ) {
+        return false;
+      }
+
+      const endTime = new Date(auction.ends_at).getTime();
+      const now = Date.now();
+
+      if (activeFilter === "ending") {
+        return endTime > now && endTime - now <= 24 * 60 * 60 * 1000;
+      }
+
+      if (activeFilter === "new") {
+        return (
+          new Date(auction.created_at).getTime() >=
+          now - 7 * 24 * 60 * 60 * 1000
+        );
+      }
+
+      return true;
+    });
+
+    if (activeFilter === "popular") {
+      result = [...result].sort(
+        (a, b) =>
+          Number(b.current_price) - Number(b.start_price) -
+          (Number(a.current_price) - Number(a.start_price))
+      );
+    }
+
+    if (sortMode === "ending") {
+      result = [...result].sort(
+        (a, b) =>
+          new Date(a.ends_at).getTime() - new Date(b.ends_at).getTime()
+      );
+    }
+
+    if (sortMode === "price-low") {
+      result = [...result].sort(
+        (a, b) => Number(a.current_price) - Number(b.current_price)
+      );
+    }
+
+    if (sortMode === "price-high") {
+      result = [...result].sort(
+        (a, b) => Number(b.current_price) - Number(a.current_price)
+      );
+    }
+
+    return result;
+  }, [auctions, query, activeFilter, sortMode]);
 
   const activeCards = filteredAuctions.length
     ? filteredAuctions
@@ -729,15 +782,32 @@ export default function HomePage() {
 
           <section className="filterBar">
             <div className="filterGroup">
-              <button className="activeFilter" type="button">Tümü</button>
-              <button type="button">Bugün bitenler</button>
-              <button type="button">Yeni eklenenler</button>
-              <button type="button">En çok teklif alanlar</button>
+              {[
+                ["all", "Tümü"],
+                ["ending", "Bugün bitenler"],
+                ["new", "Yeni eklenenler"],
+                ["popular", "En çok teklif alanlar"],
+              ].map(([value, label]) => (
+                <button
+                  className={activeFilter === value ? "activeFilter" : ""}
+                  type="button"
+                  key={value}
+                  onClick={() => setActiveFilter(value as AuctionFilter)}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
 
             <div className="sortGroup">
               <label htmlFor="sort">Sırala</label>
-              <select id="sort" defaultValue="recommended">
+              <select
+                id="sort"
+                value={sortMode}
+                onChange={(event) =>
+                  setSortMode(event.target.value as AuctionSort)
+                }
+              >
                 <option value="recommended">Önerilen</option>
                 <option value="ending">Yakında biten</option>
                 <option value="price-low">Fiyat: düşükten yükseğe</option>
@@ -745,6 +815,24 @@ export default function HomePage() {
               </select>
             </div>
           </section>
+
+          <div className="resultSummary">
+            <span>
+              {filteredAuctions.length} aktif ilan
+            </span>
+            {(query || activeFilter !== "all" || sortMode !== "recommended") && (
+              <button
+                type="button"
+                onClick={() => {
+                  setQuery("");
+                  setActiveFilter("all");
+                  setSortMode("recommended");
+                }}
+              >
+                Filtreleri temizle
+              </button>
+            )}
+          </div>
 
           <section className="panel categories">
             <div className="panelHeader">
@@ -841,6 +929,22 @@ export default function HomePage() {
               <button type="button" onClick={loadAuctions}>Yenile ›</button>
             </div>
 
+            {auctions.length > 0 && filteredAuctions.length === 0 ? (
+              <div className="filteredEmpty">
+                <strong>Bu filtreye uygun ilan bulunamadı.</strong>
+                <span>Filtreleri temizleyerek tüm aktif ilanları görebilirsin.</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setQuery("");
+                    setActiveFilter("all");
+                    setSortMode("recommended");
+                  }}
+                >
+                  Tüm ilanları göster
+                </button>
+              </div>
+            ) : (
             <div className="liveGrid">
               {activeCards.slice(0, 5).map((auction) => (
                 <article className="liveCard" key={auction.id}>
@@ -872,6 +976,7 @@ export default function HomePage() {
                 </article>
               ))}
             </div>
+            )}
           </section>
 
           <section className="bottomGrid">
@@ -1832,6 +1937,30 @@ export default function HomePage() {
           font-size: 10px;
         }
 
+        .resultSummary {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          margin: -4px 2px 14px;
+          color: #7f8a96;
+          font-size: 9px;
+        }
+
+        .resultSummary button {
+          border: 0;
+          border-bottom: 1px solid #6c531a;
+          padding: 2px 0;
+          background: transparent;
+          color: #c59a34;
+          font-size: 9px;
+          font-weight: 800;
+        }
+
+        .filterGroup button:active {
+          transform: translateY(1px);
+        }
+
         .panel,
         .sidePanel {
           border: 1px solid #1b2530;
@@ -2071,6 +2200,38 @@ export default function HomePage() {
         .kapisButton.large {
           padding: 14px;
           font-size: 14px;
+        }
+
+        .filteredEmpty {
+          display: grid;
+          place-items: center;
+          gap: 8px;
+          min-height: 220px;
+          padding: 28px;
+          border: 1px dashed #2a3540;
+          border-radius: 12px;
+          background: #0a1118;
+          text-align: center;
+        }
+
+        .filteredEmpty strong {
+          font-size: 13px;
+        }
+
+        .filteredEmpty span {
+          color: #7f8a96;
+          font-size: 10px;
+        }
+
+        .filteredEmpty button {
+          margin-top: 6px;
+          border: 1px solid #5c4718;
+          border-radius: 9px;
+          padding: 9px 12px;
+          background: rgba(255, 196, 61, 0.08);
+          color: #ffc43d;
+          font-size: 10px;
+          font-weight: 850;
         }
 
         .liveGrid {
