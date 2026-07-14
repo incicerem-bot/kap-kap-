@@ -31,7 +31,7 @@ import AddressBookModal from "@/components/AddressBookModal";
 import DisputeFormModal from "@/components/DisputeFormModal";
 import DisputeCenterModal from "@/components/DisputeCenterModal";
 import SellerStoreModal from "@/components/SellerStoreModal";
-import type { Auction, AuctionCategory, Bid, ProfileSummary, AppNotification, AuctionOrder, ConversationMessage, OrderStatus, ProductSpecifications, ProductType, SavedSearch, SellerReview, SellerTrustSummary, AuctionReport, AuctionReportStatus, UserAddress, DisputeStatus, DisputeType, OrderDispute, SellerStoreSummary } from "@/components/types";
+import type { Auction, AuctionCategory, Bid, ProfileSummary, AppNotification, AuctionOrder, ConversationMessage, OrderStatus, ProductSpecifications, ProductType, SavedSearch, SellerReview, SellerTrustSummary, AuctionReport, AuctionReportStatus, UserAddress, DisputeStatus, DisputeType, OrderDispute, SellerStoreSummary, LiveReminder } from "@/components/types";
 
 export default function HomePage() {
   const [user, setUser] = useState<User | null>(null);
@@ -131,7 +131,10 @@ export default function HomePage() {
   const [durationHours, setDurationHours] = useState("24");
   const [auctionLiveEnabled, setAuctionLiveEnabled] = useState(false);
   const [auctionLiveStartOpen, setAuctionLiveStartOpen] = useState(false);
+  const [auctionLiveScheduledAt, setAuctionLiveScheduledAt] = useState("");
   const [liveControlLoading, setLiveControlLoading] = useState(false);
+  const [liveReminderIds, setLiveReminderIds] = useState<string[]>([]);
+  const [liveReminderLoading, setLiveReminderLoading] = useState(false);
   const [auctionImage, setAuctionImage] = useState<File | null>(null);
   const [auctionImagePreview, setAuctionImagePreview] = useState("");
 
@@ -328,7 +331,7 @@ export default function HomePage() {
 
     const { data, error } = await supabase
       .from("auctions")
-      .select("id, seller_id, title, description, category, product_type, brand, model, specifications, live_enabled, live_is_open, live_opened_at, start_price, current_price, min_increment, ends_at, status, image_url, created_at")
+      .select("id, seller_id, title, description, category, product_type, brand, model, specifications, live_enabled, live_is_open, live_opened_at, live_scheduled_at, start_price, current_price, min_increment, ends_at, status, image_url, created_at")
       .eq("status", "active")
       .order("created_at", { ascending: false });
 
@@ -439,7 +442,7 @@ export default function HomePage() {
 
     const { data, error } = await supabase
       .from("auctions")
-      .select("id, seller_id, title, description, category, product_type, brand, model, specifications, live_enabled, live_is_open, live_opened_at, start_price, current_price, min_increment, ends_at, status, image_url, created_at")
+      .select("id, seller_id, title, description, category, product_type, brand, model, specifications, live_enabled, live_is_open, live_opened_at, live_scheduled_at, start_price, current_price, min_increment, ends_at, status, image_url, created_at")
       .eq("id", notification.auction_id)
       .maybeSingle();
 
@@ -617,6 +620,7 @@ export default function HomePage() {
           loadAddresses(currentUser.id),
           loadOrderDisputes(),
           loadFollowedSellers(currentUser.id),
+          loadLiveReminders(currentUser.id),
         ]);
       }
     });
@@ -717,6 +721,7 @@ export default function HomePage() {
         void loadAddresses(session.user.id);
         void loadOrderDisputes();
         void loadFollowedSellers(session.user.id);
+        void loadLiveReminders(session.user.id);
       } else {
         setFavoriteIds([]);
         setNotifications([]);
@@ -732,6 +737,7 @@ export default function HomePage() {
         setShowDisputeCenter(false);
         setFollowedSellerIds([]);
         setShowSellerStore(false);
+        setLiveReminderIds([]);
       }
     });
 
@@ -1359,7 +1365,7 @@ export default function HomePage() {
     const { data: auctionRows, error: auctionError } = await supabase
       .from("auctions")
       .select(
-        "id, seller_id, title, description, category, product_type, brand, model, specifications, live_enabled, live_is_open, live_opened_at, start_price, current_price, min_increment, ends_at, status, image_url, created_at"
+        "id, seller_id, title, description, category, product_type, brand, model, specifications, live_enabled, live_is_open, live_opened_at, live_scheduled_at, start_price, current_price, min_increment, ends_at, status, image_url, created_at"
       )
       .in("id", auctionIds);
 
@@ -1441,7 +1447,7 @@ export default function HomePage() {
       supabase
         .from("auctions")
         .select(
-          "id, seller_id, title, description, category, product_type, brand, model, specifications, live_enabled, live_is_open, live_opened_at, start_price, current_price, min_increment, ends_at, status, image_url, created_at"
+          "id, seller_id, title, description, category, product_type, brand, model, specifications, live_enabled, live_is_open, live_opened_at, live_scheduled_at, start_price, current_price, min_increment, ends_at, status, image_url, created_at"
         )
         .eq("seller_id", user.id)
         .eq("status", "active")
@@ -1496,7 +1502,7 @@ export default function HomePage() {
           ? supabase
               .from("auctions")
               .select(
-                "id, seller_id, title, description, category, product_type, brand, model, specifications, live_enabled, live_is_open, live_opened_at, start_price, current_price, min_increment, ends_at, status, image_url, created_at"
+                "id, seller_id, title, description, category, product_type, brand, model, specifications, live_enabled, live_is_open, live_opened_at, live_scheduled_at, start_price, current_price, min_increment, ends_at, status, image_url, created_at"
               )
               .in("id", bidAuctionIds)
           : Promise.resolve({ data: [] }),
@@ -1504,7 +1510,7 @@ export default function HomePage() {
           ? supabase
               .from("auctions")
               .select(
-                "id, seller_id, title, description, category, product_type, brand, model, specifications, live_enabled, live_is_open, live_opened_at, start_price, current_price, min_increment, ends_at, status, image_url, created_at"
+                "id, seller_id, title, description, category, product_type, brand, model, specifications, live_enabled, live_is_open, live_opened_at, live_scheduled_at, start_price, current_price, min_increment, ends_at, status, image_url, created_at"
               )
               .in("id", favoriteAuctionIds)
           : Promise.resolve({ data: [] }),
@@ -1512,7 +1518,7 @@ export default function HomePage() {
           ? supabase
               .from("auctions")
               .select(
-                "id, seller_id, title, description, category, product_type, brand, model, specifications, live_enabled, live_is_open, live_opened_at, start_price, current_price, min_increment, ends_at, status, image_url, created_at"
+                "id, seller_id, title, description, category, product_type, brand, model, specifications, live_enabled, live_is_open, live_opened_at, live_scheduled_at, start_price, current_price, min_increment, ends_at, status, image_url, created_at"
               )
               .in("id", wonAuctionIds)
           : Promise.resolve({ data: [] }),
@@ -1739,7 +1745,7 @@ export default function HomePage() {
       const { data: auctionRows } = await supabase
         .from("auctions")
         .select(
-          "id, seller_id, title, description, category, product_type, brand, model, specifications, live_enabled, live_is_open, live_opened_at, start_price, current_price, min_increment, ends_at, status, image_url, created_at"
+          "id, seller_id, title, description, category, product_type, brand, model, specifications, live_enabled, live_is_open, live_opened_at, live_scheduled_at, start_price, current_price, min_increment, ends_at, status, image_url, created_at"
         )
         .in("id", auctionIds);
 
@@ -1874,7 +1880,7 @@ export default function HomePage() {
       supabase
         .from("auctions")
         .select(
-          "id, seller_id, title, description, category, product_type, brand, model, specifications, live_enabled, live_is_open, live_opened_at, start_price, current_price, min_increment, ends_at, status, image_url, created_at"
+          "id, seller_id, title, description, category, product_type, brand, model, specifications, live_enabled, live_is_open, live_opened_at, live_scheduled_at, start_price, current_price, min_increment, ends_at, status, image_url, created_at"
         )
         .eq("seller_id", sellerId)
         .eq("status", "active")
@@ -2204,6 +2210,10 @@ export default function HomePage() {
         auctionLiveEnabled && auctionLiveStartOpen
           ? new Date().toISOString()
           : null,
+      live_scheduled_at:
+        auctionLiveEnabled && auctionLiveScheduledAt
+          ? new Date(auctionLiveScheduledAt).toISOString()
+          : null,
       start_price: Number(startPrice),
       starting_bid: Number(startPrice),
       current_bid: Number(startPrice),
@@ -2235,10 +2245,65 @@ export default function HomePage() {
     setDurationHours("24");
     setAuctionLiveEnabled(false);
     setAuctionLiveStartOpen(false);
+    setAuctionLiveScheduledAt("");
     setAuctionImage(null);
     setShowSell(false);
     await loadAuctions();
     setMessage("İlan yayınlandı.");
+  }
+
+  async function loadLiveReminders(userId: string) {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) return;
+
+    const { data } = await supabase
+      .from("live_auction_reminders")
+      .select("auction_id")
+      .eq("user_id", userId);
+
+    setLiveReminderIds((data ?? []).map((item) => item.auction_id));
+  }
+
+  async function toggleLiveReminder(auctionId: string) {
+    const supabase = getSupabaseBrowserClient();
+
+    if (!supabase || !user) {
+      setShowAuth(true);
+      return;
+    }
+
+    setLiveReminderLoading(true);
+    const active = liveReminderIds.includes(auctionId);
+
+    const { error } = active
+      ? await supabase
+          .from("live_auction_reminders")
+          .delete()
+          .eq("auction_id", auctionId)
+          .eq("user_id", user.id)
+      : await supabase.from("live_auction_reminders").insert({
+          auction_id: auctionId,
+          user_id: user.id,
+        });
+
+    setLiveReminderLoading(false);
+
+    if (error) {
+      setMessage(`Hatırlatıcı güncellenemedi: ${error.message}`);
+      return;
+    }
+
+    setLiveReminderIds((current) =>
+      active
+        ? current.filter((id) => id !== auctionId)
+        : [...current, auctionId]
+    );
+
+    setMessage(
+      active
+        ? "Canlı yayın hatırlatıcısı kaldırıldı."
+        : "Canlı yayın hatırlatıcısı oluşturuldu."
+    );
   }
 
   async function toggleAuctionLiveStatus() {
@@ -2500,6 +2565,7 @@ export default function HomePage() {
         durationHours={durationHours}
         liveEnabled={auctionLiveEnabled}
         liveStartOpen={auctionLiveStartOpen}
+        liveScheduledAt={auctionLiveScheduledAt}
         imagePreview={auctionImagePreview}
         onClose={() => setShowSell(false)}
         onTitleChange={setAuctionTitle}
@@ -2541,6 +2607,7 @@ export default function HomePage() {
           if (!enabled) setAuctionLiveStartOpen(false);
         }}
         onLiveStartOpenChange={setAuctionLiveStartOpen}
+        onLiveScheduledAtChange={setAuctionLiveScheduledAt}
         onImageChange={setAuctionImage}
         onSubmit={handleCreateAuction}
       />
@@ -2848,6 +2915,15 @@ export default function HomePage() {
         currentUserId={user?.id || ""}
         liveControlLoading={liveControlLoading}
         onToggleLiveStatus={() => void toggleAuctionLiveStatus()}
+        hasLiveReminder={Boolean(
+          selectedAuction &&
+            liveReminderIds.includes(selectedAuction.id)
+        )}
+        reminderLoading={liveReminderLoading}
+        onToggleLiveReminder={() => {
+          if (!selectedAuction) return;
+          void toggleLiveReminder(selectedAuction.id);
+        }}
         sellerTrust={sellerTrust}
         sellerTrustLoading={sellerTrustLoading}
         onOpenSellerReviews={() => setShowSellerReviews(true)}

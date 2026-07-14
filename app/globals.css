@@ -3486,3 +3486,45 @@ input,textarea,select { width:100%; border:1px solid #2a3540; border-radius:10px
     grid-template-columns: 1fr;
   }
 }
+
+
+.liveScheduleField {
+  display: grid !important;
+  gap: 7px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #222d37;
+}
+
+.liveScheduleField small {
+  color: #6f7a85;
+  font-size: 8px;
+  line-height: 1.45;
+}
+
+.liveReminderButton,
+.liveReminderActive {
+  border: 1px solid #5c4718;
+  border-radius: 9px;
+  padding: 9px 11px;
+  background: rgba(200, 155, 50, .07);
+  color: #ffc43d;
+  font-size: 8px;
+  font-weight: 950;
+}
+
+.liveReminderActive {
+  border-color: #2e6744;
+  background: rgba(46, 103, 68, .1);
+  color: #67da95;
+}
+
+.liveAuctionControlActions {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@media (max-width: 700px) {
+  .liveAuctionControlActions {
+    grid-template-columns: 1fr;
+  }
+}
