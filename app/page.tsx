@@ -10,7 +10,8 @@ import AuthModal from "@/components/AuthModal";
 import SellModal from "@/components/SellModal";
 import ProductDetailModal from "@/components/ProductDetailModal";
 import Footer from "@/components/Footer";
-import type { Auction, AuctionCategory, Bid } from "@/components/types";
+import ProfileModal from "@/components/ProfileModal";
+import type { Auction, AuctionCategory, Bid, ProfileSummary } from "@/components/types";
 
 export default function HomePage() {
   const [user, setUser] = useState<User | null>(null);
@@ -31,6 +32,10 @@ export default function HomePage() {
   const [password, setPassword] = useState("");
 
   const [showSell, setShowSell] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
+  const [profileSummary, setProfileSummary] = useState<ProfileSummary | null>(null);
+  const [myAuctions, setMyAuctions] = useState<Auction[]>([]);
+  const [profileLoading, setProfileLoading] = useState(false);
   const [auctionTitle, setAuctionTitle] = useState("");
   const [auctionDescription, setAuctionDescription] = useState("");
   const [auctionCategory, setAuctionCategory] = useState<AuctionCategory>("phone");
@@ -204,6 +209,56 @@ export default function HomePage() {
       return true;
     });
   }, [auctions, query, activeCategory, showFavoritesOnly, favoriteIds]);
+
+  async function loadProfileCenter() {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase || !user) {
+      setShowAuth(true);
+      return;
+    }
+
+    setProfileLoading(true);
+
+    const [
+      { data: profile, error: profileError },
+      { data: listings, error: listingsError },
+      { count: favoriteCount },
+      { count: bidCount },
+    ] = await Promise.all([
+      supabase.from("profiles").select("id, full_name, email, created_at").eq("id", user.id).maybeSingle(),
+      supabase.from("auctions").select("id, seller_id, title, description, category, start_price, current_price, min_increment, ends_at, status, image_url, created_at").eq("seller_id", user.id).eq("status", "active").order("created_at", { ascending: false }),
+      supabase.from("favorites").select("auction_id", { count: "exact", head: true }).eq("user_id", user.id),
+      supabase.from("bids").select("id", { count: "exact", head: true }).eq("bidder_id", user.id),
+    ]);
+
+    setProfileLoading(false);
+
+    if (profileError) {
+      setMessage(`Profil yüklenemedi: ${profileError.message}`);
+      return;
+    }
+    if (listingsError) setMessage(`İlanların yüklenemedi: ${listingsError.message}`);
+
+    setProfileSummary({
+      id: user.id,
+      full_name: profile?.full_name?.trim() || user.user_metadata?.full_name || "KapışKapış Kullanıcısı",
+      email: profile?.email || user.email || "",
+      created_at: profile?.created_at ?? user.created_at ?? null,
+      active_listings: listings?.length ?? 0,
+      favorite_count: favoriteCount ?? 0,
+      bid_count: bidCount ?? 0,
+    });
+    setMyAuctions((listings ?? []) as Auction[]);
+  }
+
+  async function openProfileCenter() {
+    if (!user) {
+      setShowAuth(true);
+      return;
+    }
+    setShowProfile(true);
+    await loadProfileCenter();
+  }
 
   async function handleAuthSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -444,7 +499,7 @@ export default function HomePage() {
           }
           setShowFavoritesOnly((current) => !current);
         }}
-        onSignOut={handleSignOut}
+        onOpenProfile={() => void openProfileCenter()}
       />
 
       <div className="pageContainer">
@@ -557,6 +612,26 @@ export default function HomePage() {
         onDurationChange={setDurationHours}
         onImageChange={setAuctionImage}
         onSubmit={handleCreateAuction}
+      />
+
+      <ProfileModal
+        open={showProfile}
+        profile={profileSummary}
+        myAuctions={myAuctions}
+        loading={profileLoading}
+        onClose={() => setShowProfile(false)}
+        onOpenAuction={(auction) => {
+          setShowProfile(false);
+          void openDetail(auction);
+        }}
+        onOpenSell={() => {
+          setShowProfile(false);
+          handleOpenSell();
+        }}
+        onSignOut={() => {
+          setShowProfile(false);
+          void handleSignOut();
+        }}
       />
 
       <ProductDetailModal
