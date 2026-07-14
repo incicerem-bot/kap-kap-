@@ -45,6 +45,8 @@ export default function HomePage() {
   const [messageOtherUserName, setMessageOtherUserName] = useState("Satıcı");
   const [profileSummary, setProfileSummary] = useState<ProfileSummary | null>(null);
   const [myAuctions, setMyAuctions] = useState<Auction[]>([]);
+  const [myBidAuctions, setMyBidAuctions] = useState<Auction[]>([]);
+  const [myFavoriteAuctions, setMyFavoriteAuctions] = useState<Auction[]>([]);
   const [profileLoading, setProfileLoading] = useState(false);
   const [auctionTitle, setAuctionTitle] = useState("");
   const [auctionDescription, setAuctionDescription] = useState("");
@@ -473,6 +475,7 @@ export default function HomePage() {
 
   async function loadProfileCenter() {
     const supabase = getSupabaseBrowserClient();
+
     if (!supabase || !user) {
       setShowAuth(true);
       return;
@@ -483,33 +486,108 @@ export default function HomePage() {
     const [
       { data: profile, error: profileError },
       { data: listings, error: listingsError },
-      { count: favoriteCount },
-      { count: bidCount },
+      { data: bidRows, error: bidsError },
+      { data: favoriteRows, error: favoritesError },
     ] = await Promise.all([
-      supabase.from("profiles").select("id, full_name, email, created_at").eq("id", user.id).maybeSingle(),
-      supabase.from("auctions").select("id, seller_id, title, description, category, start_price, current_price, min_increment, ends_at, status, image_url, created_at").eq("seller_id", user.id).eq("status", "active").order("created_at", { ascending: false }),
-      supabase.from("favorites").select("auction_id", { count: "exact", head: true }).eq("user_id", user.id),
-      supabase.from("bids").select("id", { count: "exact", head: true }).eq("bidder_id", user.id),
+      supabase
+        .from("profiles")
+        .select("id, full_name, email, created_at")
+        .eq("id", user.id)
+        .maybeSingle(),
+      supabase
+        .from("auctions")
+        .select(
+          "id, seller_id, title, description, category, start_price, current_price, min_increment, ends_at, status, image_url, created_at"
+        )
+        .eq("seller_id", user.id)
+        .eq("status", "active")
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("bids")
+        .select("auction_id, created_at")
+        .eq("bidder_id", user.id)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("favorites")
+        .select("auction_id, created_at")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false }),
     ]);
 
-    setProfileLoading(false);
-
     if (profileError) {
+      setProfileLoading(false);
       setMessage(`Profil yüklenemedi: ${profileError.message}`);
       return;
     }
+
     if (listingsError) setMessage(`İlanların yüklenemedi: ${listingsError.message}`);
+    if (bidsError) setMessage(`Tekliflerin yüklenemedi: ${bidsError.message}`);
+    if (favoritesError) setMessage(`Favorilerin yüklenemedi: ${favoritesError.message}`);
+
+    const bidAuctionIds = Array.from(
+      new Set((bidRows ?? []).map((item) => item.auction_id))
+    );
+
+    const favoriteAuctionIds = Array.from(
+      new Set((favoriteRows ?? []).map((item) => item.auction_id))
+    );
+
+    const [{ data: bidAuctions }, { data: favoriteAuctions }] =
+      await Promise.all([
+        bidAuctionIds.length > 0
+          ? supabase
+              .from("auctions")
+              .select(
+                "id, seller_id, title, description, category, start_price, current_price, min_increment, ends_at, status, image_url, created_at"
+              )
+              .in("id", bidAuctionIds)
+          : Promise.resolve({ data: [] }),
+        favoriteAuctionIds.length > 0
+          ? supabase
+              .from("auctions")
+              .select(
+                "id, seller_id, title, description, category, start_price, current_price, min_increment, ends_at, status, image_url, created_at"
+              )
+              .in("id", favoriteAuctionIds)
+          : Promise.resolve({ data: [] }),
+      ]);
+
+    const bidOrder = new Map(
+      bidAuctionIds.map((auctionId, index) => [auctionId, index])
+    );
+    const favoriteOrder = new Map(
+      favoriteAuctionIds.map((auctionId, index) => [auctionId, index])
+    );
+
+    const orderedBidAuctions = ((bidAuctions ?? []) as Auction[]).sort(
+      (a, b) =>
+        (bidOrder.get(a.id) ?? Number.MAX_SAFE_INTEGER) -
+        (bidOrder.get(b.id) ?? Number.MAX_SAFE_INTEGER)
+    );
+
+    const orderedFavoriteAuctions = ((favoriteAuctions ?? []) as Auction[]).sort(
+      (a, b) =>
+        (favoriteOrder.get(a.id) ?? Number.MAX_SAFE_INTEGER) -
+        (favoriteOrder.get(b.id) ?? Number.MAX_SAFE_INTEGER)
+    );
 
     setProfileSummary({
       id: user.id,
-      full_name: profile?.full_name?.trim() || user.user_metadata?.full_name || "KapışKapış Kullanıcısı",
+      full_name:
+        profile?.full_name?.trim() ||
+        user.user_metadata?.full_name ||
+        "KapışKapış Kullanıcısı",
       email: profile?.email || user.email || "",
       created_at: profile?.created_at ?? user.created_at ?? null,
       active_listings: listings?.length ?? 0,
-      favorite_count: favoriteCount ?? 0,
-      bid_count: bidCount ?? 0,
+      favorite_count: favoriteAuctionIds.length,
+      bid_count: bidRows?.length ?? 0,
     });
+
     setMyAuctions((listings ?? []) as Auction[]);
+    setMyBidAuctions(orderedBidAuctions);
+    setMyFavoriteAuctions(orderedFavoriteAuctions);
+    setProfileLoading(false);
   }
 
   async function openProfileCenter() {
@@ -910,6 +988,8 @@ export default function HomePage() {
         open={showProfile}
         profile={profileSummary}
         myAuctions={myAuctions}
+        bidAuctions={myBidAuctions}
+        favoriteAuctions={myFavoriteAuctions}
         loading={profileLoading}
         onClose={() => setShowProfile(false)}
         onOpenAuction={(auction) => {
