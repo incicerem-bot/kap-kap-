@@ -46,6 +46,9 @@ type ProductDetailModalProps = {
   currentUserId: string;
   liveControlLoading: boolean;
   onToggleLiveStatus: () => void;
+  hasLiveReminder: boolean;
+  reminderLoading: boolean;
+  onToggleLiveReminder: () => void;
   sellerTrust: SellerTrustSummary | null;
   sellerTrustLoading: boolean;
   onOpenSellerReviews: () => void;
@@ -198,10 +201,18 @@ export default function ProductDetailModal(props: ProductDetailModalProps) {
                 </strong>
                 <small>
                   {auction.seller_id === props.currentUserId
-                    ? "İlan sahibi olarak canlı odayı istediğin zaman açıp kapatabilirsin."
+                    ? auction.live_scheduled_at
+                      ? `Planlanan başlangıç: ${new Date(
+                          auction.live_scheduled_at
+                        ).toLocaleString("tr-TR")}`
+                      : "İlan sahibi olarak canlı odayı istediğin zaman açıp kapatabilirsin."
                     : auction.live_is_open
                       ? "Canlı teklif akışına ve oda sohbetine katılabilirsin."
-                      : "Satıcı canlı odayı açtığında katılım başlayacak."}
+                      : auction.live_scheduled_at
+                        ? `Planlanan başlangıç: ${new Date(
+                            auction.live_scheduled_at
+                          ).toLocaleString("tr-TR")}`
+                        : "Satıcı canlı odayı açtığında katılım başlayacak."}
                 </small>
               </div>
 
@@ -235,6 +246,26 @@ export default function ProductDetailModal(props: ProductDetailModalProps) {
                     ? "Canlı açık artırma odasına gir"
                     : "Canlı oda kapalı"}
                 </button>
+
+                {auction.seller_id !== props.currentUserId &&
+                  !auction.live_is_open && (
+                    <button
+                      className={
+                        props.hasLiveReminder
+                          ? "liveReminderActive"
+                          : "liveReminderButton"
+                      }
+                      type="button"
+                      disabled={props.reminderLoading}
+                      onClick={props.onToggleLiveReminder}
+                    >
+                      {props.reminderLoading
+                        ? "İşleniyor..."
+                        : props.hasLiveReminder
+                          ? "Hatırlatıcıyı kaldır"
+                          : "Canlı yayın için hatırlat"}
+                    </button>
+                  )}
               </div>
             </section>
           )}

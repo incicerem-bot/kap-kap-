@@ -37,6 +37,7 @@ export type Auction = {
   live_enabled?: boolean;
   live_is_open?: boolean;
   live_opened_at?: string | null;
+  live_scheduled_at?: string | null;
   start_price: number;
   current_price: number;
   min_increment: number;
@@ -230,4 +231,13 @@ export type SellerStoreSummary = {
   follower_count: number;
   active_listings: Auction[];
   member_since: string | null;
+};
+
+
+export type LiveReminder = {
+  id: string;
+  auction_id: string;
+  user_id: string;
+  created_at: string;
+  notified_at: string | null;
 };

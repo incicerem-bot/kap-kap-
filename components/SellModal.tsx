@@ -26,6 +26,7 @@ type SellModalProps = {
   durationHours: string;
   liveEnabled: boolean;
   liveStartOpen: boolean;
+  liveScheduledAt: string;
   imagePreview: string;
   onClose: () => void;
   onTitleChange: (value: string) => void;
@@ -43,6 +44,7 @@ type SellModalProps = {
   onDurationChange: (value: string) => void;
   onLiveEnabledChange: (value: boolean) => void;
   onLiveStartOpenChange: (value: boolean) => void;
+  onLiveScheduledAtChange: (value: string) => void;
   onImageChange: (file: File | null) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 };
@@ -370,16 +372,33 @@ export default function SellModal(props: SellModalProps) {
               </div>
 
               {props.liveEnabled && (
-                <label className="liveStartCheck">
-                  <input
-                    type="checkbox"
-                    checked={props.liveStartOpen}
-                    onChange={(event) =>
-                      props.onLiveStartOpenChange(event.target.checked)
-                    }
-                  />
-                  İlan yayınlandığında canlı oda açık başlasın
-                </label>
+                <>
+                  <label className="liveScheduleField">
+                    Canlı yayın başlangıç zamanı
+                    <input
+                      type="datetime-local"
+                      value={props.liveScheduledAt}
+                      onChange={(event) =>
+                        props.onLiveScheduledAtChange(event.target.value)
+                      }
+                    />
+                    <small>
+                      Boş bırakırsan canlı odayı ilan içinden istediğin zaman
+                      açabilirsin.
+                    </small>
+                  </label>
+
+                  <label className="liveStartCheck">
+                    <input
+                      type="checkbox"
+                      checked={props.liveStartOpen}
+                      onChange={(event) =>
+                        props.onLiveStartOpenChange(event.target.checked)
+                      }
+                    />
+                    İlan yayınlandığında canlı oda açık başlasın
+                  </label>
+                </>
               )}
             </div>
           </section>
