@@ -42,6 +42,7 @@ type ProductDetailModalProps = {
   onSubmitBid: (event: FormEvent<HTMLFormElement>) => void;
   onToggleFavorite: (auctionId: string) => void;
   onOpenMessages: () => void;
+  onOpenLiveRoom: () => void;
   pricePulse?: boolean;
 };
 
@@ -123,6 +124,10 @@ export default function ProductDetailModal(props: ProductDetailModalProps) {
               {props.loading ? "Teklif veriliyor..." : "KAPIŞ! — Teklif Ver"}
             </button>
           </form>
+
+          <button className="openLiveRoomButton" type="button" onClick={props.onOpenLiveRoom}>
+            Canlı açık artırma odasına gir
+          </button>
 
           <button
             className="messageSellerButton"

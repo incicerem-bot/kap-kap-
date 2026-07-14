@@ -86,3 +86,13 @@ export type AuctionOrder = {
   updated_at: string;
   auction?: Auction | null;
 };
+
+
+export type LiveRoomMessage = {
+  id: string;
+  auction_id: string;
+  user_id: string;
+  user_name: string;
+  body: string;
+  created_at: string;
+};
