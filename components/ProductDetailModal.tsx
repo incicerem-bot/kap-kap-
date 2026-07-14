@@ -41,6 +41,7 @@ type ProductDetailModalProps = {
   onBidAmountChange: (value: string) => void;
   onSubmitBid: (event: FormEvent<HTMLFormElement>) => void;
   onToggleFavorite: (auctionId: string) => void;
+  onOpenMessages: () => void;
   pricePulse?: boolean;
 };
 
@@ -122,6 +123,14 @@ export default function ProductDetailModal(props: ProductDetailModalProps) {
               {props.loading ? "Teklif veriliyor..." : "KAPIŞ! — Teklif Ver"}
             </button>
           </form>
+
+          <button
+            className="messageSellerButton"
+            type="button"
+            onClick={props.onOpenMessages}
+          >
+            Satıcıya mesaj gönder
+          </button>
 
           <div className="premiumBidHistory">
             <h3>Son teklifler</h3>
