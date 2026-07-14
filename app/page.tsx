@@ -10,6 +10,16 @@ import {
 type AuthMode = "login" | "register";
 type AuctionFilter = "all" | "ending" | "new" | "popular";
 type AuctionSort = "recommended" | "ending" | "price-low" | "price-high";
+type AuctionCategory =
+  | "all"
+  | "phone"
+  | "computer"
+  | "gaming"
+  | "watch"
+  | "vehicle"
+  | "home"
+  | "camera"
+  | "collection";
 
 type Auction = {
   id: string;
@@ -129,6 +139,21 @@ function remainingTime(endsAt: string) {
   )}:${String(seconds).padStart(2, "0")}`;
 }
 
+function detectCategory(auction: Auction): AuctionCategory {
+  const text = `${auction.title} ${auction.description}`.toLocaleLowerCase("tr");
+
+  if (/(iphone|telefon|samsung|xiaomi|pixel|android)/.test(text)) return "phone";
+  if (/(macbook|laptop|bilgisayar|pc|notebook|imac)/.test(text)) return "computer";
+  if (/(playstation|ps5|xbox|nintendo|oyun|game)/.test(text)) return "gaming";
+  if (/(rolex|saat|watch|omega|casio)/.test(text)) return "watch";
+  if (/(tesla|araba|otomobil|araç|motor|motosiklet)/.test(text)) return "vehicle";
+  if (/(koltuk|masa|sandalye|ev|mobilya|dekorasyon)/.test(text)) return "home";
+  if (/(kamera|fotoğraf|canon|nikon|sony alpha)/.test(text)) return "camera";
+  if (/(koleksiyon|plak|figür|antika|kart)/.test(text)) return "collection";
+
+  return "all";
+}
+
 export default function HomePage() {
   const [mode, setMode] = useState<AuthMode>("login");
   const [user, setUser] = useState<User | null>(null);
@@ -154,6 +179,7 @@ export default function HomePage() {
   const [query, setQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState<AuctionFilter>("all");
   const [sortMode, setSortMode] = useState<AuctionSort>("recommended");
+  const [activeCategory, setActiveCategory] = useState<AuctionCategory>("all");
   const [bidAmount, setBidAmount] = useState("");
   const [bidHistory, setBidHistory] = useState<Bid[]>([]);
 
@@ -619,6 +645,13 @@ export default function HomePage() {
       const endTime = new Date(auction.ends_at).getTime();
       const now = Date.now();
 
+      if (
+        activeCategory !== "all" &&
+        detectCategory(auction) !== activeCategory
+      ) {
+        return false;
+      }
+
       if (activeFilter === "ending") {
         return endTime > now && endTime - now <= 24 * 60 * 60 * 1000;
       }
@@ -661,7 +694,7 @@ export default function HomePage() {
     }
 
     return result;
-  }, [auctions, query, activeFilter, sortMode]);
+  }, [auctions, query, activeFilter, sortMode, activeCategory]);
 
   const activeCards = filteredAuctions.length
     ? filteredAuctions
@@ -820,13 +853,17 @@ export default function HomePage() {
             <span>
               {filteredAuctions.length} aktif ilan
             </span>
-            {(query || activeFilter !== "all" || sortMode !== "recommended") && (
+            {(query ||
+              activeFilter !== "all" ||
+              sortMode !== "recommended" ||
+              activeCategory !== "all") && (
               <button
                 type="button"
                 onClick={() => {
                   setQuery("");
                   setActiveFilter("all");
                   setSortMode("recommended");
+                  setActiveCategory("all");
                 }}
               >
                 Filtreleri temizle
@@ -844,19 +881,33 @@ export default function HomePage() {
             </div>
             <div className="categoryGrid">
               {[
-                "Telefon",
-                "Bilgisayar",
-                "Oyun",
-                "Saat",
-                "Araç",
-                "Ev & Yaşam",
-                "Kamera",
-                "Koleksiyon",
-              ].map((name, index) => (
-                <button type="button" key={name}>
+                ["phone", "Telefon"],
+                ["computer", "Bilgisayar"],
+                ["gaming", "Oyun"],
+                ["watch", "Saat"],
+                ["vehicle", "Araç"],
+                ["home", "Ev & Yaşam"],
+                ["camera", "Kamera"],
+                ["collection", "Koleksiyon"],
+              ].map(([value, name], index) => (
+                <button
+                  type="button"
+                  key={value}
+                  className={activeCategory === value ? "activeCategory" : ""}
+                  onClick={() => {
+                    const next =
+                      activeCategory === value ? "all" : (value as AuctionCategory);
+                    setActiveCategory(next);
+                    document
+                      .getElementById("live-auctions")
+                      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+                  }}
+                >
                   <small>{String(index + 1).padStart(2, "0")}</small>
                   <strong>{name}</strong>
-                  <span>İlanları görüntüle</span>
+                  <span>
+                    {activeCategory === value ? "Seçili kategori" : "İlanları görüntüle"}
+                  </span>
                 </button>
               ))}
             </div>
@@ -939,6 +990,7 @@ export default function HomePage() {
                     setQuery("");
                     setActiveFilter("all");
                     setSortMode("recommended");
+                    setActiveCategory("all");
                   }}
                 >
                   Tüm ilanları göster
@@ -2030,6 +2082,18 @@ export default function HomePage() {
         .categoryGrid button:hover {
           transform: translateY(-2px);
           border-color: #b98b22;
+        }
+
+        .categoryGrid .activeCategory {
+          border-color: #c89b32;
+          background:
+            linear-gradient(145deg, rgba(200, 155, 50, 0.14), rgba(17, 25, 34, 0.98));
+          box-shadow: inset 0 0 0 1px rgba(200, 155, 50, 0.08);
+        }
+
+        .categoryGrid .activeCategory small,
+        .categoryGrid .activeCategory span {
+          color: #c89b32;
         }
 
         .categoryGrid small {
