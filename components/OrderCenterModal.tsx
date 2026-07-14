@@ -34,6 +34,9 @@ type OrderCenterModalProps = {
   onOpenReview: () => void;
   shippingAddress: UserAddress | null;
   onChooseAddress: () => void;
+  hasOpenDispute: boolean;
+  onOpenDispute: () => void;
+  onOpenDisputeCenter: () => void;
 };
 
 export default function OrderCenterModal({
@@ -47,6 +50,9 @@ export default function OrderCenterModal({
   onOpenReview,
   shippingAddress,
   onChooseAddress,
+  hasOpenDispute,
+  onOpenDispute,
+  onOpenDisputeCenter,
 }: OrderCenterModalProps) {
   const [trackingCode, setTrackingCode] = useState("");
 
@@ -265,6 +271,28 @@ export default function OrderCenterModal({
               <strong>Sipariş iptal edildi.</strong>
             </div>
           )}
+        </section>
+
+        <section className="orderDisputeActions">
+          <div>
+            <span>İADE & UYUŞMAZLIK</span>
+            <strong>Bir sorun mu var?</strong>
+            <small>
+              İptal, iade veya teslimat sorununu güven merkezine ilet.
+            </small>
+          </div>
+          <div>
+            <button type="button" onClick={onOpenDisputeCenter}>
+              Talepleri görüntüle
+            </button>
+            <button
+              type="button"
+              disabled={hasOpenDispute}
+              onClick={onOpenDispute}
+            >
+              {hasOpenDispute ? "Açık talep mevcut" : "Yeni talep oluştur"}
+            </button>
+          </div>
         </section>
 
         <footer className="orderSafety">

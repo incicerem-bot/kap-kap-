@@ -189,3 +189,30 @@ export type UserAddress = {
   created_at: string;
   updated_at: string;
 };
+
+
+export type DisputeType = "cancellation" | "return" | "problem";
+export type DisputeStatus =
+  | "open"
+  | "seller_responded"
+  | "approved"
+  | "rejected"
+  | "resolved";
+
+export type OrderDispute = {
+  id: string;
+  order_id: string;
+  auction_id: string;
+  buyer_id: string;
+  seller_id: string;
+  type: DisputeType;
+  reason: string;
+  details: string;
+  seller_response: string | null;
+  status: DisputeStatus;
+  created_at: string;
+  updated_at: string;
+  resolved_at: string | null;
+  resolved_by: string | null;
+  order?: AuctionOrder | null;
+};

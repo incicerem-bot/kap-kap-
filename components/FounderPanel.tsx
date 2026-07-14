@@ -19,6 +19,8 @@ type FounderPanelProps = {
   onRefresh: () => void;
   pendingReports: number;
   onOpenModeration: () => void;
+  pendingDisputes: number;
+  onOpenDisputes: () => void;
 };
 
 const categoryNames: Record<AuctionCategory, string> = {
@@ -44,6 +46,8 @@ export default function FounderPanel({
   onRefresh,
   pendingReports,
   onOpenModeration,
+  pendingDisputes,
+  onOpenDisputes,
 }: FounderPanelProps) {
   if (!open) return null;
 
@@ -98,6 +102,13 @@ export default function FounderPanel({
             <span>GÜVENLİK</span>
             <strong>İlan Moderasyonu</strong>
             <small>{pendingReports} bekleyen kullanıcı bildirimi</small>
+          </button>
+
+
+          <button className="founderTool founderDisputeTool" type="button" onClick={onOpenDisputes}>
+            <span>İADE & UYUŞMAZLIK</span>
+            <strong>Uyuşmazlık Merkezi</strong>
+            <small>{pendingDisputes} açık kullanıcı talebi</small>
           </button>
 </section>
 
