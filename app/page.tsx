@@ -25,7 +25,9 @@ import BuyerFilters from "@/components/BuyerFilters";
 import SavedSearchesPanel from "@/components/SavedSearchesPanel";
 import SellerReviewsModal from "@/components/SellerReviewsModal";
 import ReviewFormModal from "@/components/ReviewFormModal";
-import type { Auction, AuctionCategory, Bid, ProfileSummary, AppNotification, AuctionOrder, ConversationMessage, OrderStatus, ProductSpecifications, ProductType, SavedSearch, SellerReview, SellerTrustSummary } from "@/components/types";
+import ReportListingModal from "@/components/ReportListingModal";
+import ModerationPanel from "@/components/ModerationPanel";
+import type { Auction, AuctionCategory, Bid, ProfileSummary, AppNotification, AuctionOrder, ConversationMessage, OrderStatus, ProductSpecifications, ProductType, SavedSearch, SellerReview, SellerTrustSummary, AuctionReport, AuctionReportStatus } from "@/components/types";
 
 export default function HomePage() {
   const [user, setUser] = useState<User | null>(null);
@@ -89,6 +91,11 @@ export default function HomePage() {
   const [showCompare, setShowCompare] = useState(false);
   const [showLiveRoom, setShowLiveRoom] = useState(false);
   const [showFounderPanel, setShowFounderPanel] = useState(false);
+  const [showReportListing, setShowReportListing] = useState(false);
+  const [reportLoading, setReportLoading] = useState(false);
+  const [showModeration, setShowModeration] = useState(false);
+  const [moderationLoading, setModerationLoading] = useState(false);
+  const [auctionReports, setAuctionReports] = useState<AuctionReport[]>([]);
   const [founderLoading, setFounderLoading] = useState(false);
   const [founderProgress, setFounderProgress] = useState(0);
   const [auctionTitle, setAuctionTitle] = useState("");
@@ -1300,6 +1307,154 @@ export default function HomePage() {
     setFavoriteIds((current) => [...current, auctionId]);
   }
 
+  async function submitAuctionReport(reason: string, details: string) {
+    const supabase = getSupabaseBrowserClient();
+
+    if (!supabase || !user || !selectedAuction) {
+      setShowAuth(true);
+      return;
+    }
+
+    if (selectedAuction.seller_id === user.id) {
+      setMessage("Kendi ilanını bildiremezsin.");
+      return;
+    }
+
+    setReportLoading(true);
+
+    const { error } = await supabase.from("auction_reports").insert({
+      auction_id: selectedAuction.id,
+      reporter_id: user.id,
+      reason,
+      details,
+    });
+
+    setReportLoading(false);
+
+    if (error) {
+      setMessage(`Bildirim gönderilemedi: ${error.message}`);
+      return;
+    }
+
+    setShowReportListing(false);
+    setMessage("İlan bildirimi Güven Merkezi'ne gönderildi.");
+  }
+
+  async function loadAuctionReports() {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase || !user) return;
+
+    setModerationLoading(true);
+
+    const { data, error } = await supabase
+      .from("auction_reports")
+      .select(
+        "id, auction_id, reporter_id, reason, details, status, created_at, reviewed_at, reviewed_by"
+      )
+      .order("created_at", { ascending: false })
+      .limit(100);
+
+    if (error) {
+      setModerationLoading(false);
+      setMessage(`Bildirimler yüklenemedi: ${error.message}`);
+      return;
+    }
+
+    const rows = (data ?? []) as AuctionReport[];
+    const auctionIds = Array.from(new Set(rows.map((item) => item.auction_id)));
+
+    let auctionMap = new Map<string, Auction>();
+
+    if (auctionIds.length > 0) {
+      const { data: auctionRows } = await supabase
+        .from("auctions")
+        .select(
+          "id, seller_id, title, description, category, product_type, brand, model, specifications, start_price, current_price, min_increment, ends_at, status, image_url, created_at"
+        )
+        .in("id", auctionIds);
+
+      auctionMap = new Map(
+        ((auctionRows ?? []) as Auction[]).map((auction) => [
+          auction.id,
+          auction,
+        ])
+      );
+    }
+
+    setAuctionReports(
+      rows.map((report) => ({
+        ...report,
+        auction: auctionMap.get(report.auction_id) ?? null,
+      }))
+    );
+
+    setModerationLoading(false);
+  }
+
+  async function resolveAuctionReport(
+    report: AuctionReport,
+    action: Exclude<AuctionReportStatus, "pending">
+  ) {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase || !user) return;
+
+    setModerationLoading(true);
+
+    if (action === "action_taken" && report.auction) {
+      const { error: auctionError } = await supabase
+        .from("auctions")
+        .update({ status: "cancelled" })
+        .eq("id", report.auction_id);
+
+      if (auctionError) {
+        setModerationLoading(false);
+        setMessage(`İlan kaldırılamadı: ${auctionError.message}`);
+        return;
+      }
+
+      setAuctions((current) =>
+        current.filter((auction) => auction.id !== report.auction_id)
+      );
+    }
+
+    const { error } = await supabase
+      .from("auction_reports")
+      .update({
+        status: action,
+        reviewed_at: new Date().toISOString(),
+        reviewed_by: user.id,
+      })
+      .eq("id", report.id);
+
+    setModerationLoading(false);
+
+    if (error) {
+      setMessage(`Bildirim güncellenemedi: ${error.message}`);
+      return;
+    }
+
+    setAuctionReports((current) =>
+      current.map((item) =>
+        item.id === report.id
+          ? {
+              ...item,
+              status: action,
+              reviewed_at: new Date().toISOString(),
+              reviewed_by: user.id,
+              auction:
+                action === "action_taken" ? null : item.auction,
+            }
+          : item
+      )
+    );
+
+    setMessage(
+      action === "action_taken"
+        ? "İlan yayından kaldırıldı."
+        : "Bildirim durumu güncellendi."
+    );
+  }
+
   async function loadSellerTrust(sellerId: string) {
     const supabase = getSupabaseBrowserClient();
     if (!supabase) return;
@@ -1803,6 +1958,31 @@ export default function HomePage() {
 
       <CompareModal open={showCompare} auctions={auctions.filter((a)=>compareIds.includes(a.id))} onClose={()=>setShowCompare(false)} onRemove={toggleCompare} onOpen={(a)=>{setShowCompare(false);void openDetail(a)}} />
 
+      <ReportListingModal
+        open={showReportListing}
+        auction={selectedAuction}
+        loading={reportLoading}
+        onClose={() => setShowReportListing(false)}
+        onSubmit={(reason, details) =>
+          submitAuctionReport(reason, details)
+        }
+      />
+
+      <ModerationPanel
+        open={showModeration}
+        reports={auctionReports}
+        loading={moderationLoading}
+        onClose={() => setShowModeration(false)}
+        onOpenAuction={(report) => {
+          if (!report.auction) return;
+          setShowModeration(false);
+          void openDetail(report.auction);
+        }}
+        onResolve={(report, action) =>
+          void resolveAuctionReport(report, action)
+        }
+      />
+
       <SellerReviewsModal
         open={showSellerReviews}
         summary={sellerTrust}
@@ -1911,6 +2091,14 @@ export default function HomePage() {
         onCreateTestAuctions={() => void createBetaAuctions()}
         onDeleteTestAuctions={() => void deleteBetaAuctions()}
         onRefresh={() => void loadAuctions()}
+        pendingReports={
+          auctionReports.filter((report) => report.status === "pending").length
+        }
+        onOpenModeration={() => {
+          setShowFounderPanel(false);
+          setShowModeration(true);
+          void loadAuctionReports();
+        }}
       />
 
       <LiveAuctionRoom
@@ -1943,6 +2131,13 @@ export default function HomePage() {
         sellerTrust={sellerTrust}
         sellerTrustLoading={sellerTrustLoading}
         onOpenSellerReviews={() => setShowSellerReviews(true)}
+        onReportListing={() => {
+          if (!user) {
+            setShowAuth(true);
+            return;
+          }
+          setShowReportListing(true);
+        }}
         onOpenMessages={() => {
           if (!user || !selectedAuction) {
             setShowAuth(true);
