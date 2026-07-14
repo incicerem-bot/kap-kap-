@@ -22,6 +22,7 @@ type ProfileModalProps = {
   wonAuctions: Auction[];
   orders: AuctionOrder[];
   loading: boolean;
+  isAdmin: boolean;
   onClose: () => void;
   onOpenAuction: (auction: Auction) => void;
   onOpenOrder: (order: AuctionOrder) => void;
@@ -39,6 +40,7 @@ export default function ProfileModal({
   wonAuctions,
   orders,
   loading,
+  isAdmin,
   onClose,
   onOpenAuction,
   onOpenOrder,
@@ -240,14 +242,20 @@ export default function ProfileModal({
           )}
         </section>
 
-        <section className="founderEntry">
-          <div>
-            <span>BETA v1.0</span>
-            <strong>Kurucu ve test araçları</strong>
-            <small>100 ilan oluştur, sistemi yük altında dene ve test verilerini temizle.</small>
-          </div>
-          <button type="button" onClick={onOpenFounderPanel}>Kurucu Panelini Aç</button>
-        </section>
+        {isAdmin && (
+          <section className="founderEntry adminFounderEntry">
+            <div>
+              <span>YÖNETİCİ</span>
+              <strong>Kurucu ve güvenlik araçları</strong>
+              <small>
+                Test verileri, ilan moderasyonu ve platform yönetimi.
+              </small>
+            </div>
+            <button type="button" onClick={onOpenFounderPanel}>
+              Yönetim Panelini Aç
+            </button>
+          </section>
+        )}
 
         <footer className="profileFooter">
           <div><strong>KapışKapış Güven Merkezi</strong><span>Hesabın ve işlemlerin güvenle korunur.</span></div>
