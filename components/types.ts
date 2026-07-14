@@ -41,3 +41,15 @@ export type ProfileSummary = {
   favorite_count: number;
   bid_count: number;
 };
+
+
+export type AppNotification = {
+  id: string;
+  user_id: string;
+  auction_id: string | null;
+  type: "new_bid" | "outbid" | "auction_won" | "auction_ended" | "system";
+  title: string;
+  body: string;
+  is_read: boolean;
+  created_at: string;
+};

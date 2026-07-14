@@ -4,12 +4,14 @@ type NavbarProps = {
   query: string;
   onQueryChange: (value: string) => void;
   favoriteCount: number;
+  notificationCount: number;
   showFavoritesOnly: boolean;
   userLabel: string;
   loggedIn: boolean;
   onOpenAuth: () => void;
   onOpenSell: () => void;
   onToggleFavorites: () => void;
+  onOpenNotifications: () => void;
   onOpenProfile: () => void;
 };
 
@@ -17,12 +19,14 @@ export default function Navbar({
   query,
   onQueryChange,
   favoriteCount,
+  notificationCount,
   showFavoritesOnly,
   userLabel,
   loggedIn,
   onOpenAuth,
   onOpenSell,
   onToggleFavorites,
+  onOpenNotifications,
   onOpenProfile,
 }: NavbarProps) {
   return (
@@ -47,6 +51,19 @@ export default function Navbar({
       <div className="navActions">
         <button className="sellButton" type="button" onClick={onOpenSell}>
           İlan Ver
+        </button>
+
+        <button
+          className="iconButton"
+          type="button"
+          aria-label="Bildirimler"
+          onClick={onOpenNotifications}
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" />
+            <path d="M10 21h4" />
+          </svg>
+          {notificationCount > 0 && <small>{notificationCount}</small>}
         </button>
 
         <button
