@@ -19,6 +19,7 @@ import WalletModal from "@/components/WalletModal";
 import SalesCenterModal from "@/components/SalesCenterModal";
 import BottomNav from "@/components/BottomNav";
 import CompareModal from "@/components/CompareModal";
+import LiveAuctionRoom from "@/components/LiveAuctionRoom";
 import type { Auction, AuctionCategory, Bid, ProfileSummary, AppNotification, AuctionOrder, ConversationMessage, OrderStatus } from "@/components/types";
 
 export default function HomePage() {
@@ -63,6 +64,7 @@ export default function HomePage() {
   const [showSalesCenter, setShowSalesCenter] = useState(false);
   const [compareIds, setCompareIds] = useState<string[]>([]);
   const [showCompare, setShowCompare] = useState(false);
+  const [showLiveRoom, setShowLiveRoom] = useState(false);
   const [auctionTitle, setAuctionTitle] = useState("");
   const [auctionDescription, setAuctionDescription] = useState("");
   const [auctionCategory, setAuctionCategory] = useState<AuctionCategory>("phone");
@@ -1184,6 +1186,19 @@ export default function HomePage() {
         }}
       />
 
+      <LiveAuctionRoom
+        open={showLiveRoom}
+        auction={selectedAuction}
+        bids={bidHistory}
+        currentUserId={user?.id || ""}
+        currentUserName={profileName || user?.email || "KapışKapış Kullanıcısı"}
+        bidAmount={bidAmount}
+        loading={loading}
+        onClose={() => setShowLiveRoom(false)}
+        onBidAmountChange={setBidAmount}
+        onSubmitBid={handleBid}
+      />
+
       <ProductDetailModal
         auction={selectedAuction}
         bids={bidHistory}
@@ -1194,6 +1209,10 @@ export default function HomePage() {
         onBidAmountChange={setBidAmount}
         onSubmitBid={handleBid}
         onToggleFavorite={(id) => void toggleFavorite(id)}
+        onOpenLiveRoom={() => {
+          if (!selectedAuction) return;
+          setShowLiveRoom(true);
+        }}
         onOpenMessages={() => {
           if (!user || !selectedAuction) {
             setShowAuth(true);
