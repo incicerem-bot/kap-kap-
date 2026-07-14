@@ -11,7 +11,8 @@ import SellModal from "@/components/SellModal";
 import ProductDetailModal from "@/components/ProductDetailModal";
 import Footer from "@/components/Footer";
 import ProfileModal from "@/components/ProfileModal";
-import type { Auction, AuctionCategory, Bid, ProfileSummary } from "@/components/types";
+import NotificationPanel from "@/components/NotificationPanel";
+import type { Auction, AuctionCategory, Bid, ProfileSummary, AppNotification } from "@/components/types";
 
 export default function HomePage() {
   const [user, setUser] = useState<User | null>(null);
@@ -33,6 +34,9 @@ export default function HomePage() {
 
   const [showSell, setShowSell] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
   const [profileSummary, setProfileSummary] = useState<ProfileSummary | null>(null);
   const [myAuctions, setMyAuctions] = useState<Auction[]>([]);
   const [profileLoading, setProfileLoading] = useState(false);
@@ -80,6 +84,107 @@ export default function HomePage() {
     setFavoriteIds((data ?? []).map((item) => item.auction_id));
   }
 
+  async function loadNotifications(userId: string) {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) return;
+
+    setNotificationsLoading(true);
+
+    const { data, error } = await supabase
+      .from("notifications")
+      .select("id, user_id, auction_id, type, title, body, is_read, created_at")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(50);
+
+    setNotificationsLoading(false);
+
+    if (error) {
+      setMessage(`Bildirimler yüklenemedi: ${error.message}`);
+      return;
+    }
+
+    setNotifications((data ?? []) as AppNotification[]);
+  }
+
+  async function markNotificationRead(notificationId: string) {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase || !user) return;
+
+    const { error } = await supabase
+      .from("notifications")
+      .update({ is_read: true })
+      .eq("id", notificationId)
+      .eq("user_id", user.id);
+
+    if (error) {
+      setMessage(`Bildirim güncellenemedi: ${error.message}`);
+      return;
+    }
+
+    setNotifications((current) =>
+      current.map((item) =>
+        item.id === notificationId ? { ...item, is_read: true } : item
+      )
+    );
+  }
+
+  async function markAllNotificationsRead() {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase || !user) return;
+
+    const { error } = await supabase
+      .from("notifications")
+      .update({ is_read: true })
+      .eq("user_id", user.id)
+      .eq("is_read", false);
+
+    if (error) {
+      setMessage(`Bildirimler güncellenemedi: ${error.message}`);
+      return;
+    }
+
+    setNotifications((current) =>
+      current.map((item) => ({ ...item, is_read: true }))
+    );
+  }
+
+  async function openNotification(notification: AppNotification) {
+    await markNotificationRead(notification.id);
+
+    if (!notification.auction_id) {
+      setShowNotifications(false);
+      return;
+    }
+
+    const auction =
+      auctions.find((item) => item.id === notification.auction_id) ?? null;
+
+    if (auction) {
+      setShowNotifications(false);
+      await openDetail(auction);
+      return;
+    }
+
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) return;
+
+    const { data, error } = await supabase
+      .from("auctions")
+      .select("id, seller_id, title, description, category, start_price, current_price, min_increment, ends_at, status, image_url, created_at")
+      .eq("id", notification.auction_id)
+      .maybeSingle();
+
+    if (error || !data) {
+      setMessage("İlgili ilan artık görüntülenemiyor.");
+      setShowNotifications(false);
+      return;
+    }
+
+    setShowNotifications(false);
+    await openDetail(data as Auction);
+  }
+
   async function loadBidHistory(auctionId: string) {
     const supabase = getSupabaseBrowserClient();
     if (!supabase) return;
@@ -108,7 +213,12 @@ export default function HomePage() {
       const currentUser = data.session?.user ?? null;
       setUser(currentUser);
       setProfileName(currentUser?.user_metadata?.full_name ?? "");
-      if (currentUser) await loadFavorites(currentUser.id);
+      if (currentUser) {
+        await Promise.all([
+          loadFavorites(currentUser.id),
+          loadNotifications(currentUser.id),
+        ]);
+      }
     });
 
     const realtimeChannel = supabase
@@ -152,6 +262,19 @@ export default function HomePage() {
           });
         }
       )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "notifications" },
+        (payload) => {
+          const notification = payload.new as AppNotification;
+
+          if (user?.id !== notification.user_id) return;
+
+          setNotifications((current) => [notification, ...current].slice(0, 50));
+          setLiveEvent(notification.title);
+          window.setTimeout(() => setLiveEvent(""), 4200);
+        }
+      )
       .subscribe();
 
     const {
@@ -162,9 +285,12 @@ export default function HomePage() {
 
       if (session?.user) {
         void loadFavorites(session.user.id);
+        void loadNotifications(session.user.id);
       } else {
         setFavoriteIds([]);
+        setNotifications([]);
         setShowFavoritesOnly(false);
+        setShowNotifications(false);
       }
     });
 
@@ -487,6 +613,7 @@ export default function HomePage() {
         query={query}
         onQueryChange={setQuery}
         favoriteCount={favoriteIds.length}
+        notificationCount={notifications.filter((item) => !item.is_read).length}
         showFavoritesOnly={showFavoritesOnly}
         userLabel={profileName || user?.email || "K"}
         loggedIn={Boolean(user)}
@@ -498,6 +625,14 @@ export default function HomePage() {
             return;
           }
           setShowFavoritesOnly((current) => !current);
+        }}
+        onOpenNotifications={() => {
+          if (!user) {
+            setShowAuth(true);
+            return;
+          }
+          setShowNotifications(true);
+          void loadNotifications(user.id);
         }}
         onOpenProfile={() => void openProfileCenter()}
       />
@@ -612,6 +747,15 @@ export default function HomePage() {
         onDurationChange={setDurationHours}
         onImageChange={setAuctionImage}
         onSubmit={handleCreateAuction}
+      />
+
+      <NotificationPanel
+        open={showNotifications}
+        notifications={notifications}
+        loading={notificationsLoading}
+        onClose={() => setShowNotifications(false)}
+        onOpenNotification={(notification) => void openNotification(notification)}
+        onMarkAllRead={() => void markAllNotificationsRead()}
       />
 
       <ProfileModal
