@@ -18,6 +18,7 @@ import DashboardSections from "@/components/DashboardSections";
 import WalletModal from "@/components/WalletModal";
 import SalesCenterModal from "@/components/SalesCenterModal";
 import BottomNav from "@/components/BottomNav";
+import CompareModal from "@/components/CompareModal";
 import type { Auction, AuctionCategory, Bid, ProfileSummary, AppNotification, AuctionOrder, ConversationMessage, OrderStatus } from "@/components/types";
 
 export default function HomePage() {
@@ -60,6 +61,8 @@ export default function HomePage() {
   const [orderLoading, setOrderLoading] = useState(false);
   const [showWallet, setShowWallet] = useState(false);
   const [showSalesCenter, setShowSalesCenter] = useState(false);
+  const [compareIds, setCompareIds] = useState<string[]>([]);
+  const [showCompare, setShowCompare] = useState(false);
   const [auctionTitle, setAuctionTitle] = useState("");
   const [auctionDescription, setAuctionDescription] = useState("");
   const [auctionCategory, setAuctionCategory] = useState<AuctionCategory>("phone");
@@ -73,6 +76,15 @@ export default function HomePage() {
   const [message, setMessage] = useState("");
   const [liveEvent, setLiveEvent] = useState("");
   const [pricePulseId, setPricePulseId] = useState<string | null>(null);
+
+
+  function toggleCompare(auctionId: string) {
+    setCompareIds((current) => {
+      if (current.includes(auctionId)) return current.filter((id) => id !== auctionId);
+      if (current.length >= 4) { setMessage("En fazla 4 ilan karşılaştırabilirsin."); return current; }
+      return [...current, auctionId];
+    });
+  }
 
   async function loadAuctions() {
     const supabase = getSupabaseBrowserClient();
@@ -1057,6 +1069,8 @@ export default function HomePage() {
                   isFavorite={favoriteIds.includes(auction.id)}
                   onToggleFavorite={(id) => void toggleFavorite(id)}
                   onOpenDetail={(item) => void openDetail(item)}
+                  isCompared={compareIds.includes(auction.id)}
+                  onToggleCompare={toggleCompare}
                   pricePulse={pricePulseId === auction.id}
                 />
               ))}
@@ -1103,6 +1117,8 @@ export default function HomePage() {
         onImageChange={setAuctionImage}
         onSubmit={handleCreateAuction}
       />
+
+      <CompareModal open={showCompare} auctions={auctions.filter((a)=>compareIds.includes(a.id))} onClose={()=>setShowCompare(false)} onRemove={toggleCompare} onOpen={(a)=>{setShowCompare(false);void openDetail(a)}} />
 
       <WalletModal open={showWallet} userId={user?.id||""} orders={orders} onClose={()=>setShowWallet(false)} />
       <SalesCenterModal open={showSalesCenter} userId={user?.id||""} auctions={auctions} orders={orders} onClose={()=>setShowSalesCenter(false)} onOpenAuction={(a)=>{setShowSalesCenter(false);void openDetail(a)}} onOpenOrder={(o)=>{setSelectedOrder(o);setShowSalesCenter(false);setShowOrderCenter(true)}} onOpenSell={()=>{setShowSalesCenter(false);handleOpenSell()}} />
@@ -1187,6 +1203,8 @@ export default function HomePage() {
         }}
         pricePulse={Boolean(selectedAuction && pricePulseId === selectedAuction.id)}
       />
+
+      {compareIds.length > 0 && <div className="compareFloating"><div><strong>{compareIds.length} ürün seçildi</strong><span>En fazla 4 ürün</span></div><button onClick={()=>setShowCompare(true)}>Karşılaştır</button><button className="compareClear" onClick={()=>setCompareIds([])}>Temizle</button></div>}
 
       <BottomNav onHome={()=>window.scrollTo({top:0,behavior:"smooth"})} onSearch={()=>document.querySelector<HTMLInputElement>(".navSearch input")?.focus()} onSell={handleOpenSell} onNotifications={()=>{if(!user){setShowAuth(true);return;}setShowNotifications(true);void loadNotifications(user.id)}} onProfile={()=>void openProfileCenter()} />
       {liveEvent && (
