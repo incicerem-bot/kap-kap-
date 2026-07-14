@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { Auction, ProfileSummary } from "./types";
+import type { Auction, AuctionOrder, ProfileSummary } from "./types";
 
 function money(value: number) {
   return new Intl.NumberFormat("tr-TR", {
@@ -11,7 +11,7 @@ function money(value: number) {
   }).format(value);
 }
 
-type ProfileTab = "listings" | "bids" | "favorites" | "won";
+type ProfileTab = "listings" | "bids" | "favorites" | "won" | "orders";
 
 type ProfileModalProps = {
   open: boolean;
@@ -20,9 +20,11 @@ type ProfileModalProps = {
   bidAuctions: Auction[];
   favoriteAuctions: Auction[];
   wonAuctions: Auction[];
+  orders: AuctionOrder[];
   loading: boolean;
   onClose: () => void;
   onOpenAuction: (auction: Auction) => void;
+  onOpenOrder: (order: AuctionOrder) => void;
   onOpenSell: () => void;
   onSignOut: () => void;
 };
@@ -34,9 +36,11 @@ export default function ProfileModal({
   bidAuctions,
   favoriteAuctions,
   wonAuctions,
+  orders,
   loading,
   onClose,
   onOpenAuction,
+  onOpenOrder,
   onOpenSell,
   onSignOut,
 }: ProfileModalProps) {
@@ -51,7 +55,9 @@ export default function ProfileModal({
         ? bidAuctions
         : activeTab === "favorites"
           ? favoriteAuctions
-          : wonAuctions;
+          : activeTab === "won"
+            ? wonAuctions
+            : [];
 
   const sectionTitle =
     activeTab === "listings"
@@ -60,7 +66,9 @@ export default function ProfileModal({
         ? "Teklif verdiklerim"
         : activeTab === "favorites"
           ? "Favorilerim"
-          : "Kazandıklarım";
+          : activeTab === "won"
+            ? "Kazandıklarım"
+            : "Siparişlerim";
 
   const emptyTitle =
     activeTab === "listings"
@@ -69,7 +77,9 @@ export default function ProfileModal({
         ? "Henüz teklif verdiğin ilan yok."
         : activeTab === "favorites"
           ? "Henüz favori ilanın yok."
-          : "Henüz kazandığın açık artırma yok.";
+          : activeTab === "won"
+            ? "Henüz kazandığın açık artırma yok."
+            : "Henüz siparişin yok.";
 
   const emptyDescription =
     activeTab === "listings"
@@ -78,7 +88,9 @@ export default function ProfileModal({
         ? "Canlı açık artırmalara katıldığında ilanlar burada görünür."
         : activeTab === "favorites"
           ? "Beğendiğin ilanları favoriye eklediğinde burada saklanır."
-          : "En yüksek teklifle tamamladığın ürünler burada görünür.";
+          : activeTab === "won"
+            ? "En yüksek teklifle tamamladığın ürünler burada görünür."
+            : "Kazandığın veya sattığın ürünlerin teslimat akışı burada görünür.";
 
   return (
     <div className="modalBackdrop profileBackdrop" onMouseDown={onClose}>
@@ -130,8 +142,11 @@ export default function ProfileModal({
           <button className={activeTab === "won" ? "profileActionActive" : ""} type="button" onClick={() => setActiveTab("won")}>
             <span>04</span><strong>Kazandıklarım</strong><small>Tamamlanan kazançların</small>
           </button>
+          <button className={activeTab === "orders" ? "profileActionActive" : ""} type="button" onClick={() => setActiveTab("orders")}>
+            <span>05</span><strong>Siparişlerim</strong><small>Ödeme ve kargo takibi</small>
+          </button>
           <button className={activeTab === "listings" ? "profileActionActive" : ""} type="button" onClick={() => setActiveTab("listings")}>
-            <span>05</span><strong>İlanlarım</strong><small>Satıştaki ürünlerini yönet</small>
+            <span>06</span><strong>İlanlarım</strong><small>Satıştaki ürünlerini yönet</small>
           </button>
         </section>
 
@@ -143,6 +158,54 @@ export default function ProfileModal({
 
           {loading ? (
             <div className="profileEmptyState">Bilgiler yükleniyor...</div>
+          ) : activeTab === "orders" ? (
+            orders.length === 0 ? (
+              <div className="profileEmptyState">
+                <strong>{emptyTitle}</strong>
+                <span>{emptyDescription}</span>
+              </div>
+            ) : (
+              <div className="profileOrdersGrid">
+                {orders.map((order) => (
+                  <button
+                    className="profileOrderCard"
+                    type="button"
+                    key={order.id}
+                    onClick={() => onOpenOrder(order)}
+                  >
+                    <div className="profileOrderImage">
+                      {order.auction?.image_url ? (
+                        <img
+                          src={order.auction.image_url}
+                          alt={order.auction.title}
+                        />
+                      ) : (
+                        <span>KK</span>
+                      )}
+                    </div>
+                    <div>
+                      <strong>
+                        {order.auction?.title || "Açık artırma siparişi"}
+                      </strong>
+                      <span>{money(Number(order.amount))}</span>
+                      <small>
+                        {order.status === "payment_pending"
+                          ? "Ödeme bekleniyor"
+                          : order.status === "paid"
+                            ? "Ödeme alındı"
+                            : order.status === "preparing"
+                              ? "Hazırlanıyor"
+                              : order.status === "shipped"
+                                ? "Kargoya verildi"
+                                : order.status === "delivered"
+                                  ? "Teslim edildi"
+                                  : "İptal edildi"}
+                      </small>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )
           ) : activeItems.length === 0 ? (
             <div className="profileEmptyState">
               <strong>{emptyTitle}</strong>

@@ -64,3 +64,25 @@ export type ConversationMessage = {
   is_read: boolean;
   created_at: string;
 };
+
+
+export type OrderStatus =
+  | "payment_pending"
+  | "paid"
+  | "preparing"
+  | "shipped"
+  | "delivered"
+  | "cancelled";
+
+export type AuctionOrder = {
+  id: string;
+  auction_id: string;
+  seller_id: string;
+  buyer_id: string;
+  amount: number;
+  status: OrderStatus;
+  tracking_code: string | null;
+  created_at: string;
+  updated_at: string;
+  auction?: Auction | null;
+};
