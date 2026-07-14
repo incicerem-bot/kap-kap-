@@ -81,17 +81,17 @@ const activity = [
 ];
 
 const mostViewed = [
-  { name: "MacBook Pro M4", views: "1.249 izlenme", icon: "💻" },
-  { name: "iPhone 15 Pro", views: "987 izlenme", icon: "📱" },
-  { name: "Rolex Datejust 41", views: "776 izlenme", icon: "⌚" },
-  { name: "PS5 Digital Edition", views: "654 izlenme", icon: "🎮" },
-  { name: "Dyson Airwrap", views: "512 izlenme", icon: "💨" },
+  { name: "MacBook Pro M4", views: "1.249 izlenme", code: "MB" },
+  { name: "iPhone 15 Pro", views: "987 izlenme", code: "IP" },
+  { name: "Rolex Datejust 41", views: "776 izlenme", code: "RX" },
+  { name: "PS5 Digital Edition", views: "654 izlenme", code: "PS" },
+  { name: "Dyson Airwrap", views: "512 izlenme", code: "DY" },
 ];
 
 const startingSoon = [
-  { name: "Tesla Model 3", price: "56.000 ₺", time: "02:15:33", icon: "🚗" },
-  { name: 'iPad Pro 12.9" M2', price: "18.000 ₺", time: "03:45:21", icon: "📱" },
-  { name: "Louis Vuitton Çanta", price: "12.000 ₺", time: "05:20:11", icon: "👜" },
+  { name: "Tesla Model 3", price: "56.000 ₺", time: "02:15:33", code: "TS" },
+  { name: 'iPad Pro 12.9" M2', price: "18.000 ₺", time: "03:45:21", code: "IP" },
+  { name: "Louis Vuitton Çanta", price: "12.000 ₺", time: "05:20:11", code: "LV" },
 ];
 
 const premiumSellers = [
@@ -639,7 +639,10 @@ export default function HomePage() {
         </button>
 
         <div className="navSearch">
-          <span>⌕</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="11" cy="11" r="6.5" />
+            <path d="m16 16 4 4" />
+          </svg>
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
@@ -655,8 +658,18 @@ export default function HomePage() {
           >
             <span>＋</span> İlan Ver
           </button>
-          <button className="iconButton" type="button">♧<small>3</small></button>
-          <button className="iconButton" type="button">♡</button>
+          <button className="iconButton" type="button" aria-label="Bildirimler">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" />
+              <path d="M10 21h4" />
+            </svg>
+            <small>3</small>
+          </button>
+          <button className="iconButton" type="button" aria-label="Favoriler">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z" />
+            </svg>
+          </button>
           <button
             className="profileButton"
             type="button"
@@ -680,7 +693,7 @@ export default function HomePage() {
                 type="button"
                 onClick={() => (user ? setShowSell(true) : setShowAuth(true))}
               >
-                ⚡ Hemen Katıl
+                Hemen Katıl
               </button>
               <button
                 className="outlineButton"
@@ -691,7 +704,7 @@ export default function HomePage() {
                   })
                 }
               >
-                ◉ Canlı Teklifleri İzle
+                Canlı Teklifleri İzle
               </button>
             </div>
           </section>
@@ -721,18 +734,19 @@ export default function HomePage() {
             </div>
             <div className="categoryGrid">
               {[
-                ["📱", "Telefon"],
-                ["💻", "Bilgisayar"],
-                ["🎮", "Oyun"],
-                ["⌚", "Saat"],
-                ["🚗", "Araç"],
-                ["🛋", "Ev & Yaşam"],
-                ["📷", "Kamera"],
-                ["💎", "Koleksiyon"],
-              ].map(([icon, name]) => (
+                "Telefon",
+                "Bilgisayar",
+                "Oyun",
+                "Saat",
+                "Araç",
+                "Ev & Yaşam",
+                "Kamera",
+                "Koleksiyon",
+              ].map((name, index) => (
                 <button type="button" key={name}>
-                  <span>{icon}</span>
+                  <small>{String(index + 1).padStart(2, "0")}</small>
                   <strong>{name}</strong>
+                  <span>İlanları görüntüle</span>
                 </button>
               ))}
             </div>
@@ -765,7 +779,7 @@ export default function HomePage() {
                     {auction.image_url ? (
                       <img src={auction.image_url} alt={auction.title} />
                     ) : (
-                      <div className="imageFallback">🔨</div>
+                      <div className="imageFallback">KK</div>
                     )}
                   </div>
                   <h3>{auction.title}</h3>
@@ -808,7 +822,7 @@ export default function HomePage() {
                     {auction.image_url ? (
                       <img src={auction.image_url} alt={auction.title} />
                     ) : (
-                      <div className="imageFallback">🔨</div>
+                      <div className="imageFallback">KK</div>
                     )}
                   </div>
                   <h3>{auction.title}</h3>
@@ -845,7 +859,7 @@ export default function HomePage() {
                 ["PlayStation 5", "16.250 ₺"],
               ].map(([name, price]) => (
                 <div className="soldRow" key={name}>
-                  <span>▣</span>
+                  <span className="soldCode">OK</span>
                   <strong>{name}</strong>
                   <b>{price}</b>
                   <em>Satıldı</em>
@@ -929,7 +943,7 @@ export default function HomePage() {
             </div>
             {mostViewed.map((item) => (
               <div className="viewedRow" key={item.name}>
-                <span>{item.icon}</span>
+                <span>{item.code}</span>
                 <div>
                   <strong>{item.name}</strong>
                   <small>◉ {item.views}</small>
@@ -945,7 +959,7 @@ export default function HomePage() {
             </div>
             {startingSoon.map((item) => (
               <div className="startingRow" key={item.name}>
-                <span>{item.icon}</span>
+                <span>{item.code}</span>
                 <div>
                   <strong>{item.name}</strong>
                   <small>Başlangıç: {item.price}</small>
@@ -978,23 +992,40 @@ export default function HomePage() {
 
       <nav className="bottomNav">
         <button className="active" type="button">
-          <span>⌂</span>Ana Sayfa
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="m3 11 9-8 9 8" />
+            <path d="M5 10v11h14V10" />
+          </svg>
+          Ana Sayfa
         </button>
         <button type="button">
-          <span>⌕</span>Ara
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="11" cy="11" r="6.5" />
+            <path d="m16 16 4 4" />
+          </svg>
+          Ara
         </button>
         <button
           className="centerAction"
           type="button"
           onClick={() => (user ? setShowSell(true) : setShowAuth(true))}
         >
-          <span>＋</span>Kapıştır
+          <span>+</span>
+          Kapıştır
         </button>
         <button type="button">
-          <span>♧</span>Bildirimler
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" />
+            <path d="M10 21h4" />
+          </svg>
+          Bildirimler
         </button>
         <button type="button" onClick={() => (user ? setMessage("Profilin aktif.") : setShowAuth(true))}>
-          <span>◉</span>Profil
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="8" r="4" />
+            <path d="M4 21a8 8 0 0 1 16 0" />
+          </svg>
+          Profil
         </button>
       </nav>
 
@@ -1182,7 +1213,7 @@ export default function HomePage() {
               {selectedAuction.image_url ? (
                 <img src={selectedAuction.image_url} alt={selectedAuction.title} />
               ) : (
-                <div className="imageFallback">🔨</div>
+                <div className="imageFallback">KK</div>
               )}
             </div>
             <div className="detailContent">
@@ -1343,9 +1374,13 @@ export default function HomePage() {
           background: #10161d;
         }
 
-        .navSearch span {
-          color: #8d98a5;
-          font-size: 22px;
+        .navSearch svg {
+          width: 18px;
+          height: 18px;
+          fill: none;
+          stroke: #8d98a5;
+          stroke-width: 1.7;
+          stroke-linecap: round;
         }
 
         .navSearch input {
@@ -1395,7 +1430,16 @@ export default function HomePage() {
           border-radius: 50%;
           background: transparent;
           color: white;
-          font-size: 22px;
+        }
+
+        .iconButton svg {
+          width: 20px;
+          height: 20px;
+          fill: none;
+          stroke: currentColor;
+          stroke-width: 1.6;
+          stroke-linecap: round;
+          stroke-linejoin: round;
         }
 
         .iconButton small {
@@ -1632,13 +1676,17 @@ export default function HomePage() {
         }
 
         .stats article > span {
-          width: 42px;
-          height: 42px;
+          width: 34px;
+          height: 34px;
           display: grid;
           place-items: center;
-          border-radius: 50%;
-          background: rgba(255, 187, 0, 0.14);
-          font-size: 22px;
+          border: 1px solid #51401a;
+          border-radius: 10px;
+          background: rgba(255, 187, 0, 0.06);
+          color: #b99337;
+          font-size: 9px;
+          font-weight: 950;
+          letter-spacing: 0.08em;
         }
 
         .stats div {
@@ -1706,22 +1754,40 @@ export default function HomePage() {
         }
 
         .categoryGrid button {
-          min-height: 98px;
+          min-height: 112px;
           display: grid;
-          place-items: center;
+          align-content: space-between;
+          justify-items: start;
           gap: 8px;
+          padding: 15px;
           border: 1px solid #26313c;
           border-radius: 12px;
           background: linear-gradient(145deg, #0c131a, #111922);
           color: white;
+          text-align: left;
+          transition: border-color 0.18s ease, transform 0.18s ease;
         }
 
-        .categoryGrid span {
-          font-size: 34px;
+        .categoryGrid button:hover {
+          transform: translateY(-2px);
+          border-color: #b98b22;
+        }
+
+        .categoryGrid small {
+          color: #707b86;
+          font-size: 9px;
+          font-weight: 900;
+          letter-spacing: 0.12em;
         }
 
         .categoryGrid strong {
-          font-size: 10px;
+          font-size: 13px;
+          letter-spacing: -0.01em;
+        }
+
+        .categoryGrid button > span {
+          color: #808a95;
+          font-size: 9px;
         }
 
         .titleWithBadge,
@@ -1901,7 +1967,13 @@ export default function HomePage() {
           height: 100%;
           display: grid;
           place-items: center;
-          font-size: 54px;
+          color: #c89b32;
+          font-size: 34px;
+          font-weight: 1000;
+          letter-spacing: -0.08em;
+          background:
+            radial-gradient(circle at center, rgba(200, 155, 50, 0.12), transparent 45%),
+            #0c1218;
         }
 
         .bottomGrid {
@@ -1931,6 +2003,18 @@ export default function HomePage() {
 
         .soldRow span {
           color: #a6b0ba;
+        }
+
+        .soldCode {
+          width: 26px;
+          height: 26px;
+          display: grid;
+          place-items: center;
+          border: 1px solid #2b3742;
+          border-radius: 7px;
+          color: #8e99a4;
+          font-size: 8px;
+          font-weight: 950;
         }
 
         .soldRow strong,
@@ -2089,13 +2173,17 @@ export default function HomePage() {
 
         .viewedRow > span,
         .startingRow > span {
-          width: 48px;
-          height: 48px;
+          width: 42px;
+          height: 42px;
           display: grid;
           place-items: center;
+          border: 1px solid #27323d;
           border-radius: 9px;
-          background: #111923;
-          font-size: 26px;
+          background: #0e151d;
+          color: #b99337;
+          font-size: 9px;
+          font-weight: 950;
+          letter-spacing: 0.08em;
         }
 
         .viewedRow div,
@@ -2191,8 +2279,22 @@ export default function HomePage() {
           font-weight: 800;
         }
 
+        .bottomNav button svg {
+          width: 20px;
+          height: 20px;
+          fill: none;
+          stroke: currentColor;
+          stroke-width: 1.6;
+          stroke-linecap: round;
+          stroke-linejoin: round;
+        }
+
         .bottomNav button span {
-          font-size: 21px;
+          min-width: 22px;
+          color: inherit;
+          font-size: 9px;
+          font-weight: 950;
+          letter-spacing: 0.08em;
         }
 
         .bottomNav .active {
