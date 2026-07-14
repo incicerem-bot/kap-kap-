@@ -31,7 +31,8 @@ import AddressBookModal from "@/components/AddressBookModal";
 import DisputeFormModal from "@/components/DisputeFormModal";
 import DisputeCenterModal from "@/components/DisputeCenterModal";
 import SellerStoreModal from "@/components/SellerStoreModal";
-import type { Auction, AuctionCategory, Bid, ProfileSummary, AppNotification, AuctionOrder, ConversationMessage, OrderStatus, ProductSpecifications, ProductType, SavedSearch, SellerReview, SellerTrustSummary, AuctionReport, AuctionReportStatus, UserAddress, DisputeStatus, DisputeType, OrderDispute, SellerStoreSummary, LiveReminder } from "@/components/types";
+import ProfileSettingsModal from "@/components/ProfileSettingsModal";
+import type { Auction, AuctionCategory, Bid, ProfileSummary, AppNotification, AuctionOrder, ConversationMessage, OrderStatus, ProductSpecifications, ProductType, SavedSearch, SellerReview, SellerTrustSummary, AuctionReport, AuctionReportStatus, UserAddress, DisputeStatus, DisputeType, OrderDispute, SellerStoreSummary, LiveReminder, EditableUserProfile, SellerProfile } from "@/components/types";
 
 export default function HomePage() {
   const [user, setUser] = useState<User | null>(null);
@@ -87,6 +88,12 @@ export default function HomePage() {
   const [messageLoading, setMessageLoading] = useState(false);
   const [messageOtherUserName, setMessageOtherUserName] = useState("Satıcı");
   const [profileSummary, setProfileSummary] = useState<ProfileSummary | null>(null);
+  const [editableProfile, setEditableProfile] =
+    useState<EditableUserProfile | null>(null);
+  const [mySellerProfile, setMySellerProfile] =
+    useState<SellerProfile | null>(null);
+  const [showProfileSettings, setShowProfileSettings] = useState(false);
+  const [profileSettingsLoading, setProfileSettingsLoading] = useState(false);
   const [myAuctions, setMyAuctions] = useState<Auction[]>([]);
   const [myBidAuctions, setMyBidAuctions] = useState<Auction[]>([]);
   const [myFavoriteAuctions, setMyFavoriteAuctions] = useState<Auction[]>([]);
@@ -559,6 +566,188 @@ export default function HomePage() {
     setMessageText("");
   }
 
+  async function uploadProfileMedia(
+    file: File,
+    folder: "avatars" | "logos" | "covers"
+  ) {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase || !user) return null;
+
+    if (file.size > 5 * 1024 * 1024) {
+      throw new Error("Görsel en fazla 5 MB olabilir.");
+    }
+
+    const extension =
+      file.name.split(".").pop()?.toLocaleLowerCase("tr") || "jpg";
+    const path = `${user.id}/${folder}/${crypto.randomUUID()}.${extension}`;
+
+    const { error } = await supabase.storage
+      .from("profile-media")
+      .upload(path, file, { upsert: false });
+
+    if (error) throw error;
+
+    return supabase.storage.from("profile-media").getPublicUrl(path).data
+      .publicUrl;
+  }
+
+  async function loadProfileSettings(userId: string) {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) return;
+
+    const [{ data: profile, error }, { data: sellerProfile }] =
+      await Promise.all([
+        supabase
+          .from("profiles")
+          .select(
+            "id, full_name, username, city, bio, phone, avatar_url, account_type"
+          )
+          .eq("id", userId)
+          .maybeSingle(),
+        supabase
+          .from("seller_profiles")
+          .select(
+            "user_id, store_name, store_slug, description, logo_url, cover_url, city, verified, vacation_mode, created_at, updated_at"
+          )
+          .eq("user_id", userId)
+          .maybeSingle(),
+      ]);
+
+    if (error) {
+      setMessage(`Profil bilgileri yüklenemedi: ${error.message}`);
+      return;
+    }
+
+    setEditableProfile({
+      id: userId,
+      full_name: profile?.full_name || "",
+      username: profile?.username || "",
+      city: profile?.city || "",
+      bio: profile?.bio || "",
+      phone: profile?.phone || "",
+      avatar_url: profile?.avatar_url || null,
+      account_type: profile?.account_type || "user",
+    });
+    setMySellerProfile((sellerProfile as SellerProfile | null) ?? null);
+  }
+
+  async function saveUserProfile(
+    values: Omit<EditableUserProfile, "id" | "avatar_url">,
+    avatar: File | null
+  ) {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase || !user) return;
+
+    setProfileSettingsLoading(true);
+
+    try {
+      const avatarUrl = avatar
+        ? await uploadProfileMedia(avatar, "avatars")
+        : editableProfile?.avatar_url || null;
+
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          full_name: values.full_name,
+          username: values.username,
+          city: values.city || null,
+          bio: values.bio || null,
+          phone: values.phone || null,
+          avatar_url: avatarUrl,
+          account_type: values.account_type,
+        })
+        .eq("id", user.id);
+
+      if (error) throw error;
+
+      setEditableProfile({
+        id: user.id,
+        ...values,
+        avatar_url: avatarUrl,
+      });
+      setProfileName(values.full_name);
+      setMessage("Kullanıcı profilin güncellendi.");
+    } catch (error) {
+      setMessage(
+        `Profil kaydedilemedi: ${
+          error instanceof Error ? error.message : "Bilinmeyen hata"
+        }`
+      );
+    } finally {
+      setProfileSettingsLoading(false);
+    }
+  }
+
+  async function saveSellerProfile(
+    values: {
+      store_name: string;
+      store_slug: string;
+      description: string;
+      city: string;
+      vacation_mode: boolean;
+    },
+    logo: File | null,
+    cover: File | null
+  ) {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase || !user) return;
+
+    setProfileSettingsLoading(true);
+
+    try {
+      const [logoUrl, coverUrl] = await Promise.all([
+        logo
+          ? uploadProfileMedia(logo, "logos")
+          : Promise.resolve(mySellerProfile?.logo_url || null),
+        cover
+          ? uploadProfileMedia(cover, "covers")
+          : Promise.resolve(mySellerProfile?.cover_url || null),
+      ]);
+
+      const { data, error } = await supabase
+        .from("seller_profiles")
+        .upsert(
+          {
+            user_id: user.id,
+            store_name: values.store_name,
+            store_slug: values.store_slug,
+            description: values.description,
+            city: values.city || null,
+            logo_url: logoUrl,
+            cover_url: coverUrl,
+            vacation_mode: values.vacation_mode,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "user_id" }
+        )
+        .select(
+          "user_id, store_name, store_slug, description, logo_url, cover_url, city, verified, vacation_mode, created_at, updated_at"
+        )
+        .single();
+
+      if (error) throw error;
+
+      await supabase
+        .from("profiles")
+        .update({ account_type: "seller" })
+        .eq("id", user.id);
+
+      setMySellerProfile(data as SellerProfile);
+      setEditableProfile((current) =>
+        current ? { ...current, account_type: "seller" } : current
+      );
+      setMessage("Satıcı mağazan kaydedildi.");
+    } catch (error) {
+      setMessage(
+        `Satıcı profili kaydedilemedi: ${
+          error instanceof Error ? error.message : "Bilinmeyen hata"
+        }`
+      );
+    } finally {
+      setProfileSettingsLoading(false);
+    }
+  }
+
   async function loadCurrentUserRole(userId: string) {
     const supabase = getSupabaseBrowserClient();
     if (!supabase) return false;
@@ -621,6 +810,7 @@ export default function HomePage() {
           loadOrderDisputes(),
           loadFollowedSellers(currentUser.id),
           loadLiveReminders(currentUser.id),
+          loadProfileSettings(currentUser.id),
         ]);
       }
     });
@@ -722,6 +912,7 @@ export default function HomePage() {
         void loadOrderDisputes();
         void loadFollowedSellers(session.user.id);
         void loadLiveReminders(session.user.id);
+        void loadProfileSettings(session.user.id);
       } else {
         setFavoriteIds([]);
         setNotifications([]);
@@ -738,6 +929,9 @@ export default function HomePage() {
         setFollowedSellerIds([]);
         setShowSellerStore(false);
         setLiveReminderIds([]);
+        setEditableProfile(null);
+        setMySellerProfile(null);
+        setShowProfileSettings(false);
       }
     });
 
@@ -1858,10 +2052,11 @@ export default function HomePage() {
       { count: completedSales },
       { count: followerCount },
       { data: listings, error: listingsError },
+      { data: publicSellerProfile },
     ] = await Promise.all([
       supabase
         .from("profiles")
-        .select("full_name, created_at")
+        .select("full_name, username, city, bio, avatar_url, created_at")
         .eq("id", sellerId)
         .maybeSingle(),
       supabase
@@ -1886,6 +2081,13 @@ export default function HomePage() {
         .eq("status", "active")
         .order("created_at", { ascending: false })
         .limit(30),
+      supabase
+        .from("seller_profiles")
+        .select(
+          "user_id, store_name, store_slug, description, logo_url, cover_url, city, verified, vacation_mode, created_at, updated_at"
+        )
+        .eq("user_id", sellerId)
+        .maybeSingle(),
     ]);
 
     setSellerStoreLoading(false);
@@ -1911,6 +2113,12 @@ export default function HomePage() {
       follower_count: followerCount ?? 0,
       active_listings: (listings ?? []) as Auction[],
       member_since: profile?.created_at ?? null,
+      seller_profile:
+        (publicSellerProfile as SellerProfile | null) ?? null,
+      username: profile?.username ?? null,
+      city: profile?.city ?? null,
+      bio: profile?.bio ?? null,
+      avatar_url: profile?.avatar_url ?? null,
     });
   }
 
@@ -2639,6 +2847,20 @@ export default function HomePage() {
         }
       />}
 
+      <ProfileSettingsModal
+        open={showProfileSettings}
+        userProfile={editableProfile}
+        sellerProfile={mySellerProfile}
+        loading={profileSettingsLoading}
+        onClose={() => setShowProfileSettings(false)}
+        onSaveUser={(values, avatar) =>
+          saveUserProfile(values, avatar)
+        }
+        onSaveSeller={(values, logo, cover) =>
+          saveSellerProfile(values, logo, cover)
+        }
+      />
+
       <SellerStoreModal
         open={showSellerStore}
         summary={sellerStore}
@@ -2822,6 +3044,15 @@ export default function HomePage() {
         onOpenSell={() => {
           setShowProfile(false);
           handleOpenSell();
+        }}
+        onOpenProfileSettings={() => {
+          if (!user) {
+            setShowAuth(true);
+            return;
+          }
+          setShowProfile(false);
+          setShowProfileSettings(true);
+          void loadProfileSettings(user.id);
         }}
         onOpenAddresses={() => {
           if (!user) {

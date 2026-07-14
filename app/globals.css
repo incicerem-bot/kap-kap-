@@ -3528,3 +3528,178 @@ input,textarea,select { width:100%; border:1px solid #2a3540; border-radius:10px
     grid-template-columns: 1fr;
   }
 }
+
+
+.profileSettingsBackdrop {
+  align-items: stretch;
+  overflow-y: auto;
+}
+
+.profileSettingsModal {
+  position: relative;
+  width: min(860px, calc(100vw - 32px));
+  max-height: calc(100vh - 36px);
+  margin: auto;
+  overflow-y: auto;
+  border: 1px solid #28333e;
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(200,155,50,.09), transparent 30%),
+    #081018;
+  box-shadow: 0 34px 110px rgba(0,0,0,.56);
+}
+
+.profileSettingsHeader {
+  padding: 26px;
+  border-bottom: 1px solid #202a34;
+}
+
+.profileSettingsHeader span {
+  color: #b99337;
+  font-size: 8px;
+  font-weight: 950;
+  letter-spacing: .14em;
+}
+
+.profileSettingsHeader h2 {
+  margin: 7px 0 4px;
+  font-size: 24px;
+}
+
+.profileSettingsHeader p {
+  margin: 0;
+  color: #74808c;
+  font-size: 9px;
+}
+
+.profileSettingsTabs {
+  display: flex;
+  gap: 7px;
+  padding: 16px 26px 0;
+}
+
+.profileSettingsTabs button {
+  border: 1px solid #35414c;
+  border-radius: 9px;
+  padding: 9px 12px;
+  background: #0a1118;
+  color: #87929d;
+  font-size: 8px;
+  font-weight: 900;
+}
+
+.profileSettingsTabs button.active {
+  border-color: #765a1d;
+  background: rgba(200,155,50,.09);
+  color: #ffc43d;
+}
+
+.profileSettingsForm {
+  padding: 18px 26px 26px;
+}
+
+.profileSettingsGrid,
+.sellerMediaGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.profileMediaField {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 15px;
+  padding: 14px;
+  border: 1px solid #26313c;
+  border-radius: 12px;
+  background: #0a1118;
+}
+
+.profileMediaPreview {
+  width: 72px;
+  height: 72px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 72px;
+  overflow: hidden;
+  border-radius: 50%;
+  background: #ffc43d;
+  color: #0a0c0f;
+  font-size: 24px;
+  font-weight: 950;
+}
+
+.profileMediaPreview img,
+.sellerStoreAvatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.vacationModeCheck {
+  display: flex !important;
+  align-items: center;
+  gap: 8px;
+  min-height: 43px;
+  align-self: end;
+}
+
+.vacationModeCheck input {
+  width: auto !important;
+}
+
+.profileSettingsSave {
+  border: 0;
+  border-radius: 10px;
+  padding: 12px;
+  background: #ffc43d;
+  color: #0a0c0f;
+  font-size: 9px;
+  font-weight: 950;
+}
+
+.sellerStoreCover {
+  height: 190px;
+  overflow: hidden;
+  background: #101820;
+}
+
+.sellerStoreCover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.sellerStoreIdentity small {
+  color: #78838e;
+  font-size: 8px;
+}
+
+@media (max-width: 620px) {
+  .profileSettingsModal {
+    width: calc(100vw - 16px);
+    border-radius: 16px;
+  }
+
+  .profileSettingsHeader,
+  .profileSettingsTabs,
+  .profileSettingsForm {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+
+  .profileSettingsGrid,
+  .sellerMediaGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .profileMediaField {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .sellerStoreCover {
+    height: 130px;
+  }
+}
