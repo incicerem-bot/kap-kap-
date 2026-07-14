@@ -1,7 +1,7 @@
 "use client";
 
 import type { FormEvent } from "react";
-import type { Auction, Bid, AuctionCategory } from "./types";
+import type { Auction, Bid, AuctionCategory, SellerTrustSummary } from "./types";
 
 const categoryLabels: Record<AuctionCategory, string> = {
   all: "Diğer",
@@ -43,6 +43,9 @@ type ProductDetailModalProps = {
   onToggleFavorite: (auctionId: string) => void;
   onOpenMessages: () => void;
   onOpenLiveRoom: () => void;
+  sellerTrust: SellerTrustSummary | null;
+  sellerTrustLoading: boolean;
+  onOpenSellerReviews: () => void;
   pricePulse?: boolean;
 };
 
@@ -171,6 +174,52 @@ export default function ProductDetailModal(props: ProductDetailModalProps) {
           <button className="openLiveRoomButton" type="button" onClick={props.onOpenLiveRoom}>
             Canlı açık artırma odasına gir
           </button>
+
+          <section className="sellerTrustCard">
+            <div className="sellerTrustCardHeader">
+              <span className="sellerTrustAvatar">
+                {(props.sellerTrust?.seller_name || "K")
+                  .slice(0, 1)
+                  .toLocaleUpperCase("tr")}
+              </span>
+              <div>
+                <span>SATICI</span>
+                <strong>
+                  {props.sellerTrustLoading
+                    ? "Satıcı yükleniyor..."
+                    : props.sellerTrust?.seller_name || "KapışKapış Satıcısı"}
+                </strong>
+                <small>Doğrulanmış hesap</small>
+              </div>
+            </div>
+
+            <div className="sellerTrustMetrics">
+              <div>
+                <strong>
+                  {props.sellerTrust?.review_count
+                    ? props.sellerTrust.average_rating.toFixed(1)
+                    : "Yeni"}
+                </strong>
+                <span>Satıcı puanı</span>
+              </div>
+              <div>
+                <strong>{props.sellerTrust?.review_count ?? 0}</strong>
+                <span>Yorum</span>
+              </div>
+              <div>
+                <strong>{props.sellerTrust?.completed_sales ?? 0}</strong>
+                <span>Teslimat</span>
+              </div>
+            </div>
+
+            <button
+              className="sellerReviewsButton"
+              type="button"
+              onClick={props.onOpenSellerReviews}
+            >
+              Satıcı yorumlarını görüntüle
+            </button>
+          </section>
 
           <button
             className="messageSellerButton"

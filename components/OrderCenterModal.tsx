@@ -30,6 +30,8 @@ type OrderCenterModalProps = {
     status: OrderStatus,
     trackingCode?: string
   ) => Promise<void> | void;
+  reviewSubmitted: boolean;
+  onOpenReview: () => void;
 };
 
 export default function OrderCenterModal({
@@ -39,6 +41,8 @@ export default function OrderCenterModal({
   loading,
   onClose,
   onUpdateStatus,
+  reviewSubmitted,
+  onOpenReview,
 }: OrderCenterModalProps) {
   const [trackingCode, setTrackingCode] = useState("");
 
@@ -193,9 +197,24 @@ export default function OrderCenterModal({
           )}
 
           {order.status === "delivered" && (
-            <div className="orderSuccess">
-              <strong>Sipariş tamamlandı.</strong>
-              <span>Alıcı teslimatı onayladı.</span>
+            <div className="orderDeliveredGroup">
+              <div className="orderSuccess">
+                <strong>Sipariş tamamlandı.</strong>
+                <span>Alıcı teslimatı onayladı.</span>
+              </div>
+
+              {isBuyer && (
+                <button
+                  className="orderReviewButton"
+                  type="button"
+                  disabled={reviewSubmitted}
+                  onClick={onOpenReview}
+                >
+                  {reviewSubmitted
+                    ? "Satıcı değerlendirildi"
+                    : "Satıcıyı değerlendir"}
+                </button>
+              )}
             </div>
           )}
 

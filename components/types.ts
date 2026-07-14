@@ -131,3 +131,26 @@ export type SavedSearch = {
   alerts_enabled: boolean;
   created_at: string;
 };
+
+
+export type SellerReview = {
+  id: string;
+  order_id: string;
+  auction_id: string;
+  seller_id: string;
+  reviewer_id: string;
+  rating: number;
+  comment: string;
+  created_at: string;
+  reviewer_name?: string | null;
+};
+
+export type SellerTrustSummary = {
+  seller_id: string;
+  seller_name: string;
+  average_rating: number;
+  review_count: number;
+  completed_sales: number;
+  member_since: string | null;
+  reviews: SellerReview[];
+};
