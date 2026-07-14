@@ -28,7 +28,9 @@ import ReviewFormModal from "@/components/ReviewFormModal";
 import ReportListingModal from "@/components/ReportListingModal";
 import ModerationPanel from "@/components/ModerationPanel";
 import AddressBookModal from "@/components/AddressBookModal";
-import type { Auction, AuctionCategory, Bid, ProfileSummary, AppNotification, AuctionOrder, ConversationMessage, OrderStatus, ProductSpecifications, ProductType, SavedSearch, SellerReview, SellerTrustSummary, AuctionReport, AuctionReportStatus, UserAddress } from "@/components/types";
+import DisputeFormModal from "@/components/DisputeFormModal";
+import DisputeCenterModal from "@/components/DisputeCenterModal";
+import type { Auction, AuctionCategory, Bid, ProfileSummary, AppNotification, AuctionOrder, ConversationMessage, OrderStatus, ProductSpecifications, ProductType, SavedSearch, SellerReview, SellerTrustSummary, AuctionReport, AuctionReportStatus, UserAddress, DisputeStatus, DisputeType, OrderDispute } from "@/components/types";
 
 export default function HomePage() {
   const [user, setUser] = useState<User | null>(null);
@@ -88,6 +90,10 @@ export default function HomePage() {
   const [addressesLoading, setAddressesLoading] = useState(false);
   const [showAddressBook, setShowAddressBook] = useState(false);
   const [addressSelectionMode, setAddressSelectionMode] = useState(false);
+  const [orderDisputes, setOrderDisputes] = useState<OrderDispute[]>([]);
+  const [showDisputeForm, setShowDisputeForm] = useState(false);
+  const [showDisputeCenter, setShowDisputeCenter] = useState(false);
+  const [disputeLoading, setDisputeLoading] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<AuctionOrder | null>(null);
   const [showOrderCenter, setShowOrderCenter] = useState(false);
   const [orderLoading, setOrderLoading] = useState(false);
@@ -599,6 +605,7 @@ export default function HomePage() {
           loadReviewedOrders(currentUser.id),
           loadCurrentUserRole(currentUser.id),
           loadAddresses(currentUser.id),
+          loadOrderDisputes(),
         ]);
       }
     });
@@ -697,6 +704,7 @@ export default function HomePage() {
         void loadReviewedOrders(session.user.id);
         void loadCurrentUserRole(session.user.id);
         void loadAddresses(session.user.id);
+        void loadOrderDisputes();
       } else {
         setFavoriteIds([]);
         setNotifications([]);
@@ -707,6 +715,9 @@ export default function HomePage() {
         setShowModeration(false);
         setAddresses([]);
         setShowAddressBook(false);
+        setOrderDisputes([]);
+        setShowDisputeForm(false);
+        setShowDisputeCenter(false);
       }
     });
 
@@ -1009,6 +1020,116 @@ export default function HomePage() {
     showFavoritesOnly,
     favoriteIds,
   ]);
+
+  async function loadOrderDisputes() {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase || !user) return;
+
+    setDisputeLoading(true);
+
+    let query = supabase
+      .from("order_disputes")
+      .select(
+        "id, order_id, auction_id, buyer_id, seller_id, type, reason, details, seller_response, status, created_at, updated_at, resolved_at, resolved_by"
+      )
+      .order("created_at", { ascending: false });
+
+    if (!isAdmin) {
+      query = query.or(`buyer_id.eq.${user.id},seller_id.eq.${user.id}`);
+    }
+
+    const { data, error } = await query;
+    setDisputeLoading(false);
+
+    if (error) {
+      setMessage(`Talepler yüklenemedi: ${error.message}`);
+      return;
+    }
+
+    setOrderDisputes((data ?? []) as OrderDispute[]);
+  }
+
+  async function createOrderDispute(
+    type: DisputeType,
+    reason: string,
+    details: string
+  ) {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase || !user || !selectedOrder) return;
+
+    setDisputeLoading(true);
+
+    const { error } = await supabase.from("order_disputes").insert({
+      order_id: selectedOrder.id,
+      auction_id: selectedOrder.auction_id,
+      buyer_id: selectedOrder.buyer_id,
+      seller_id: selectedOrder.seller_id,
+      type,
+      reason,
+      details,
+    });
+
+    setDisputeLoading(false);
+
+    if (error) {
+      setMessage(`Talep oluşturulamadı: ${error.message}`);
+      return;
+    }
+
+    setShowDisputeForm(false);
+    await loadOrderDisputes();
+    setMessage("Talebin Güven Merkezi'ne gönderildi.");
+  }
+
+  async function respondToDispute(
+    dispute: OrderDispute,
+    response: string
+  ) {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase || !user) return;
+
+    setDisputeLoading(true);
+
+    const { error } = await supabase.rpc("respond_order_dispute", {
+      p_dispute_id: dispute.id,
+      p_response: response,
+    });
+
+    setDisputeLoading(false);
+
+    if (error) {
+      setMessage(`Yanıt gönderilemedi: ${error.message}`);
+      return;
+    }
+
+    await loadOrderDisputes();
+    setMessage("Satıcı yanıtı kaydedildi.");
+  }
+
+  async function resolveDispute(
+    dispute: OrderDispute,
+    status: Extract<DisputeStatus, "approved" | "rejected" | "resolved">
+  ) {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase || !user || !isAdmin) return;
+
+    setDisputeLoading(true);
+
+    const { error } = await supabase.rpc("resolve_order_dispute", {
+      p_dispute_id: dispute.id,
+      p_status: status,
+    });
+
+    setDisputeLoading(false);
+
+    if (error) {
+      setMessage(`Talep sonuçlandırılamadı: ${error.message}`);
+      return;
+    }
+
+    await Promise.all([loadOrderDisputes(), loadOrders(user.id)]);
+    setMessage("Uyuşmazlık durumu güncellendi.");
+  }
 
   async function loadAddresses(userId: string) {
     const supabase = getSupabaseBrowserClient();
@@ -2232,6 +2353,31 @@ export default function HomePage() {
         onToggleAlert={(search) => void toggleSavedSearchAlert(search)}
       />
 
+      <DisputeFormModal
+        open={showDisputeForm}
+        order={selectedOrder}
+        loading={disputeLoading}
+        onClose={() => setShowDisputeForm(false)}
+        onSubmit={(type, reason, details) =>
+          createOrderDispute(type, reason, details)
+        }
+      />
+
+      <DisputeCenterModal
+        open={showDisputeCenter}
+        disputes={orderDisputes}
+        currentUserId={user?.id || ""}
+        isAdmin={isAdmin}
+        loading={disputeLoading}
+        onClose={() => setShowDisputeCenter(false)}
+        onSellerResponse={(dispute, response) =>
+          void respondToDispute(dispute, response)
+        }
+        onResolve={(dispute, status) =>
+          void resolveDispute(dispute, status)
+        }
+      />
+
       <AddressBookModal
         open={showAddressBook}
         addresses={addresses}
@@ -2281,6 +2427,19 @@ export default function HomePage() {
           setAddressSelectionMode(true);
           setShowAddressBook(true);
           void loadAddresses(user.id);
+        }}
+        hasOpenDispute={Boolean(
+          selectedOrder &&
+            orderDisputes.some(
+              (item) =>
+                item.order_id === selectedOrder.id &&
+                ["open", "seller_responded"].includes(item.status)
+            )
+        )}
+        onOpenDispute={() => setShowDisputeForm(true)}
+        onOpenDisputeCenter={() => {
+          setShowDisputeCenter(true);
+          void loadOrderDisputes();
         }}
       />
 
@@ -2371,6 +2530,16 @@ export default function HomePage() {
           setShowFounderPanel(false);
           setShowModeration(true);
           void loadAuctionReports();
+        }}
+        pendingDisputes={
+          orderDisputes.filter((item) =>
+            ["open", "seller_responded"].includes(item.status)
+          ).length
+        }
+        onOpenDisputes={() => {
+          setShowFounderPanel(false);
+          setShowDisputeCenter(true);
+          void loadOrderDisputes();
         }}
       />}
 

@@ -2759,3 +2759,326 @@ input,textarea,select { width:100%; border:1px solid #2a3540; border-radius:10px
     margin-left: 16px;
   }
 }
+
+
+.orderDisputeActions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin: 0 28px 20px;
+  padding: 14px;
+  border: 1px solid #513438;
+  border-radius: 12px;
+  background: rgba(90, 48, 53, 0.08);
+}
+
+.orderDisputeActions > div:first-child {
+  display: grid;
+  gap: 4px;
+}
+
+.orderDisputeActions span,
+.disputeFormModal header span,
+.disputeHeader span,
+.sellerResponseBox > span {
+  color: #c7973c;
+  font-size: 8px;
+  font-weight: 950;
+  letter-spacing: .13em;
+}
+
+.orderDisputeActions strong {
+  font-size: 10px;
+}
+
+.orderDisputeActions small {
+  color: #78838e;
+  font-size: 8px;
+}
+
+.orderDisputeActions > div:last-child {
+  display: flex;
+  gap: 7px;
+}
+
+.orderDisputeActions button {
+  border: 1px solid #5e3b3f;
+  border-radius: 8px;
+  padding: 8px 9px;
+  background: #0b1219;
+  color: #d27b80;
+  font-size: 8px;
+  font-weight: 850;
+}
+
+.orderDisputeActions button:disabled {
+  opacity: .5;
+}
+
+.disputeFormModal {
+  position: relative;
+  width: min(540px, calc(100vw - 32px));
+  padding: 24px;
+  border: 1px solid #28333e;
+  border-radius: 19px;
+  background: #081018;
+}
+
+.disputeFormModal header {
+  margin-bottom: 18px;
+}
+
+.disputeFormModal h2 {
+  margin: 7px 0 3px;
+  font-size: 24px;
+}
+
+.disputeFormModal header p {
+  margin: 0;
+  color: #74808c;
+  font-size: 9px;
+}
+
+.disputeSubmitButton {
+  border: 0;
+  border-radius: 10px;
+  padding: 12px;
+  background: #d26a70;
+  color: white;
+  font-size: 9px;
+  font-weight: 950;
+}
+
+.disputeBackdrop {
+  align-items: stretch;
+  overflow-y: auto;
+}
+
+.disputeCenter {
+  position: relative;
+  width: min(900px, calc(100vw - 32px));
+  max-height: calc(100vh - 36px);
+  margin: auto;
+  overflow-y: auto;
+  border: 1px solid #28333e;
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(200, 155, 50, .08), transparent 30%),
+    #081018;
+  box-shadow: 0 34px 110px rgba(0, 0, 0, .56);
+}
+
+.disputeHeader {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 26px;
+  border-bottom: 1px solid #202a34;
+}
+
+.disputeHeader > div {
+  display: grid;
+  gap: 4px;
+}
+
+.disputeHeader h2 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.disputeHeader p {
+  margin: 0;
+  color: #74808c;
+  font-size: 9px;
+}
+
+.disputeHeader > strong {
+  padding: 8px 11px;
+  border: 1px solid #65494d;
+  border-radius: 999px;
+  color: #df858a;
+  font-size: 9px;
+}
+
+.disputeList {
+  display: grid;
+  gap: 10px;
+  padding: 18px 26px 26px;
+}
+
+.disputeCard {
+  padding: 14px;
+  border: 1px solid #293540;
+  border-radius: 13px;
+  background: #0a1118;
+}
+
+.dispute-open,
+.dispute-seller_responded {
+  border-color: #64494d;
+}
+
+.dispute-approved,
+.dispute-resolved {
+  border-color: #2c6743;
+}
+
+.dispute-rejected {
+  opacity: .68;
+}
+
+.disputeCardTop {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.disputeCardTop > div {
+  display: grid;
+  gap: 4px;
+}
+
+.disputeCardTop span {
+  color: #c7973c;
+  font-size: 8px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.disputeCardTop strong {
+  font-size: 11px;
+}
+
+.disputeCardTop small {
+  padding: 5px 7px;
+  border: 1px solid #3b4651;
+  border-radius: 999px;
+  color: #a4adb6;
+  font-size: 7px;
+}
+
+.disputeCard > p,
+.sellerResponseBox p {
+  margin: 12px 0;
+  color: #c7cfd7;
+  font-size: 9px;
+  line-height: 1.58;
+}
+
+.sellerResponseBox {
+  margin-top: 12px;
+  padding: 11px;
+  border: 1px solid #2d4e3b;
+  border-radius: 10px;
+  background: rgba(44, 103, 67, .08);
+}
+
+.sellerResponseBox p {
+  margin-bottom: 0;
+}
+
+.sellerResponseForm {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.sellerResponseForm button,
+.disputeAdminActions button {
+  border: 1px solid #46525e;
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: #0b1219;
+  color: #aeb7c0;
+  font-size: 8px;
+  font-weight: 850;
+}
+
+.sellerResponseForm button {
+  justify-self: end;
+}
+
+.disputeAdminActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 7px;
+  margin-top: 13px;
+  padding-top: 12px;
+  border-top: 1px solid #202a34;
+}
+
+.disputeAdminActions button:first-child {
+  border-color: #2e6744;
+  color: #67da95;
+}
+
+.disputeAdminActions button:nth-child(2) {
+  border-color: #64383b;
+  color: #df7c82;
+}
+
+.disputeEmpty {
+  min-height: 250px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 7px;
+  margin: 18px 26px 26px;
+  border: 1px dashed #2a3540;
+  border-radius: 12px;
+  color: #74808c;
+  text-align: center;
+}
+
+.disputeEmpty strong {
+  color: white;
+  font-size: 11px;
+}
+
+.disputeEmpty span {
+  font-size: 9px;
+}
+
+.founderDisputeTool {
+  width: 100%;
+  text-align: left;
+}
+
+@media (max-width: 640px) {
+  .orderDisputeActions,
+  .disputeHeader,
+  .disputeCardTop {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .orderDisputeActions {
+    margin-right: 16px;
+    margin-left: 16px;
+  }
+
+  .orderDisputeActions > div:last-child,
+  .disputeAdminActions {
+    justify-content: stretch;
+  }
+
+  .orderDisputeActions button,
+  .disputeAdminActions button {
+    flex: 1 1 auto;
+  }
+
+  .disputeCenter {
+    width: calc(100vw - 16px);
+    border-radius: 16px;
+  }
+
+  .disputeHeader,
+  .disputeList {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+}
