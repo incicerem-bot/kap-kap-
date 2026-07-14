@@ -21,6 +21,7 @@ import BottomNav from "@/components/BottomNav";
 import CompareModal from "@/components/CompareModal";
 import LiveAuctionRoom from "@/components/LiveAuctionRoom";
 import FounderPanel from "@/components/FounderPanel";
+import BuyerFilters from "@/components/BuyerFilters";
 import type { Auction, AuctionCategory, Bid, ProfileSummary, AppNotification, AuctionOrder, ConversationMessage, OrderStatus, ProductSpecifications, ProductType } from "@/components/types";
 
 export default function HomePage() {
@@ -31,6 +32,14 @@ export default function HomePage() {
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [query, setQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState<AuctionCategory>("all");
+  const [buyerProductType, setBuyerProductType] =
+    useState<ProductType | "">("");
+  const [buyerBrand, setBuyerBrand] = useState("");
+  const [buyerModel, setBuyerModel] = useState("");
+  const [buyerSpecifications, setBuyerSpecifications] =
+    useState<ProductSpecifications>({});
+  const [buyerMinPrice, setBuyerMinPrice] = useState("");
+  const [buyerMaxPrice, setBuyerMaxPrice] = useState("");
   const [selectedAuction, setSelectedAuction] = useState<Auction | null>(null);
   const [bidHistory, setBidHistory] = useState<Bid[]>([]);
   const [bidAmount, setBidAmount] = useState("");
@@ -652,21 +661,121 @@ export default function HomePage() {
     return () => URL.revokeObjectURL(url);
   }, [auctionImage]);
 
+  function clearBuyerFilters() {
+    setQuery("");
+    setActiveCategory("all");
+    setBuyerProductType("");
+    setBuyerBrand("");
+    setBuyerModel("");
+    setBuyerSpecifications({});
+    setBuyerMinPrice("");
+    setBuyerMaxPrice("");
+    setShowFavoritesOnly(false);
+  }
+
   const filteredAuctions = useMemo(() => {
     const normalized = query.trim().toLocaleLowerCase("tr");
+    const minPriceValue =
+      buyerMinPrice.trim() === "" ? null : Number(buyerMinPrice);
+    const maxPriceValue =
+      buyerMaxPrice.trim() === "" ? null : Number(buyerMaxPrice);
 
     return auctions.filter((auction) => {
-      if (
-        normalized &&
-        !`${auction.title} ${auction.description}`
-          .toLocaleLowerCase("tr")
-          .includes(normalized)
-      ) {
+      const specificationText = Object.entries(
+        auction.specifications ?? {}
+      )
+        .map(([key, value]) => `${key} ${String(value)}`)
+        .join(" ");
+
+      const searchableText = [
+        auction.title,
+        auction.description,
+        auction.brand ?? "",
+        auction.model ?? "",
+        auction.product_type ?? "",
+        specificationText,
+      ]
+        .join(" ")
+        .toLocaleLowerCase("tr");
+
+      if (normalized && !searchableText.includes(normalized)) {
         return false;
       }
 
       if (activeCategory !== "all" && auction.category !== activeCategory) {
         return false;
+      }
+
+      if (
+        buyerProductType &&
+        auction.product_type !== buyerProductType
+      ) {
+        return false;
+      }
+
+      if (
+        buyerBrand &&
+        (auction.brand ?? "").toLocaleLowerCase("tr") !==
+          buyerBrand.toLocaleLowerCase("tr")
+      ) {
+        return false;
+      }
+
+      if (
+        buyerModel &&
+        (auction.model ?? "").toLocaleLowerCase("tr") !==
+          buyerModel.toLocaleLowerCase("tr")
+      ) {
+        return false;
+      }
+
+      const currentPrice = Number(auction.current_price);
+
+      if (
+        minPriceValue !== null &&
+        Number.isFinite(minPriceValue) &&
+        currentPrice < minPriceValue
+      ) {
+        return false;
+      }
+
+      if (
+        maxPriceValue !== null &&
+        Number.isFinite(maxPriceValue) &&
+        currentPrice > maxPriceValue
+      ) {
+        return false;
+      }
+
+      const auctionSpecifications = auction.specifications ?? {};
+
+      for (const [key, expectedValue] of Object.entries(
+        buyerSpecifications
+      )) {
+        if (
+          expectedValue === "" ||
+          expectedValue === null ||
+          expectedValue === undefined
+        ) {
+          continue;
+        }
+
+        const actualValue = auctionSpecifications[key];
+
+        if (actualValue === null || actualValue === undefined) {
+          return false;
+        }
+
+        if (typeof expectedValue === "number") {
+          if (Number(actualValue) !== expectedValue) {
+            return false;
+          }
+        } else if (
+          String(actualValue).toLocaleLowerCase("tr") !==
+          String(expectedValue).toLocaleLowerCase("tr")
+        ) {
+          return false;
+        }
       }
 
       if (showFavoritesOnly && !favoriteIds.includes(auction.id)) {
@@ -675,7 +784,19 @@ export default function HomePage() {
 
       return true;
     });
-  }, [auctions, query, activeCategory, showFavoritesOnly, favoriteIds]);
+  }, [
+    auctions,
+    query,
+    activeCategory,
+    buyerProductType,
+    buyerBrand,
+    buyerModel,
+    buyerSpecifications,
+    buyerMinPrice,
+    buyerMaxPrice,
+    showFavoritesOnly,
+    favoriteIds,
+  ]);
 
   async function loadOrders(userId: string) {
     const supabase = getSupabaseBrowserClient();
@@ -1207,12 +1328,56 @@ export default function HomePage() {
               type="button"
               key={value}
               className={activeCategory === value ? "activeCategory" : ""}
-              onClick={() => setActiveCategory(value as AuctionCategory)}
+              onClick={() => {
+                setActiveCategory(value as AuctionCategory);
+                setBuyerProductType("");
+                setBuyerBrand("");
+                setBuyerModel("");
+                setBuyerSpecifications({});
+              }}
             >
               {label}
             </button>
           ))}
         </section>
+
+        <BuyerFilters
+          category={activeCategory}
+          productType={buyerProductType}
+          brand={buyerBrand}
+          model={buyerModel}
+          specifications={buyerSpecifications}
+          minPrice={buyerMinPrice}
+          maxPrice={buyerMaxPrice}
+          resultCount={filteredAuctions.length}
+          onCategoryChange={(category) => {
+            setActiveCategory(category);
+            setBuyerProductType("");
+            setBuyerBrand("");
+            setBuyerModel("");
+            setBuyerSpecifications({});
+          }}
+          onProductTypeChange={(productType) => {
+            setBuyerProductType(productType);
+            setBuyerBrand("");
+            setBuyerModel("");
+            setBuyerSpecifications({});
+          }}
+          onBrandChange={(brand) => {
+            setBuyerBrand(brand);
+            setBuyerModel("");
+          }}
+          onModelChange={setBuyerModel}
+          onSpecificationChange={(key, value) =>
+            setBuyerSpecifications((current) => ({
+              ...current,
+              [key]: value,
+            }))
+          }
+          onMinPriceChange={setBuyerMinPrice}
+          onMaxPriceChange={setBuyerMaxPrice}
+          onClear={clearBuyerFilters}
+        />
 
         <DashboardSections auctions={auctions} orders={orders} onOpenAuction={(a)=>void openDetail(a)} />
         <section className="v20Quick"><button onClick={()=>{if(!user){setShowAuth(true);return;}setShowSalesCenter(true);void loadOrders(user.id)}}><span>01</span><strong>Satış Merkezi</strong><small>İlanlar ve siparişler</small></button><button onClick={()=>{if(!user){setShowAuth(true);return;}setShowWallet(true);void loadOrders(user.id)}}><span>02</span><strong>Cüzdanım</strong><small>Bakiye ve hareketler</small></button><button onClick={()=>void openProfileCenter()}><span>03</span><strong>Siparişlerim</strong><small>Ödeme ve kargo takibi</small></button></section>
@@ -1237,11 +1402,7 @@ export default function HomePage() {
               <h3>Bu filtreye uygun ilan bulunamadı.</h3>
               <button
                 type="button"
-                onClick={() => {
-                  setQuery("");
-                  setActiveCategory("all");
-                  setShowFavoritesOnly(false);
-                }}
+                onClick={clearBuyerFilters}
               >
                 Filtreleri temizle
               </button>
