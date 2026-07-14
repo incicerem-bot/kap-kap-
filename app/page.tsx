@@ -30,7 +30,8 @@ import ModerationPanel from "@/components/ModerationPanel";
 import AddressBookModal from "@/components/AddressBookModal";
 import DisputeFormModal from "@/components/DisputeFormModal";
 import DisputeCenterModal from "@/components/DisputeCenterModal";
-import type { Auction, AuctionCategory, Bid, ProfileSummary, AppNotification, AuctionOrder, ConversationMessage, OrderStatus, ProductSpecifications, ProductType, SavedSearch, SellerReview, SellerTrustSummary, AuctionReport, AuctionReportStatus, UserAddress, DisputeStatus, DisputeType, OrderDispute } from "@/components/types";
+import SellerStoreModal from "@/components/SellerStoreModal";
+import type { Auction, AuctionCategory, Bid, ProfileSummary, AppNotification, AuctionOrder, ConversationMessage, OrderStatus, ProductSpecifications, ProductType, SavedSearch, SellerReview, SellerTrustSummary, AuctionReport, AuctionReportStatus, UserAddress, DisputeStatus, DisputeType, OrderDispute, SellerStoreSummary } from "@/components/types";
 
 export default function HomePage() {
   const [user, setUser] = useState<User | null>(null);
@@ -56,6 +57,12 @@ export default function HomePage() {
   const [sellerTrust, setSellerTrust] =
     useState<SellerTrustSummary | null>(null);
   const [sellerTrustLoading, setSellerTrustLoading] = useState(false);
+  const [sellerStore, setSellerStore] =
+    useState<SellerStoreSummary | null>(null);
+  const [sellerStoreLoading, setSellerStoreLoading] = useState(false);
+  const [showSellerStore, setShowSellerStore] = useState(false);
+  const [followedSellerIds, setFollowedSellerIds] = useState<string[]>([]);
+  const [sellerFollowLoading, setSellerFollowLoading] = useState(false);
   const [showSellerReviews, setShowSellerReviews] = useState(false);
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [reviewLoading, setReviewLoading] = useState(false);
@@ -606,6 +613,7 @@ export default function HomePage() {
           loadCurrentUserRole(currentUser.id),
           loadAddresses(currentUser.id),
           loadOrderDisputes(),
+          loadFollowedSellers(currentUser.id),
         ]);
       }
     });
@@ -705,6 +713,7 @@ export default function HomePage() {
         void loadCurrentUserRole(session.user.id);
         void loadAddresses(session.user.id);
         void loadOrderDisputes();
+        void loadFollowedSellers(session.user.id);
       } else {
         setFavoriteIds([]);
         setNotifications([]);
@@ -718,6 +727,8 @@ export default function HomePage() {
         setOrderDisputes([]);
         setShowDisputeForm(false);
         setShowDisputeCenter(false);
+        setFollowedSellerIds([]);
+        setShowSellerStore(false);
       }
     });
 
@@ -1798,6 +1809,146 @@ export default function HomePage() {
     );
   }
 
+  async function loadFollowedSellers(userId: string) {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) return;
+
+    const { data } = await supabase
+      .from("seller_follows")
+      .select("seller_id")
+      .eq("follower_id", userId);
+
+    setFollowedSellerIds((data ?? []).map((item) => item.seller_id));
+  }
+
+  async function loadSellerStore(sellerId: string) {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) return;
+
+    setSellerStoreLoading(true);
+
+    const [
+      { data: profile },
+      { data: reviews },
+      { count: completedSales },
+      { count: followerCount },
+      { data: listings, error: listingsError },
+    ] = await Promise.all([
+      supabase
+        .from("profiles")
+        .select("full_name, created_at")
+        .eq("id", sellerId)
+        .maybeSingle(),
+      supabase
+        .from("seller_reviews")
+        .select("rating")
+        .eq("seller_id", sellerId),
+      supabase
+        .from("orders")
+        .select("id", { count: "exact", head: true })
+        .eq("seller_id", sellerId)
+        .eq("status", "delivered"),
+      supabase
+        .from("seller_follows")
+        .select("id", { count: "exact", head: true })
+        .eq("seller_id", sellerId),
+      supabase
+        .from("auctions")
+        .select(
+          "id, seller_id, title, description, category, product_type, brand, model, specifications, start_price, current_price, min_increment, ends_at, status, image_url, created_at"
+        )
+        .eq("seller_id", sellerId)
+        .eq("status", "active")
+        .order("created_at", { ascending: false })
+        .limit(30),
+    ]);
+
+    setSellerStoreLoading(false);
+
+    if (listingsError) {
+      setMessage(`Satıcı mağazası yüklenemedi: ${listingsError.message}`);
+      return;
+    }
+
+    const ratings = (reviews ?? []).map((item) => Number(item.rating));
+    const averageRating =
+      ratings.length > 0
+        ? ratings.reduce((total, rating) => total + rating, 0) /
+          ratings.length
+        : 0;
+
+    setSellerStore({
+      seller_id: sellerId,
+      seller_name: profile?.full_name?.trim() || "KapışKapış Satıcısı",
+      average_rating: averageRating,
+      review_count: ratings.length,
+      completed_sales: completedSales ?? 0,
+      follower_count: followerCount ?? 0,
+      active_listings: (listings ?? []) as Auction[],
+      member_since: profile?.created_at ?? null,
+    });
+  }
+
+  async function toggleSellerFollow(sellerId: string) {
+    const supabase = getSupabaseBrowserClient();
+
+    if (!supabase || !user) {
+      setShowAuth(true);
+      return;
+    }
+
+    if (sellerId === user.id) {
+      setMessage("Kendi hesabını takip edemezsin.");
+      return;
+    }
+
+    setSellerFollowLoading(true);
+
+    const isFollowing = followedSellerIds.includes(sellerId);
+
+    const { error } = isFollowing
+      ? await supabase
+          .from("seller_follows")
+          .delete()
+          .eq("follower_id", user.id)
+          .eq("seller_id", sellerId)
+      : await supabase.from("seller_follows").insert({
+          follower_id: user.id,
+          seller_id: sellerId,
+        });
+
+    setSellerFollowLoading(false);
+
+    if (error) {
+      setMessage(`Satıcı takibi güncellenemedi: ${error.message}`);
+      return;
+    }
+
+    setFollowedSellerIds((current) =>
+      isFollowing
+        ? current.filter((id) => id !== sellerId)
+        : [...current, sellerId]
+    );
+
+    setSellerStore((current) =>
+      current?.seller_id === sellerId
+        ? {
+            ...current,
+            follower_count: Math.max(
+              0,
+              current.follower_count + (isFollowing ? -1 : 1)
+            ),
+          }
+        : current
+    );
+
+    setMessage(
+      isFollowing
+        ? "Satıcı takibi bırakıldı."
+        : "Satıcı takip edildi. Yeni ilanlarında bildirim alacaksın."
+    );
+  }
+
   async function loadSellerTrust(sellerId: string) {
     const supabase = getSupabaseBrowserClient();
     if (!supabase) return;
@@ -2326,6 +2477,27 @@ export default function HomePage() {
         }
       />}
 
+      <SellerStoreModal
+        open={showSellerStore}
+        summary={sellerStore}
+        loading={sellerStoreLoading}
+        isFollowing={Boolean(
+          sellerStore &&
+            followedSellerIds.includes(sellerStore.seller_id)
+        )}
+        followLoading={sellerFollowLoading}
+        currentUserId={user?.id || ""}
+        onClose={() => setShowSellerStore(false)}
+        onToggleFollow={() => {
+          if (!sellerStore) return;
+          void toggleSellerFollow(sellerStore.seller_id);
+        }}
+        onOpenAuction={(auction) => {
+          setShowSellerStore(false);
+          void openDetail(auction);
+        }}
+      />
+
       <SellerReviewsModal
         open={showSellerReviews}
         summary={sellerTrust}
@@ -2573,6 +2745,20 @@ export default function HomePage() {
         sellerTrust={sellerTrust}
         sellerTrustLoading={sellerTrustLoading}
         onOpenSellerReviews={() => setShowSellerReviews(true)}
+        onOpenSellerStore={() => {
+          if (!selectedAuction) return;
+          setShowSellerStore(true);
+          void loadSellerStore(selectedAuction.seller_id);
+        }}
+        isFollowingSeller={Boolean(
+          selectedAuction &&
+            followedSellerIds.includes(selectedAuction.seller_id)
+        )}
+        followLoading={sellerFollowLoading}
+        onToggleSellerFollow={() => {
+          if (!selectedAuction) return;
+          void toggleSellerFollow(selectedAuction.seller_id);
+        }}
         onReportListing={() => {
           if (!user) {
             setShowAuth(true);

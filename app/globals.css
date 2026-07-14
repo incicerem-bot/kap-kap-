@@ -3082,3 +3082,231 @@ input,textarea,select { width:100%; border:1px solid #2a3540; border-radius:10px
     padding-left: 16px;
   }
 }
+
+
+.sellerStoreActions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+  margin-top: 8px;
+}
+
+.sellerStoreActions button,
+.sellerStoreHeader > button {
+  border: 1px solid #5c4718;
+  border-radius: 9px;
+  padding: 9px 10px;
+  background: rgba(200, 155, 50, 0.07);
+  color: #ffc43d;
+  font-size: 8px;
+  font-weight: 900;
+}
+
+.sellerFollowActive {
+  border-color: #2e6744 !important;
+  background: rgba(46, 103, 68, 0.1) !important;
+  color: #67da95 !important;
+}
+
+.sellerStoreBackdrop {
+  align-items: stretch;
+  overflow-y: auto;
+}
+
+.sellerStoreModal {
+  position: relative;
+  width: min(980px, calc(100vw - 32px));
+  max-height: calc(100vh - 36px);
+  margin: auto;
+  overflow-y: auto;
+  border: 1px solid #28333e;
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(200, 155, 50, 0.09), transparent 30%),
+    #081018;
+  box-shadow: 0 34px 110px rgba(0, 0, 0, 0.56);
+}
+
+.sellerStoreHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 26px;
+  border-bottom: 1px solid #202a34;
+}
+
+.sellerStoreIdentity {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
+
+.sellerStoreAvatar {
+  width: 58px;
+  height: 58px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 58px;
+  border-radius: 50%;
+  background: #ffc43d;
+  color: #0a0c0f;
+  font-size: 20px;
+  font-weight: 950;
+}
+
+.sellerStoreIdentity > div {
+  display: grid;
+  gap: 4px;
+}
+
+.sellerStoreIdentity span,
+.sellerStoreListingsHeader span {
+  color: #b99337;
+  font-size: 8px;
+  font-weight: 950;
+  letter-spacing: .14em;
+}
+
+.sellerStoreIdentity h2 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.sellerStoreIdentity p {
+  margin: 0;
+  color: #74808c;
+  font-size: 9px;
+}
+
+.sellerStoreStats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 9px;
+  padding: 18px 26px;
+}
+
+.sellerStoreStats article {
+  display: grid;
+  gap: 5px;
+  padding: 14px;
+  border: 1px solid #26313c;
+  border-radius: 11px;
+  background: #0a1118;
+}
+
+.sellerStoreStats span {
+  color: #74808c;
+  font-size: 8px;
+}
+
+.sellerStoreStats strong {
+  color: #ffc43d;
+  font-size: 20px;
+}
+
+.sellerStoreListings {
+  padding: 8px 26px 26px;
+}
+
+.sellerStoreListingsHeader {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.sellerStoreListingsHeader h3 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.sellerStoreGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.sellerStoreGrid button {
+  display: grid;
+  gap: 7px;
+  padding: 10px;
+  border: 1px solid #26313c;
+  border-radius: 12px;
+  background: #0a1118;
+  color: white;
+  text-align: left;
+}
+
+.sellerStoreGrid button > div {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 9px;
+  background: #0e161e;
+  color: #c89b32;
+}
+
+.sellerStoreGrid img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.sellerStoreGrid strong {
+  font-size: 10px;
+}
+
+.sellerStoreGrid b {
+  color: #ffc43d;
+  font-size: 12px;
+}
+
+.sellerStoreGrid small {
+  color: #74808c;
+  font-size: 8px;
+}
+
+.sellerStoreEmpty {
+  min-height: 220px;
+  display: grid;
+  place-items: center;
+  border: 1px dashed #2a3540;
+  border-radius: 12px;
+  color: #74808c;
+  font-size: 9px;
+  text-align: center;
+}
+
+@media (max-width: 760px) {
+  .sellerStoreStats,
+  .sellerStoreGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .sellerStoreHeader {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 520px) {
+  .sellerStoreModal {
+    width: calc(100vw - 16px);
+    border-radius: 16px;
+  }
+
+  .sellerStoreHeader,
+  .sellerStoreStats,
+  .sellerStoreListings {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+
+  .sellerStoreStats,
+  .sellerStoreGrid,
+  .sellerStoreActions {
+    grid-template-columns: 1fr;
+  }
+}
