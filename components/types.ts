@@ -59,6 +59,12 @@ export type ProfileSummary = {
   id: string;
   full_name: string;
   email: string;
+  username?: string | null;
+  city?: string | null;
+  bio?: string | null;
+  avatar_url?: string | null;
+  phone?: string | null;
+  account_type?: "user" | "seller";
   created_at: string | null;
   active_listings: number;
   favorite_count: number;
@@ -240,4 +246,30 @@ export type LiveReminder = {
   user_id: string;
   created_at: string;
   notified_at: string | null;
+};
+
+
+export type SellerProfile = {
+  user_id: string;
+  store_name: string;
+  store_slug: string;
+  description: string;
+  logo_url: string | null;
+  cover_url: string | null;
+  city: string | null;
+  verified: boolean;
+  vacation_mode: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type EditableUserProfile = {
+  id: string;
+  full_name: string;
+  username: string;
+  city: string;
+  bio: string;
+  phone: string;
+  avatar_url: string | null;
+  account_type: "user" | "seller";
 };

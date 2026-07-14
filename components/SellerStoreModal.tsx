@@ -45,17 +45,56 @@ export default function SellerStoreModal({
       >
         <button className="closeButton" type="button" onClick={onClose}>×</button>
 
+        {summary?.seller_profile?.cover_url && (
+          <div className="sellerStoreCover">
+            <img
+              src={summary.seller_profile.cover_url}
+              alt={summary.seller_profile.store_name}
+            />
+          </div>
+        )}
+
         <header className="sellerStoreHeader">
           <div className="sellerStoreIdentity">
             <span className="sellerStoreAvatar">
-              {(summary?.seller_name || "K")
-                .slice(0, 1)
-                .toLocaleUpperCase("tr")}
+              {summary?.seller_profile?.logo_url || summary?.avatar_url ? (
+                <img
+                  src={
+                    summary?.seller_profile?.logo_url ||
+                    summary?.avatar_url ||
+                    ""
+                  }
+                  alt={summary?.seller_name || "Satıcı"}
+                />
+              ) : (
+                (summary?.seller_name || "K")
+                  .slice(0, 1)
+                  .toLocaleUpperCase("tr")
+              )}
             </span>
             <div>
-              <span>SATICI MAĞAZASI</span>
-              <h2>{summary?.seller_name || "KapışKapış Satıcısı"}</h2>
-              <p>Doğrulanmış satıcı profili ve aktif açık artırmalar.</p>
+              <span>
+                {summary?.seller_profile?.verified
+                  ? "DOĞRULANMIŞ SATICI"
+                  : "SATICI MAĞAZASI"}
+              </span>
+              <h2>
+                {summary?.seller_profile?.store_name ||
+                  summary?.seller_name ||
+                  "KapışKapış Satıcısı"}
+              </h2>
+              <p>
+                {summary?.seller_profile?.description ||
+                  summary?.bio ||
+                  "Doğrulanmış satıcı profili ve aktif açık artırmalar."}
+              </p>
+              {(summary?.username || summary?.city) && (
+                <small>
+                  {summary?.username ? `@${summary.username}` : ""}
+                  {summary?.username && summary?.city ? " · " : ""}
+                  {summary?.city || ""}
+                </small>
+              )}
             </div>
           </div>
 

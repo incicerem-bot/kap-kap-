@@ -29,6 +29,7 @@ type ProfileModalProps = {
   onOpenSell: () => void;
   onOpenFounderPanel: () => void;
   onOpenAddresses: () => void;
+  onOpenProfileSettings: () => void;
   onSignOut: () => void;
 };
 
@@ -48,6 +49,7 @@ export default function ProfileModal({
   onOpenSell,
   onOpenFounderPanel,
   onOpenAddresses,
+  onOpenProfileSettings,
   onSignOut,
 }: ProfileModalProps) {
   const [activeTab, setActiveTab] = useState<ProfileTab>("listings");
@@ -153,6 +155,9 @@ export default function ProfileModal({
           </button>
           <button type="button" onClick={onOpenAddresses}>
             <span>06</span><strong>Adreslerim</strong><small>Teslimat adreslerini yönet</small>
+          </button>
+          <button type="button" onClick={onOpenProfileSettings}>
+            <span>07</span><strong>Profil ayarları</strong><small>Kullanıcı ve mağaza bilgileri</small>
           </button>
           <button className={activeTab === "listings" ? "profileActionActive" : ""} type="button" onClick={() => setActiveTab("listings")}>
             <span>06</span><strong>İlanlarım</strong><small>Satıştaki ürünlerini yönet</small>
