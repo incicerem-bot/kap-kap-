@@ -47,6 +47,7 @@ export default function HomePage() {
   const [myAuctions, setMyAuctions] = useState<Auction[]>([]);
   const [myBidAuctions, setMyBidAuctions] = useState<Auction[]>([]);
   const [myFavoriteAuctions, setMyFavoriteAuctions] = useState<Auction[]>([]);
+  const [myWonAuctions, setMyWonAuctions] = useState<Auction[]>([]);
   const [profileLoading, setProfileLoading] = useState(false);
   const [auctionTitle, setAuctionTitle] = useState("");
   const [auctionDescription, setAuctionDescription] = useState("");
@@ -65,6 +66,8 @@ export default function HomePage() {
   async function loadAuctions() {
     const supabase = getSupabaseBrowserClient();
     if (!supabase) return;
+
+    await supabase.rpc("finalize_expired_auctions");
 
     const { data, error } = await supabase
       .from("auctions")
@@ -320,6 +323,10 @@ export default function HomePage() {
 
     void loadAuctions();
 
+    const auctionFinalizer = window.setInterval(() => {
+      void loadAuctions();
+    }, 60_000);
+
     void supabase.auth.getSession().then(async ({ data }) => {
       const currentUser = data.session?.user ?? null;
       setUser(currentUser);
@@ -433,6 +440,7 @@ export default function HomePage() {
 
     return () => {
       subscription.unsubscribe();
+      window.clearInterval(auctionFinalizer);
       void supabase.removeChannel(realtimeChannel);
     };
   }, [selectedAuction?.id]);
@@ -488,6 +496,7 @@ export default function HomePage() {
       { data: listings, error: listingsError },
       { data: bidRows, error: bidsError },
       { data: favoriteRows, error: favoritesError },
+      { data: wonRows, error: wonError },
     ] = await Promise.all([
       supabase
         .from("profiles")
@@ -512,6 +521,11 @@ export default function HomePage() {
         .select("auction_id, created_at")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false }),
+      supabase
+        .from("auction_results")
+        .select("auction_id, finalized_at")
+        .eq("winner_id", user.id)
+        .order("finalized_at", { ascending: false }),
     ]);
 
     if (profileError) {
@@ -523,6 +537,7 @@ export default function HomePage() {
     if (listingsError) setMessage(`İlanların yüklenemedi: ${listingsError.message}`);
     if (bidsError) setMessage(`Tekliflerin yüklenemedi: ${bidsError.message}`);
     if (favoritesError) setMessage(`Favorilerin yüklenemedi: ${favoritesError.message}`);
+    if (wonError) setMessage(`Kazandıkların yüklenemedi: ${wonError.message}`);
 
     const bidAuctionIds = Array.from(
       new Set((bidRows ?? []).map((item) => item.auction_id))
@@ -532,7 +547,15 @@ export default function HomePage() {
       new Set((favoriteRows ?? []).map((item) => item.auction_id))
     );
 
-    const [{ data: bidAuctions }, { data: favoriteAuctions }] =
+    const wonAuctionIds = Array.from(
+      new Set((wonRows ?? []).map((item) => item.auction_id))
+    );
+
+    const [
+      { data: bidAuctions },
+      { data: favoriteAuctions },
+      { data: wonAuctions },
+    ] =
       await Promise.all([
         bidAuctionIds.length > 0
           ? supabase
@@ -550,6 +573,14 @@ export default function HomePage() {
               )
               .in("id", favoriteAuctionIds)
           : Promise.resolve({ data: [] }),
+        wonAuctionIds.length > 0
+          ? supabase
+              .from("auctions")
+              .select(
+                "id, seller_id, title, description, category, start_price, current_price, min_increment, ends_at, status, image_url, created_at"
+              )
+              .in("id", wonAuctionIds)
+          : Promise.resolve({ data: [] }),
       ]);
 
     const bidOrder = new Map(
@@ -557,6 +588,9 @@ export default function HomePage() {
     );
     const favoriteOrder = new Map(
       favoriteAuctionIds.map((auctionId, index) => [auctionId, index])
+    );
+    const wonOrder = new Map(
+      wonAuctionIds.map((auctionId, index) => [auctionId, index])
     );
 
     const orderedBidAuctions = ((bidAuctions ?? []) as Auction[]).sort(
@@ -569,6 +603,12 @@ export default function HomePage() {
       (a, b) =>
         (favoriteOrder.get(a.id) ?? Number.MAX_SAFE_INTEGER) -
         (favoriteOrder.get(b.id) ?? Number.MAX_SAFE_INTEGER)
+    );
+
+    const orderedWonAuctions = ((wonAuctions ?? []) as Auction[]).sort(
+      (a, b) =>
+        (wonOrder.get(a.id) ?? Number.MAX_SAFE_INTEGER) -
+        (wonOrder.get(b.id) ?? Number.MAX_SAFE_INTEGER)
     );
 
     setProfileSummary({
@@ -587,6 +627,7 @@ export default function HomePage() {
     setMyAuctions((listings ?? []) as Auction[]);
     setMyBidAuctions(orderedBidAuctions);
     setMyFavoriteAuctions(orderedFavoriteAuctions);
+    setMyWonAuctions(orderedWonAuctions);
     setProfileLoading(false);
   }
 
@@ -990,6 +1031,7 @@ export default function HomePage() {
         myAuctions={myAuctions}
         bidAuctions={myBidAuctions}
         favoriteAuctions={myFavoriteAuctions}
+        wonAuctions={myWonAuctions}
         loading={profileLoading}
         onClose={() => setShowProfile(false)}
         onOpenAuction={(auction) => {

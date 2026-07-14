@@ -780,3 +780,16 @@ input,textarea,select { width:100%; border:1px solid #2a3540; border-radius:10px
 .profileQuickActions .profileActionActive strong {
   color: #ffc43d;
 }
+
+
+.profileQuickActionsFive {
+  grid-template-columns: repeat(5, 1fr);
+}
+
+@media (max-width: 980px) {
+  .profileQuickActionsFive { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 520px) {
+  .profileQuickActionsFive { grid-template-columns: 1fr; }
+}
