@@ -23,7 +23,9 @@ import LiveAuctionRoom from "@/components/LiveAuctionRoom";
 import FounderPanel from "@/components/FounderPanel";
 import BuyerFilters from "@/components/BuyerFilters";
 import SavedSearchesPanel from "@/components/SavedSearchesPanel";
-import type { Auction, AuctionCategory, Bid, ProfileSummary, AppNotification, AuctionOrder, ConversationMessage, OrderStatus, ProductSpecifications, ProductType, SavedSearch } from "@/components/types";
+import SellerReviewsModal from "@/components/SellerReviewsModal";
+import ReviewFormModal from "@/components/ReviewFormModal";
+import type { Auction, AuctionCategory, Bid, ProfileSummary, AppNotification, AuctionOrder, ConversationMessage, OrderStatus, ProductSpecifications, ProductType, SavedSearch, SellerReview, SellerTrustSummary } from "@/components/types";
 
 export default function HomePage() {
   const [user, setUser] = useState<User | null>(null);
@@ -45,6 +47,13 @@ export default function HomePage() {
   const [savedSearchesLoading, setSavedSearchesLoading] = useState(false);
   const [showSavedSearches, setShowSavedSearches] = useState(false);
   const [selectedAuction, setSelectedAuction] = useState<Auction | null>(null);
+  const [sellerTrust, setSellerTrust] =
+    useState<SellerTrustSummary | null>(null);
+  const [sellerTrustLoading, setSellerTrustLoading] = useState(false);
+  const [showSellerReviews, setShowSellerReviews] = useState(false);
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [reviewLoading, setReviewLoading] = useState(false);
+  const [reviewedOrderIds, setReviewedOrderIds] = useState<string[]>([]);
   const [bidHistory, setBidHistory] = useState<Bid[]>([]);
   const [bidAmount, setBidAmount] = useState("");
 
@@ -544,6 +553,7 @@ export default function HomePage() {
         await Promise.all([
           loadFavorites(currentUser.id),
           loadNotifications(currentUser.id),
+          loadReviewedOrders(currentUser.id),
         ]);
       }
     });
@@ -639,6 +649,7 @@ export default function HomePage() {
       if (session?.user) {
         void loadFavorites(session.user.id);
         void loadNotifications(session.user.id);
+        void loadReviewedOrders(session.user.id);
       } else {
         setFavoriteIds([]);
         setNotifications([]);
@@ -1289,10 +1300,145 @@ export default function HomePage() {
     setFavoriteIds((current) => [...current, auctionId]);
   }
 
+  async function loadSellerTrust(sellerId: string) {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) return;
+
+    setSellerTrustLoading(true);
+
+    const [
+      { data: profile },
+      { data: reviews, error: reviewsError },
+      { count: completedSales },
+    ] = await Promise.all([
+      supabase
+        .from("profiles")
+        .select("full_name, created_at")
+        .eq("id", sellerId)
+        .maybeSingle(),
+      supabase
+        .from("seller_reviews")
+        .select(
+          "id, order_id, auction_id, seller_id, reviewer_id, rating, comment, created_at"
+        )
+        .eq("seller_id", sellerId)
+        .order("created_at", { ascending: false })
+        .limit(20),
+      supabase
+        .from("orders")
+        .select("id", { count: "exact", head: true })
+        .eq("seller_id", sellerId)
+        .eq("status", "delivered"),
+    ]);
+
+    if (reviewsError) {
+      setSellerTrustLoading(false);
+      setMessage(`Satıcı puanı yüklenemedi: ${reviewsError.message}`);
+      return;
+    }
+
+    const reviewRows = (reviews ?? []) as SellerReview[];
+    const reviewerIds = Array.from(
+      new Set(reviewRows.map((review) => review.reviewer_id))
+    );
+
+    let reviewerMap = new Map<string, string>();
+
+    if (reviewerIds.length > 0) {
+      const { data: reviewerProfiles } = await supabase
+        .from("profiles")
+        .select("id, full_name")
+        .in("id", reviewerIds);
+
+      reviewerMap = new Map(
+        (reviewerProfiles ?? []).map((item) => [
+          item.id,
+          item.full_name || "Doğrulanmış alıcı",
+        ])
+      );
+    }
+
+    const enrichedReviews = reviewRows.map((review) => ({
+      ...review,
+      reviewer_name:
+        reviewerMap.get(review.reviewer_id) || "Doğrulanmış alıcı",
+    }));
+
+    const averageRating =
+      enrichedReviews.length > 0
+        ? enrichedReviews.reduce(
+            (total, review) => total + Number(review.rating),
+            0
+          ) / enrichedReviews.length
+        : 0;
+
+    setSellerTrust({
+      seller_id: sellerId,
+      seller_name: profile?.full_name?.trim() || "KapışKapış Satıcısı",
+      average_rating: averageRating,
+      review_count: enrichedReviews.length,
+      completed_sales: completedSales ?? 0,
+      member_since: profile?.created_at ?? null,
+      reviews: enrichedReviews,
+    });
+
+    setSellerTrustLoading(false);
+  }
+
+  async function loadReviewedOrders(userId: string) {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) return;
+
+    const { data } = await supabase
+      .from("seller_reviews")
+      .select("order_id")
+      .eq("reviewer_id", userId);
+
+    setReviewedOrderIds((data ?? []).map((item) => item.order_id));
+  }
+
+  async function submitSellerReview(rating: number, comment: string) {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase || !user || !selectedOrder) return;
+
+    setReviewLoading(true);
+
+    const { error } = await supabase.from("seller_reviews").insert({
+      order_id: selectedOrder.id,
+      auction_id: selectedOrder.auction_id,
+      seller_id: selectedOrder.seller_id,
+      reviewer_id: user.id,
+      rating,
+      comment,
+    });
+
+    setReviewLoading(false);
+
+    if (error) {
+      setMessage(`Değerlendirme yayınlanamadı: ${error.message}`);
+      return;
+    }
+
+    setReviewedOrderIds((current) => [...current, selectedOrder.id]);
+    setShowReviewForm(false);
+    setMessage("Satıcı değerlendirmen yayınlandı.");
+
+    if (selectedAuction?.seller_id === selectedOrder.seller_id) {
+      await loadSellerTrust(selectedOrder.seller_id);
+    }
+  }
+
   async function openDetail(auction: Auction) {
     setSelectedAuction(auction);
-    setBidAmount(String(Number(auction.current_price) + Number(auction.min_increment)));
-    await loadBidHistory(auction.id);
+    setSellerTrust(null);
+    setBidAmount(
+      String(Number(auction.current_price) + Number(auction.min_increment))
+    );
+
+    await Promise.all([
+      loadBidHistory(auction.id),
+      loadSellerTrust(auction.seller_id),
+    ]);
   }
 
   async function handleBid(event: FormEvent<HTMLFormElement>) {
@@ -1657,6 +1803,23 @@ export default function HomePage() {
 
       <CompareModal open={showCompare} auctions={auctions.filter((a)=>compareIds.includes(a.id))} onClose={()=>setShowCompare(false)} onRemove={toggleCompare} onOpen={(a)=>{setShowCompare(false);void openDetail(a)}} />
 
+      <SellerReviewsModal
+        open={showSellerReviews}
+        summary={sellerTrust}
+        loading={sellerTrustLoading}
+        onClose={() => setShowSellerReviews(false)}
+      />
+
+      <ReviewFormModal
+        open={showReviewForm}
+        order={selectedOrder}
+        loading={reviewLoading}
+        onClose={() => setShowReviewForm(false)}
+        onSubmit={(rating, comment) =>
+          submitSellerReview(rating, comment)
+        }
+      />
+
       <SavedSearchesPanel
         open={showSavedSearches}
         searches={savedSearches}
@@ -1678,6 +1841,10 @@ export default function HomePage() {
         onUpdateStatus={(status, trackingCode) =>
           updateOrderStatus(status, trackingCode)
         }
+        reviewSubmitted={Boolean(
+          selectedOrder && reviewedOrderIds.includes(selectedOrder.id)
+        )}
+        onOpenReview={() => setShowReviewForm(true)}
       />
 
       <MessagePanel
@@ -1773,6 +1940,9 @@ export default function HomePage() {
           if (!selectedAuction) return;
           setShowLiveRoom(true);
         }}
+        sellerTrust={sellerTrust}
+        sellerTrustLoading={sellerTrustLoading}
+        onOpenSellerReviews={() => setShowSellerReviews(true)}
         onOpenMessages={() => {
           if (!user || !selectedAuction) {
             setShowAuth(true);

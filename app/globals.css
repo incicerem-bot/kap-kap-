@@ -1806,3 +1806,343 @@ input,textarea,select { width:100%; border:1px solid #2a3540; border-radius:10px
     flex-direction: column;
   }
 }
+
+
+.sellerTrustCard {
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid #2a3540;
+  border-radius: 13px;
+  background:
+    linear-gradient(145deg, rgba(200, 155, 50, 0.06), rgba(10, 17, 24, 0.98));
+}
+
+.sellerTrustCardHeader {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+.sellerTrustAvatar {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 44px;
+  border-radius: 50%;
+  background: #ffc43d;
+  color: #0a0c0f;
+  font-size: 16px;
+  font-weight: 950;
+}
+
+.sellerTrustCardHeader > div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.sellerTrustCardHeader > div > span,
+.sellerTrustCardHeader small {
+  color: #74808c;
+  font-size: 8px;
+}
+
+.sellerTrustCardHeader strong {
+  overflow: hidden;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sellerTrustMetrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 7px;
+  margin-top: 12px;
+}
+
+.sellerTrustMetrics div {
+  display: grid;
+  gap: 3px;
+  padding: 9px;
+  border: 1px solid #26313c;
+  border-radius: 9px;
+  background: #091017;
+}
+
+.sellerTrustMetrics strong {
+  color: #ffc43d;
+  font-size: 11px;
+}
+
+.sellerTrustMetrics span {
+  color: #74808c;
+  font-size: 8px;
+}
+
+.sellerReviewsButton,
+.orderReviewButton {
+  width: 100%;
+  margin-top: 10px;
+  border: 1px solid #5c4718;
+  border-radius: 9px;
+  padding: 10px 12px;
+  background: rgba(200, 155, 50, 0.07);
+  color: #ffc43d;
+  font-size: 8px;
+  font-weight: 900;
+}
+
+.orderReviewButton:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.orderDeliveredGroup {
+  display: grid;
+  gap: 8px;
+}
+
+.sellerReviewsBackdrop {
+  align-items: stretch;
+  overflow-y: auto;
+}
+
+.sellerReviewsModal {
+  position: relative;
+  width: min(820px, calc(100vw - 32px));
+  max-height: calc(100vh - 36px);
+  margin: auto;
+  overflow-y: auto;
+  border: 1px solid #28333e;
+  border-radius: 21px;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(200, 155, 50, 0.09), transparent 30%),
+    #081018;
+  box-shadow: 0 34px 110px rgba(0, 0, 0, 0.56);
+}
+
+.sellerReviewsHeader {
+  padding: 26px;
+  border-bottom: 1px solid #202a34;
+}
+
+.sellerReviewsHeader > span,
+.reviewFormModal header > span,
+.sellerReviewListHeader span {
+  color: #b99337;
+  font-size: 8px;
+  font-weight: 950;
+  letter-spacing: .14em;
+}
+
+.sellerReviewsHeader h2,
+.reviewFormModal header h2 {
+  margin: 7px 0 4px;
+  font-size: 24px;
+}
+
+.sellerReviewsHeader p,
+.reviewFormModal header p {
+  margin: 0;
+  color: #74808c;
+  font-size: 9px;
+}
+
+.sellerTrustSummaryGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 9px;
+  padding: 18px 26px;
+}
+
+.sellerTrustSummaryGrid article {
+  display: grid;
+  gap: 4px;
+  padding: 14px;
+  border: 1px solid #26313c;
+  border-radius: 11px;
+  background: #0a1118;
+}
+
+.sellerTrustSummaryGrid span,
+.sellerTrustSummaryGrid small {
+  color: #74808c;
+  font-size: 8px;
+}
+
+.sellerTrustSummaryGrid strong {
+  color: #ffc43d;
+  font-size: 20px;
+}
+
+.sellerStars {
+  color: #ffc43d !important;
+  letter-spacing: .08em;
+}
+
+.sellerReviewList {
+  padding: 8px 26px 26px;
+}
+
+.sellerReviewListHeader {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.sellerReviewListHeader h3 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.sellerReviewCard {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid #26313c;
+  border-radius: 12px;
+  background: #0a1118;
+}
+
+.sellerReviewCard + .sellerReviewCard {
+  margin-top: 9px;
+}
+
+.sellerReviewTop {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.sellerReviewTop > div {
+  display: grid;
+  gap: 3px;
+}
+
+.sellerReviewTop strong {
+  font-size: 10px;
+}
+
+.sellerReviewTop span {
+  color: #ffc43d;
+  font-size: 10px;
+  letter-spacing: .06em;
+}
+
+.sellerReviewTop small,
+.sellerReviewCard footer {
+  color: #74808c;
+  font-size: 8px;
+}
+
+.sellerReviewCard p {
+  margin: 0;
+  color: #cbd2d9;
+  font-size: 9px;
+  line-height: 1.6;
+}
+
+.sellerReviewCard footer {
+  padding-top: 8px;
+  border-top: 1px solid #202a34;
+}
+
+.sellerReviewsEmpty {
+  min-height: 180px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 7px;
+  border: 1px dashed #2a3540;
+  border-radius: 12px;
+  color: #74808c;
+  text-align: center;
+}
+
+.sellerReviewsEmpty strong {
+  color: white;
+  font-size: 11px;
+}
+
+.sellerReviewsEmpty span {
+  max-width: 340px;
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+.reviewFormModal {
+  position: relative;
+  width: min(520px, calc(100vw - 32px));
+  padding: 24px;
+  border: 1px solid #28333e;
+  border-radius: 19px;
+  background: #081018;
+}
+
+.reviewFormModal header {
+  margin-bottom: 18px;
+}
+
+.reviewStarPicker {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 15px;
+  border: 1px solid #26313c;
+  border-radius: 12px;
+  background: #0a1118;
+}
+
+.reviewStarPicker > span {
+  color: #74808c;
+  font-size: 8px;
+}
+
+.reviewStarPicker > div {
+  display: flex;
+  gap: 5px;
+}
+
+.reviewStarPicker button {
+  border: 0;
+  background: transparent;
+  color: #3e4852;
+  font-size: 28px;
+}
+
+.reviewStarPicker .reviewStarActive {
+  color: #ffc43d;
+}
+
+.reviewStarPicker strong {
+  color: #ffc43d;
+  font-size: 11px;
+}
+
+@media (max-width: 720px) {
+  .sellerTrustSummaryGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .sellerReviewsModal {
+    width: calc(100vw - 16px);
+    border-radius: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .sellerTrustMetrics,
+  .sellerTrustSummaryGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .sellerReviewsHeader,
+  .sellerTrustSummaryGrid,
+  .sellerReviewList {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+}
