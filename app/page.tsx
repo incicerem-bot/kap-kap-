@@ -12,7 +12,8 @@ import ProductDetailModal from "@/components/ProductDetailModal";
 import Footer from "@/components/Footer";
 import ProfileModal from "@/components/ProfileModal";
 import NotificationPanel from "@/components/NotificationPanel";
-import type { Auction, AuctionCategory, Bid, ProfileSummary, AppNotification } from "@/components/types";
+import MessagePanel from "@/components/MessagePanel";
+import type { Auction, AuctionCategory, Bid, ProfileSummary, AppNotification, ConversationMessage } from "@/components/types";
 
 export default function HomePage() {
   const [user, setUser] = useState<User | null>(null);
@@ -37,6 +38,11 @@ export default function HomePage() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [notificationsLoading, setNotificationsLoading] = useState(false);
+  const [showMessages, setShowMessages] = useState(false);
+  const [messages, setMessages] = useState<ConversationMessage[]>([]);
+  const [messageText, setMessageText] = useState("");
+  const [messageLoading, setMessageLoading] = useState(false);
+  const [messageOtherUserName, setMessageOtherUserName] = useState("Satıcı");
   const [profileSummary, setProfileSummary] = useState<ProfileSummary | null>(null);
   const [myAuctions, setMyAuctions] = useState<Auction[]>([]);
   const [profileLoading, setProfileLoading] = useState(false);
@@ -185,6 +191,109 @@ export default function HomePage() {
     await openDetail(data as Auction);
   }
 
+  async function loadMessages(auction: Auction) {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase || !user) return;
+
+    const otherUserId =
+      auction.seller_id === user.id
+        ? (
+            await supabase
+              .from("bids")
+              .select("bidder_id")
+              .eq("auction_id", auction.id)
+              .order("amount", { ascending: false })
+              .limit(1)
+              .maybeSingle()
+          ).data?.bidder_id ?? null
+        : auction.seller_id;
+
+    if (!otherUserId) {
+      setMessage("Bu ilan için henüz mesajlaşılacak kullanıcı yok.");
+      return;
+    }
+
+    const [{ data: profile }, { data, error }] = await Promise.all([
+      supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", otherUserId)
+        .maybeSingle(),
+      supabase
+        .from("messages")
+        .select("id, auction_id, sender_id, receiver_id, body, is_read, created_at")
+        .eq("auction_id", auction.id)
+        .or(
+          `and(sender_id.eq.${user.id},receiver_id.eq.${otherUserId}),and(sender_id.eq.${otherUserId},receiver_id.eq.${user.id})`
+        )
+        .order("created_at", { ascending: true }),
+    ]);
+
+    if (error) {
+      setMessage(`Mesajlar yüklenemedi: ${error.message}`);
+      return;
+    }
+
+    setMessageOtherUserName(profile?.full_name?.trim() || "KapışKapış Kullanıcısı");
+    setMessages((data ?? []) as ConversationMessage[]);
+    setShowMessages(true);
+
+    await supabase
+      .from("messages")
+      .update({ is_read: true })
+      .eq("auction_id", auction.id)
+      .eq("receiver_id", user.id)
+      .eq("is_read", false);
+  }
+
+  async function handleSendMessage(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase || !user || !selectedAuction || !messageText.trim()) return;
+
+    const otherUserId =
+      selectedAuction.seller_id === user.id
+        ? (
+            await supabase
+              .from("bids")
+              .select("bidder_id")
+              .eq("auction_id", selectedAuction.id)
+              .order("amount", { ascending: false })
+              .limit(1)
+              .maybeSingle()
+          ).data?.bidder_id ?? null
+        : selectedAuction.seller_id;
+
+    if (!otherUserId) {
+      setMessage("Mesaj gönderilecek kullanıcı bulunamadı.");
+      return;
+    }
+
+    setMessageLoading(true);
+
+    const { data, error } = await supabase
+      .from("messages")
+      .insert({
+        auction_id: selectedAuction.id,
+        sender_id: user.id,
+        receiver_id: otherUserId,
+        body: messageText.trim(),
+      })
+      .select("id, auction_id, sender_id, receiver_id, body, is_read, created_at")
+      .single();
+
+    setMessageLoading(false);
+
+    if (error) {
+      setMessage(`Mesaj gönderilemedi: ${error.message}`);
+      return;
+    }
+
+    setMessages((current) => [...current, data as ConversationMessage]);
+    setMessageText("");
+  }
+
   async function loadBidHistory(auctionId: string) {
     const supabase = getSupabaseBrowserClient();
     if (!supabase) return;
@@ -273,6 +382,32 @@ export default function HomePage() {
           setNotifications((current) => [notification, ...current].slice(0, 50));
           setLiveEvent(notification.title);
           window.setTimeout(() => setLiveEvent(""), 4200);
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "messages" },
+        (payload) => {
+          const incoming = payload.new as ConversationMessage;
+
+          if (
+            user?.id !== incoming.receiver_id &&
+            user?.id !== incoming.sender_id
+          ) {
+            return;
+          }
+
+          if (selectedAuction?.id === incoming.auction_id) {
+            setMessages((current) => {
+              if (current.some((item) => item.id === incoming.id)) return current;
+              return [...current, incoming];
+            });
+          }
+
+          if (user?.id === incoming.receiver_id) {
+            setLiveEvent("Yeni mesajın var");
+            window.setTimeout(() => setLiveEvent(""), 4200);
+          }
         }
       )
       .subscribe();
@@ -749,6 +884,19 @@ export default function HomePage() {
         onSubmit={handleCreateAuction}
       />
 
+      <MessagePanel
+        open={showMessages}
+        auction={selectedAuction}
+        currentUserId={user?.id || ""}
+        otherUserName={messageOtherUserName}
+        messages={messages}
+        messageText={messageText}
+        loading={messageLoading}
+        onClose={() => setShowMessages(false)}
+        onMessageChange={setMessageText}
+        onSubmit={handleSendMessage}
+      />
+
       <NotificationPanel
         open={showNotifications}
         notifications={notifications}
@@ -788,6 +936,13 @@ export default function HomePage() {
         onBidAmountChange={setBidAmount}
         onSubmitBid={handleBid}
         onToggleFavorite={(id) => void toggleFavorite(id)}
+        onOpenMessages={() => {
+          if (!user || !selectedAuction) {
+            setShowAuth(true);
+            return;
+          }
+          void loadMessages(selectedAuction);
+        }}
         pricePulse={Boolean(selectedAuction && pricePulseId === selectedAuction.id)}
       />
 
