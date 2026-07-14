@@ -1612,3 +1612,197 @@ input,textarea,select { width:100%; border:1px solid #2a3540; border-radius:10px
     grid-template-columns: 1fr;
   }
 }
+
+
+.buyerFilterActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 7px;
+}
+
+.savedSearchBackdrop {
+  align-items: stretch;
+  overflow-y: auto;
+}
+
+.savedSearchPanel {
+  position: relative;
+  width: min(760px, calc(100vw - 32px));
+  max-height: calc(100vh - 36px);
+  margin: auto;
+  overflow-y: auto;
+  border: 1px solid #28333e;
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(200, 155, 50, 0.09), transparent 30%),
+    #081018;
+  box-shadow: 0 34px 110px rgba(0, 0, 0, 0.56);
+}
+
+.savedSearchHeader {
+  padding: 26px;
+  border-bottom: 1px solid #202a34;
+}
+
+.savedSearchHeader span {
+  color: #b99337;
+  font-size: 8px;
+  font-weight: 950;
+  letter-spacing: .14em;
+}
+
+.savedSearchHeader h2 {
+  margin: 7px 0 4px;
+  font-size: 24px;
+}
+
+.savedSearchHeader p {
+  margin: 0;
+  color: #74808c;
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+.savedSearchList {
+  display: grid;
+  gap: 10px;
+  padding: 18px 26px 26px;
+}
+
+.savedSearchCard {
+  padding: 14px;
+  border: 1px solid #26313c;
+  border-radius: 13px;
+  background: #0a1118;
+}
+
+.savedSearchCardTop {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.savedSearchCardTop > div {
+  display: grid;
+  gap: 4px;
+}
+
+.savedSearchCardTop strong {
+  font-size: 12px;
+}
+
+.savedSearchCardTop span {
+  color: #74808c;
+  font-size: 8px;
+}
+
+.savedSearchCardTop > button {
+  border-radius: 999px;
+  padding: 7px 9px;
+  font-size: 8px;
+  font-weight: 900;
+}
+
+.savedAlertOn {
+  border: 1px solid #2d6844;
+  background: rgba(45, 104, 68, 0.1);
+  color: #63d993;
+}
+
+.savedAlertOff {
+  border: 1px solid #4a535d;
+  background: #0d151d;
+  color: #7f8a96;
+}
+
+.savedSearchTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.savedSearchTags span {
+  padding: 6px 8px;
+  border: 1px solid #2d3945;
+  border-radius: 999px;
+  color: #9da7b1;
+  font-size: 8px;
+  text-transform: capitalize;
+}
+
+.savedSearchActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 7px;
+  margin-top: 13px;
+  padding-top: 12px;
+  border-top: 1px solid #202a34;
+}
+
+.savedSearchActions button {
+  border: 1px solid #4f3e17;
+  border-radius: 9px;
+  padding: 8px 10px;
+  background: rgba(200, 155, 50, 0.07);
+  color: #ffc43d;
+  font-size: 8px;
+  font-weight: 850;
+}
+
+.savedSearchActions button:last-child {
+  border-color: #5e3437;
+  background: rgba(94, 52, 55, 0.08);
+  color: #df7a80;
+}
+
+.savedSearchEmpty {
+  min-height: 250px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 7px;
+  margin: 18px 26px 26px;
+  border: 1px dashed #2a3540;
+  border-radius: 12px;
+  color: #74808c;
+  text-align: center;
+}
+
+.savedSearchEmpty strong {
+  color: white;
+  font-size: 11px;
+}
+
+.savedSearchEmpty span {
+  max-width: 340px;
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+@media (max-width: 560px) {
+  .buyerFilterActions {
+    justify-content: stretch;
+  }
+
+  .buyerFilterActions button {
+    flex: 1 1 auto;
+  }
+
+  .savedSearchPanel {
+    width: calc(100vw - 16px);
+    border-radius: 16px;
+  }
+
+  .savedSearchHeader,
+  .savedSearchList {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+
+  .savedSearchCardTop {
+    flex-direction: column;
+  }
+}

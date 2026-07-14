@@ -22,7 +22,8 @@ import CompareModal from "@/components/CompareModal";
 import LiveAuctionRoom from "@/components/LiveAuctionRoom";
 import FounderPanel from "@/components/FounderPanel";
 import BuyerFilters from "@/components/BuyerFilters";
-import type { Auction, AuctionCategory, Bid, ProfileSummary, AppNotification, AuctionOrder, ConversationMessage, OrderStatus, ProductSpecifications, ProductType } from "@/components/types";
+import SavedSearchesPanel from "@/components/SavedSearchesPanel";
+import type { Auction, AuctionCategory, Bid, ProfileSummary, AppNotification, AuctionOrder, ConversationMessage, OrderStatus, ProductSpecifications, ProductType, SavedSearch } from "@/components/types";
 
 export default function HomePage() {
   const [user, setUser] = useState<User | null>(null);
@@ -40,6 +41,9 @@ export default function HomePage() {
     useState<ProductSpecifications>({});
   const [buyerMinPrice, setBuyerMinPrice] = useState("");
   const [buyerMaxPrice, setBuyerMaxPrice] = useState("");
+  const [savedSearches, setSavedSearches] = useState<SavedSearch[]>([]);
+  const [savedSearchesLoading, setSavedSearchesLoading] = useState(false);
+  const [showSavedSearches, setShowSavedSearches] = useState(false);
   const [selectedAuction, setSelectedAuction] = useState<Auction | null>(null);
   const [bidHistory, setBidHistory] = useState<Bid[]>([]);
   const [bidAmount, setBidAmount] = useState("");
@@ -660,6 +664,151 @@ export default function HomePage() {
     setAuctionImagePreview(url);
     return () => URL.revokeObjectURL(url);
   }, [auctionImage]);
+
+  async function loadSavedSearches() {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase || !user) {
+      setShowAuth(true);
+      return;
+    }
+
+    setSavedSearchesLoading(true);
+
+    const { data, error } = await supabase
+      .from("saved_searches")
+      .select(
+        "id, user_id, name, category, product_type, brand, model, min_price, max_price, specifications, alerts_enabled, created_at"
+      )
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
+
+    setSavedSearchesLoading(false);
+
+    if (error) {
+      setMessage(`Kayıtlı aramalar yüklenemedi: ${error.message}`);
+      return;
+    }
+
+    setSavedSearches((data ?? []) as SavedSearch[]);
+  }
+
+  async function saveCurrentSearch() {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase || !user) {
+      setShowAuth(true);
+      return;
+    }
+
+    const defaultName = [
+      buyerBrand,
+      buyerModel,
+      buyerProductType || activeCategory,
+    ]
+      .filter(Boolean)
+      .join(" · ");
+
+    const name =
+      window.prompt(
+        "Bu arama için bir isim yaz:",
+        defaultName || "Yeni ürün alarmı"
+      )?.trim() || "";
+
+    if (!name) return;
+
+    const { data, error } = await supabase
+      .from("saved_searches")
+      .insert({
+        user_id: user.id,
+        name,
+        category: activeCategory,
+        product_type: buyerProductType || null,
+        brand: buyerBrand || null,
+        model: buyerModel || null,
+        min_price: buyerMinPrice ? Number(buyerMinPrice) : null,
+        max_price: buyerMaxPrice ? Number(buyerMaxPrice) : null,
+        specifications: buyerSpecifications,
+        alerts_enabled: true,
+      })
+      .select(
+        "id, user_id, name, category, product_type, brand, model, min_price, max_price, specifications, alerts_enabled, created_at"
+      )
+      .single();
+
+    if (error) {
+      setMessage(`Arama kaydedilemedi: ${error.message}`);
+      return;
+    }
+
+    setSavedSearches((current) => [data as SavedSearch, ...current]);
+    setMessage("Arama kaydedildi ve yeni ilan alarmı açıldı.");
+  }
+
+  function applySavedSearch(search: SavedSearch) {
+    setActiveCategory(search.category);
+    setBuyerProductType(search.product_type ?? "");
+    setBuyerBrand(search.brand ?? "");
+    setBuyerModel(search.model ?? "");
+    setBuyerMinPrice(
+      search.min_price === null ? "" : String(search.min_price)
+    );
+    setBuyerMaxPrice(
+      search.max_price === null ? "" : String(search.max_price)
+    );
+    setBuyerSpecifications(search.specifications ?? {});
+    setShowSavedSearches(false);
+
+    window.setTimeout(() => {
+      document
+        .getElementById("live-auctions")
+        ?.scrollIntoView({ behavior: "smooth" });
+    }, 50);
+  }
+
+  async function deleteSavedSearch(searchId: string) {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase || !user) return;
+
+    const { error } = await supabase
+      .from("saved_searches")
+      .delete()
+      .eq("id", searchId)
+      .eq("user_id", user.id);
+
+    if (error) {
+      setMessage(`Arama silinemedi: ${error.message}`);
+      return;
+    }
+
+    setSavedSearches((current) =>
+      current.filter((search) => search.id !== searchId)
+    );
+  }
+
+  async function toggleSavedSearchAlert(search: SavedSearch) {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase || !user) return;
+
+    const nextValue = !search.alerts_enabled;
+
+    const { error } = await supabase
+      .from("saved_searches")
+      .update({ alerts_enabled: nextValue })
+      .eq("id", search.id)
+      .eq("user_id", user.id);
+
+    if (error) {
+      setMessage(`Alarm güncellenemedi: ${error.message}`);
+      return;
+    }
+
+    setSavedSearches((current) =>
+      current.map((item) =>
+        item.id === search.id
+          ? { ...item, alerts_enabled: nextValue }
+          : item
+      )
+    );
+  }
 
   function clearBuyerFilters() {
     setQuery("");
@@ -1377,6 +1526,15 @@ export default function HomePage() {
           onMinPriceChange={setBuyerMinPrice}
           onMaxPriceChange={setBuyerMaxPrice}
           onClear={clearBuyerFilters}
+          onSaveSearch={() => void saveCurrentSearch()}
+          onOpenSavedSearches={() => {
+            if (!user) {
+              setShowAuth(true);
+              return;
+            }
+            setShowSavedSearches(true);
+            void loadSavedSearches();
+          }}
         />
 
         <DashboardSections auctions={auctions} orders={orders} onOpenAuction={(a)=>void openDetail(a)} />
@@ -1498,6 +1656,16 @@ export default function HomePage() {
       />
 
       <CompareModal open={showCompare} auctions={auctions.filter((a)=>compareIds.includes(a.id))} onClose={()=>setShowCompare(false)} onRemove={toggleCompare} onOpen={(a)=>{setShowCompare(false);void openDetail(a)}} />
+
+      <SavedSearchesPanel
+        open={showSavedSearches}
+        searches={savedSearches}
+        loading={savedSearchesLoading}
+        onClose={() => setShowSavedSearches(false)}
+        onApply={applySavedSearch}
+        onDelete={(searchId) => void deleteSavedSearch(searchId)}
+        onToggleAlert={(search) => void toggleSavedSearchAlert(search)}
+      />
 
       <WalletModal open={showWallet} userId={user?.id||""} orders={orders} onClose={()=>setShowWallet(false)} />
       <SalesCenterModal open={showSalesCenter} userId={user?.id||""} auctions={auctions} orders={orders} onClose={()=>setShowSalesCenter(false)} onOpenAuction={(a)=>{setShowSalesCenter(false);void openDetail(a)}} onOpenOrder={(o)=>{setSelectedOrder(o);setShowSalesCenter(false);setShowOrderCenter(true)}} onOpenSell={()=>{setShowSalesCenter(false);handleOpenSell()}} />
