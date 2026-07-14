@@ -154,3 +154,19 @@ export type SellerTrustSummary = {
   member_since: string | null;
   reviews: SellerReview[];
 };
+
+
+export type AuctionReportStatus = "pending" | "reviewed" | "dismissed" | "action_taken";
+
+export type AuctionReport = {
+  id: string;
+  auction_id: string;
+  reporter_id: string;
+  reason: string;
+  details: string;
+  status: AuctionReportStatus;
+  created_at: string;
+  reviewed_at: string | null;
+  reviewed_by: string | null;
+  auction?: Auction | null;
+};

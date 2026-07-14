@@ -46,6 +46,7 @@ type ProductDetailModalProps = {
   sellerTrust: SellerTrustSummary | null;
   sellerTrustLoading: boolean;
   onOpenSellerReviews: () => void;
+  onReportListing: () => void;
   pricePulse?: boolean;
 };
 
@@ -227,6 +228,14 @@ export default function ProductDetailModal(props: ProductDetailModalProps) {
             onClick={props.onOpenMessages}
           >
             Satıcıya mesaj gönder
+          </button>
+
+          <button
+            className="reportListingButton"
+            type="button"
+            onClick={props.onReportListing}
+          >
+            Bu ilanı bildir
           </button>
 
           <div className="premiumBidHistory">

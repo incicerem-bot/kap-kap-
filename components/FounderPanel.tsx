@@ -17,6 +17,8 @@ type FounderPanelProps = {
   onCreateTestAuctions: () => void;
   onDeleteTestAuctions: () => void;
   onRefresh: () => void;
+  pendingReports: number;
+  onOpenModeration: () => void;
 };
 
 const categoryNames: Record<AuctionCategory, string> = {
@@ -40,6 +42,8 @@ export default function FounderPanel({
   onCreateTestAuctions,
   onDeleteTestAuctions,
   onRefresh,
+  pendingReports,
+  onOpenModeration,
 }: FounderPanelProps) {
   if (!open) return null;
 
@@ -88,7 +92,14 @@ export default function FounderPanel({
             <p>Ana sayfa ve kurucu istatistiklerini Supabase üzerinden yeniden yükler.</p>
             <button type="button" disabled={loading} onClick={onRefresh}>Şimdi yenile</button>
           </article>
-        </section>
+        
+
+          <button className="founderTool founderModerationTool" type="button" onClick={onOpenModeration}>
+            <span>GÜVENLİK</span>
+            <strong>İlan Moderasyonu</strong>
+            <small>{pendingReports} bekleyen kullanıcı bildirimi</small>
+          </button>
+</section>
 
         {loading && (
           <div className="founderProgress">
