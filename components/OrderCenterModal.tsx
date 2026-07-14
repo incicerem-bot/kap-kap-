@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import type { AuctionOrder, OrderStatus } from "./types";
+import type { AuctionOrder, OrderStatus, UserAddress } from "./types";
 
 const statusLabels: Record<OrderStatus, string> = {
   payment_pending: "Ödeme bekleniyor",
@@ -32,6 +32,8 @@ type OrderCenterModalProps = {
   ) => Promise<void> | void;
   reviewSubmitted: boolean;
   onOpenReview: () => void;
+  shippingAddress: UserAddress | null;
+  onChooseAddress: () => void;
 };
 
 export default function OrderCenterModal({
@@ -43,6 +45,8 @@ export default function OrderCenterModal({
   onUpdateStatus,
   reviewSubmitted,
   onOpenReview,
+  shippingAddress,
+  onChooseAddress,
 }: OrderCenterModalProps) {
   const [trackingCode, setTrackingCode] = useState("");
 
@@ -107,6 +111,40 @@ export default function OrderCenterModal({
           </div>
         </section>
 
+        {isBuyer && (
+          <section className="orderAddressCard">
+            <div className="orderAddressHeader">
+              <div>
+                <span>TESLİMAT ADRESİ</span>
+                <strong>
+                  {shippingAddress
+                    ? shippingAddress.title
+                    : "Adres seçilmedi"}
+                </strong>
+              </div>
+              <button type="button" onClick={onChooseAddress}>
+                {shippingAddress ? "Değiştir" : "Adres seç"}
+              </button>
+            </div>
+
+            {shippingAddress ? (
+              <div className="orderAddressBody">
+                <strong>{shippingAddress.full_name}</strong>
+                <p>
+                  {shippingAddress.neighborhood}, {shippingAddress.address_line}
+                  <br />
+                  {shippingAddress.district} / {shippingAddress.city}
+                </p>
+                <span>{shippingAddress.phone}</span>
+              </div>
+            ) : (
+              <p className="orderAddressWarning">
+                Ödemeye geçmeden önce teslimat adresini seçmelisin.
+              </p>
+            )}
+          </section>
+        )}
+
         <section className="orderTimeline">
           {steps.map((step, index) => {
             const completed =
@@ -149,10 +187,14 @@ export default function OrderCenterModal({
             <button
               className="orderPrimary"
               type="button"
-              disabled={loading}
+              disabled={loading || !shippingAddress}
               onClick={() => void onUpdateStatus("paid")}
             >
-              {loading ? "İşleniyor..." : "Test ödemesini tamamla"}
+              {loading
+                ? "İşleniyor..."
+                : shippingAddress
+                  ? "Test ödemesini tamamla"
+                  : "Önce teslimat adresi seç"}
             </button>
           )}
 

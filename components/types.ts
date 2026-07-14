@@ -101,6 +101,8 @@ export type AuctionOrder = {
   amount: number;
   status: OrderStatus;
   tracking_code: string | null;
+  shipping_address_id?: string | null;
+  shipping_address?: UserAddress | null;
   created_at: string;
   updated_at: string;
   auction?: Auction | null;
@@ -169,4 +171,21 @@ export type AuctionReport = {
   reviewed_at: string | null;
   reviewed_by: string | null;
   auction?: Auction | null;
+};
+
+
+export type UserAddress = {
+  id: string;
+  user_id: string;
+  title: string;
+  full_name: string;
+  phone: string;
+  city: string;
+  district: string;
+  neighborhood: string;
+  address_line: string;
+  postal_code: string | null;
+  is_default: boolean;
+  created_at: string;
+  updated_at: string;
 };
