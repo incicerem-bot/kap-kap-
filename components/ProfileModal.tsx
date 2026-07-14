@@ -26,6 +26,7 @@ type ProfileModalProps = {
   onOpenAuction: (auction: Auction) => void;
   onOpenOrder: (order: AuctionOrder) => void;
   onOpenSell: () => void;
+  onOpenFounderPanel: () => void;
   onSignOut: () => void;
 };
 
@@ -42,6 +43,7 @@ export default function ProfileModal({
   onOpenAuction,
   onOpenOrder,
   onOpenSell,
+  onOpenFounderPanel,
   onSignOut,
 }: ProfileModalProps) {
   const [activeTab, setActiveTab] = useState<ProfileTab>("listings");
@@ -236,6 +238,15 @@ export default function ProfileModal({
               ))}
             </div>
           )}
+        </section>
+
+        <section className="founderEntry">
+          <div>
+            <span>BETA v1.0</span>
+            <strong>Kurucu ve test araçları</strong>
+            <small>100 ilan oluştur, sistemi yük altında dene ve test verilerini temizle.</small>
+          </div>
+          <button type="button" onClick={onOpenFounderPanel}>Kurucu Panelini Aç</button>
         </section>
 
         <footer className="profileFooter">
