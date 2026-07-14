@@ -1,0 +1,7 @@
+"use client";
+import type { AuctionOrder } from "./types";
+const m=(v:number)=>new Intl.NumberFormat("tr-TR",{style:"currency",currency:"TRY",maximumFractionDigits:0}).format(v);
+export default function WalletModal({open,userId,orders,onClose}:{open:boolean;userId:string;orders:AuctionOrder[];onClose:()=>void}){
+ if(!open)return null;const s=orders.filter(o=>o.seller_id===userId),a=s.filter(o=>o.status==="delivered").reduce((x,o)=>x+ +o.amount,0),p=s.filter(o=>["paid","preparing","shipped"].includes(o.status)).reduce((x,o)=>x+ +o.amount,0);
+ return <div className="modalBackdrop" onMouseDown={onClose}><section className="v20Modal" onMouseDown={e=>e.stopPropagation()}><button className="closeButton" onClick={onClose}>×</button><header><span>KAPIŞKAPIŞ CÜZDAN</span><h2>Finans merkezim</h2></header><div className="walletCards"><article><span>Kullanılabilir</span><strong>{m(a)}</strong><small>Tamamlanan satışlar</small></article><article><span>Bekleyen</span><strong>{m(p)}</strong><small>Teslimat sürecindeki satışlar</small></article></div><div className="walletDisabled"><button disabled>Para yükle</button><button disabled>Para çek</button></div><h3>Son hareketler</h3>{s.length?s.slice(0,8).map(o=><div className="walletRow" key={o.id}><span>{o.auction?.title||"Satış"}</span><b>{m(+o.amount)}</b></div>):<div className="v20Empty">Henüz hareket yok.</div>}<footer>Gerçek para işlemleri ödeme entegrasyonuyla açılacak.</footer></section></div>
+}

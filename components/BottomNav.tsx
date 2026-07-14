@@ -1,0 +1,2 @@
+"use client";
+export default function BottomNav({onHome,onSearch,onSell,onNotifications,onProfile}:{onHome:()=>void;onSearch:()=>void;onSell:()=>void;onNotifications:()=>void;onProfile:()=>void}){return <nav className="mobileBottomNav"><button onClick={onHome}><span>AN</span>Ana Sayfa</button><button onClick={onSearch}><span>AR</span>Ara</button><button className="bottomSell" onClick={onSell}><span>+</span>Kapıştır</button><button onClick={onNotifications}><span>BL</span>Bildirimler</button><button onClick={onProfile}><span>PR</span>Profil</button></nav>}
