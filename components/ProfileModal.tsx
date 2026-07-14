@@ -11,7 +11,7 @@ function money(value: number) {
   }).format(value);
 }
 
-type ProfileTab = "listings" | "bids" | "favorites";
+type ProfileTab = "listings" | "bids" | "favorites" | "won";
 
 type ProfileModalProps = {
   open: boolean;
@@ -19,6 +19,7 @@ type ProfileModalProps = {
   myAuctions: Auction[];
   bidAuctions: Auction[];
   favoriteAuctions: Auction[];
+  wonAuctions: Auction[];
   loading: boolean;
   onClose: () => void;
   onOpenAuction: (auction: Auction) => void;
@@ -32,6 +33,7 @@ export default function ProfileModal({
   myAuctions,
   bidAuctions,
   favoriteAuctions,
+  wonAuctions,
   loading,
   onClose,
   onOpenAuction,
@@ -47,28 +49,36 @@ export default function ProfileModal({
       ? myAuctions
       : activeTab === "bids"
         ? bidAuctions
-        : favoriteAuctions;
+        : activeTab === "favorites"
+          ? favoriteAuctions
+          : wonAuctions;
 
   const sectionTitle =
     activeTab === "listings"
       ? "Aktif ilanlarım"
       : activeTab === "bids"
         ? "Teklif verdiklerim"
-        : "Favorilerim";
+        : activeTab === "favorites"
+          ? "Favorilerim"
+          : "Kazandıklarım";
 
   const emptyTitle =
     activeTab === "listings"
       ? "Henüz aktif ilanın yok."
       : activeTab === "bids"
         ? "Henüz teklif verdiğin ilan yok."
-        : "Henüz favori ilanın yok.";
+        : activeTab === "favorites"
+          ? "Henüz favori ilanın yok."
+          : "Henüz kazandığın açık artırma yok.";
 
   const emptyDescription =
     activeTab === "listings"
       ? "İlk ilanını oluşturarak satışa başla."
       : activeTab === "bids"
         ? "Canlı açık artırmalara katıldığında ilanlar burada görünür."
-        : "Beğendiğin ilanları favoriye eklediğinde burada saklanır.";
+        : activeTab === "favorites"
+          ? "Beğendiğin ilanları favoriye eklediğinde burada saklanır."
+          : "En yüksek teklifle tamamladığın ürünler burada görünür.";
 
   return (
     <div className="modalBackdrop profileBackdrop" onMouseDown={onClose}>
@@ -107,7 +117,7 @@ export default function ProfileModal({
           </article>
         </section>
 
-        <section className="profileQuickActions">
+        <section className="profileQuickActions profileQuickActionsFive">
           <button type="button" onClick={onOpenSell}>
             <span>01</span><strong>Yeni ilan oluştur</strong><small>Ürününü açık artırmaya çıkar</small>
           </button>
@@ -117,8 +127,11 @@ export default function ProfileModal({
           <button className={activeTab === "favorites" ? "profileActionActive" : ""} type="button" onClick={() => setActiveTab("favorites")}>
             <span>03</span><strong>Favorilerim</strong><small>Kaydettiğin ilanlar</small>
           </button>
+          <button className={activeTab === "won" ? "profileActionActive" : ""} type="button" onClick={() => setActiveTab("won")}>
+            <span>04</span><strong>Kazandıklarım</strong><small>Tamamlanan kazançların</small>
+          </button>
           <button className={activeTab === "listings" ? "profileActionActive" : ""} type="button" onClick={() => setActiveTab("listings")}>
-            <span>04</span><strong>İlanlarım</strong><small>Satıştaki ürünlerini yönet</small>
+            <span>05</span><strong>İlanlarım</strong><small>Satıştaki ürünlerini yönet</small>
           </button>
         </section>
 
@@ -151,7 +164,9 @@ export default function ProfileModal({
                         ? "Aktif açık artırma"
                         : activeTab === "bids"
                           ? "Teklif verdiğin ilan"
-                          : "Favori ilan"}
+                          : activeTab === "favorites"
+                            ? "Favori ilan"
+                            : "Kazandığın açık artırma"}
                     </small>
                   </div>
                 </button>
