@@ -2419,3 +2419,14 @@ input,textarea,select { width:100%; border:1px solid #2a3540; border-radius:10px
     flex: 1 1 45%;
   }
 }
+
+
+.adminFounderEntry {
+  border-color: #75591d;
+  background:
+    linear-gradient(145deg, rgba(200, 155, 50, 0.1), rgba(8, 16, 24, 0.96));
+}
+
+.adminFounderEntry > div > span {
+  color: #ffc43d;
+}

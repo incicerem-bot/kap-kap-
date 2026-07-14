@@ -32,6 +32,7 @@ import type { Auction, AuctionCategory, Bid, ProfileSummary, AppNotification, Au
 export default function HomePage() {
   const [user, setUser] = useState<User | null>(null);
   const [profileName, setProfileName] = useState("");
+  const [isAdmin, setIsAdmin] = useState(false);
   const [auctions, setAuctions] = useState<Auction[]>([]);
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
@@ -224,6 +225,11 @@ export default function HomePage() {
   }
 
   async function createBetaAuctions() {
+    if (!isAdmin) {
+      setMessage("Kurucu araçları yalnızca yönetici hesabına açıktır.");
+      return;
+    }
+
     const supabase = getSupabaseBrowserClient();
     if (!supabase || !user) {
       setShowAuth(true);
@@ -259,6 +265,11 @@ export default function HomePage() {
   }
 
   async function deleteBetaAuctions() {
+    if (!isAdmin) {
+      setMessage("Kurucu araçları yalnızca yönetici hesabına açıktır.");
+      return;
+    }
+
     const supabase = getSupabaseBrowserClient();
     if (!supabase || !user) return;
 
@@ -524,6 +535,26 @@ export default function HomePage() {
     setMessageText("");
   }
 
+  async function loadCurrentUserRole(userId: string) {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) return false;
+
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", userId)
+      .maybeSingle();
+
+    if (error) {
+      setIsAdmin(false);
+      return false;
+    }
+
+    const admin = data?.role === "admin";
+    setIsAdmin(admin);
+    return admin;
+  }
+
   async function loadBidHistory(auctionId: string) {
     const supabase = getSupabaseBrowserClient();
     if (!supabase) return;
@@ -561,6 +592,7 @@ export default function HomePage() {
           loadFavorites(currentUser.id),
           loadNotifications(currentUser.id),
           loadReviewedOrders(currentUser.id),
+          loadCurrentUserRole(currentUser.id),
         ]);
       }
     });
@@ -657,11 +689,15 @@ export default function HomePage() {
         void loadFavorites(session.user.id);
         void loadNotifications(session.user.id);
         void loadReviewedOrders(session.user.id);
+        void loadCurrentUserRole(session.user.id);
       } else {
         setFavoriteIds([]);
         setNotifications([]);
         setShowFavoritesOnly(false);
         setShowNotifications(false);
+        setIsAdmin(false);
+        setShowFounderPanel(false);
+        setShowModeration(false);
       }
     });
 
@@ -1342,7 +1378,10 @@ export default function HomePage() {
 
   async function loadAuctionReports() {
     const supabase = getSupabaseBrowserClient();
-    if (!supabase || !user) return;
+    if (!supabase || !user || !isAdmin) {
+      setMessage("Bu bölüme yalnızca yönetici erişebilir.");
+      return;
+    }
 
     setModerationLoading(true);
 
@@ -1396,7 +1435,10 @@ export default function HomePage() {
     action: Exclude<AuctionReportStatus, "pending">
   ) {
     const supabase = getSupabaseBrowserClient();
-    if (!supabase || !user) return;
+    if (!supabase || !user || !isAdmin) {
+      setMessage("Bu işlem için yönetici yetkisi gerekli.");
+      return;
+    }
 
     setModerationLoading(true);
 
@@ -1968,7 +2010,7 @@ export default function HomePage() {
         }
       />
 
-      <ModerationPanel
+      {isAdmin && <ModerationPanel
         open={showModeration}
         reports={auctionReports}
         loading={moderationLoading}
@@ -1981,7 +2023,7 @@ export default function HomePage() {
         onResolve={(report, action) =>
           void resolveAuctionReport(report, action)
         }
-      />
+      />}
 
       <SellerReviewsModal
         open={showSellerReviews}
@@ -2058,6 +2100,7 @@ export default function HomePage() {
         wonAuctions={myWonAuctions}
         orders={orders}
         loading={profileLoading}
+        isAdmin={isAdmin}
         onClose={() => setShowProfile(false)}
         onOpenAuction={(auction) => {
           setShowProfile(false);
@@ -2073,8 +2116,13 @@ export default function HomePage() {
           handleOpenSell();
         }}
         onOpenFounderPanel={() => {
+          if (!isAdmin) {
+            setMessage("Kurucu Paneli yalnızca yönetici hesabına açıktır.");
+            return;
+          }
           setShowProfile(false);
           setShowFounderPanel(true);
+          void loadAuctionReports();
         }}
         onSignOut={() => {
           setShowProfile(false);
@@ -2082,7 +2130,7 @@ export default function HomePage() {
         }}
       />
 
-      <FounderPanel
+      {isAdmin && <FounderPanel
         open={showFounderPanel}
         loading={founderLoading}
         progress={founderProgress}
@@ -2099,7 +2147,7 @@ export default function HomePage() {
           setShowModeration(true);
           void loadAuctionReports();
         }}
-      />
+      />}
 
       <LiveAuctionRoom
         open={showLiveRoom}
