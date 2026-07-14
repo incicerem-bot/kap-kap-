@@ -182,6 +182,8 @@ export default function HomePage() {
   const [activeCategory, setActiveCategory] = useState<AuctionCategory>("all");
   const [bidAmount, setBidAmount] = useState("");
   const [bidHistory, setBidHistory] = useState<Bid[]>([]);
+  const [favoriteAuctionIds, setFavoriteAuctionIds] = useState<string[]>([]);
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
 
   async function loadAuctions() {
     const supabase = getSupabaseBrowserClient();
@@ -223,6 +225,67 @@ export default function HomePage() {
     setBidHistory((data ?? []) as Bid[]);
   }
 
+  async function loadFavorites(userId: string) {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) return;
+
+    const { data, error } = await supabase
+      .from("favorites")
+      .select("auction_id")
+      .eq("user_id", userId);
+
+    if (error) {
+      setMessage(`Favoriler yüklenemedi: ${error.message}`);
+      return;
+    }
+
+    setFavoriteAuctionIds((data ?? []).map((item) => item.auction_id));
+  }
+
+  async function toggleFavorite(auctionId: string) {
+    const supabase = getSupabaseBrowserClient();
+
+    if (!supabase || !user) {
+      setShowAuth(true);
+      setMessage("Favorilere eklemek için giriş yapmalısın.");
+      return;
+    }
+
+    const isFavorite = favoriteAuctionIds.includes(auctionId);
+
+    if (isFavorite) {
+      const { error } = await supabase
+        .from("favorites")
+        .delete()
+        .eq("user_id", user.id)
+        .eq("auction_id", auctionId);
+
+      if (error) {
+        setMessage(`Favori kaldırılamadı: ${error.message}`);
+        return;
+      }
+
+      setFavoriteAuctionIds((current) =>
+        current.filter((id) => id !== auctionId)
+      );
+      setMessage("İlan favorilerden kaldırıldı.");
+      return;
+    }
+
+    const { error } = await supabase.from("favorites").insert({
+      user_id: user.id,
+      auction_id: auctionId,
+    });
+
+    if (error) {
+      setMessage(`Favoriye eklenemedi: ${error.message}`);
+      return;
+    }
+
+    setFavoriteAuctionIds((current) => [...current, auctionId]);
+    setMessage("İlan favorilere eklendi.");
+  }
+
   useEffect(() => {
     const supabase = getSupabaseBrowserClient();
 
@@ -245,6 +308,8 @@ export default function HomePage() {
       setProfileName(data.session?.user?.user_metadata?.full_name ?? "");
 
       if (data.session?.user) {
+        await loadFavorites(data.session.user.id);
+
         const { data: profile } = await supabase
           .from("profiles")
           .select("full_name")
@@ -299,6 +364,14 @@ export default function HomePage() {
       if (!mounted) return;
       setUser(session?.user ?? null);
       setProfileName(session?.user?.user_metadata?.full_name ?? "");
+
+      if (session?.user) {
+        void loadFavorites(session.user.id);
+      } else {
+        setFavoriteAuctionIds([]);
+        setShowFavoritesOnly(false);
+      }
+
       setMessage(
         session?.user
           ? "KapışKapış hesabına giriş yapıldı."
@@ -652,6 +725,13 @@ export default function HomePage() {
         return false;
       }
 
+      if (
+        showFavoritesOnly &&
+        !favoriteAuctionIds.includes(auction.id)
+      ) {
+        return false;
+      }
+
       if (activeFilter === "ending") {
         return endTime > now && endTime - now <= 24 * 60 * 60 * 1000;
       }
@@ -694,7 +774,15 @@ export default function HomePage() {
     }
 
     return result;
-  }, [auctions, query, activeFilter, sortMode, activeCategory]);
+  }, [
+    auctions,
+    query,
+    activeFilter,
+    sortMode,
+    activeCategory,
+    showFavoritesOnly,
+    favoriteAuctionIds,
+  ]);
 
   const activeCards = filteredAuctions.length
     ? filteredAuctions
@@ -751,10 +839,28 @@ export default function HomePage() {
             </svg>
             <small>3</small>
           </button>
-          <button className="iconButton" type="button" aria-label="Favoriler">
+          <button
+            className={`iconButton ${showFavoritesOnly ? "selectedIconButton" : ""}`}
+            type="button"
+            aria-label="Favoriler"
+            onClick={() => {
+              if (!user) {
+                setShowAuth(true);
+                setMessage("Favorilerini görmek için giriş yapmalısın.");
+                return;
+              }
+              setShowFavoritesOnly((current) => !current);
+              document
+                .getElementById("live-auctions")
+                ?.scrollIntoView({ behavior: "smooth", block: "start" });
+            }}
+          >
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z" />
             </svg>
+            {favoriteAuctionIds.length > 0 && (
+              <small>{favoriteAuctionIds.length}</small>
+            )}
           </button>
           <button
             className="profileButton"
@@ -852,11 +958,13 @@ export default function HomePage() {
           <div className="resultSummary">
             <span>
               {filteredAuctions.length} aktif ilan
+              {showFavoritesOnly ? " · Favorilerim" : ""}
             </span>
             {(query ||
               activeFilter !== "all" ||
               sortMode !== "recommended" ||
-              activeCategory !== "all") && (
+              activeCategory !== "all" ||
+              showFavoritesOnly) && (
               <button
                 type="button"
                 onClick={() => {
@@ -864,6 +972,7 @@ export default function HomePage() {
                   setActiveFilter("all");
                   setSortMode("recommended");
                   setActiveCategory("all");
+                  setShowFavoritesOnly(false);
                 }}
               >
                 Filtreleri temizle
@@ -934,11 +1043,15 @@ export default function HomePage() {
                     </span>
                     <button
                       type="button"
-                      onClick={() =>
-                        setMessage("Favoriler yakında gerçek veriye bağlanacak.")
+                      className={
+                        favoriteAuctionIds.includes(auction.id)
+                          ? "favoriteActive"
+                          : ""
                       }
+                      onClick={() => void toggleFavorite(auction.id)}
+                      aria-label="Favoriye ekle"
                     >
-                      ♡
+                      {favoriteAuctionIds.includes(auction.id) ? "♥" : "♡"}
                     </button>
                     {auction.image_url ? (
                       <img src={auction.image_url} alt={auction.title} />
@@ -991,6 +1104,8 @@ export default function HomePage() {
                     setActiveFilter("all");
                     setSortMode("recommended");
                     setActiveCategory("all");
+                    setShowFavoritesOnly(false);
+                  setShowFavoritesOnly(false);
                   }}
                 >
                   Tüm ilanları göster
@@ -1002,7 +1117,18 @@ export default function HomePage() {
                 <article className="liveCard" key={auction.id}>
                   <div className="liveImage">
                     <span className="liveBadge">● CANLI</span>
-                    <button type="button">♡</button>
+                    <button
+                      type="button"
+                      className={
+                        favoriteAuctionIds.includes(auction.id)
+                          ? "favoriteActive"
+                          : ""
+                      }
+                      onClick={() => void toggleFavorite(auction.id)}
+                      aria-label="Favoriye ekle"
+                    >
+                      {favoriteAuctionIds.includes(auction.id) ? "♥" : "♡"}
+                    </button>
                     {auction.image_url ? (
                       <img src={auction.image_url} alt={auction.title} />
                     ) : (
@@ -1651,6 +1777,11 @@ export default function HomePage() {
           stroke-linejoin: round;
         }
 
+        .selectedIconButton {
+          background: rgba(255, 196, 61, 0.1);
+          color: #ffc43d;
+        }
+
         .iconButton small {
           position: absolute;
           top: 1px;
@@ -2209,6 +2340,12 @@ export default function HomePage() {
           background: rgba(8, 11, 14, 0.66);
           color: white;
           font-size: 17px;
+        }
+
+        .productImage button.favoriteActive,
+        .liveImage button.favoriteActive {
+          background: #ffc43d;
+          color: #0a0c0f;
         }
 
         .endingCard h3,
