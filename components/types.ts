@@ -237,6 +237,11 @@ export type SellerStoreSummary = {
   follower_count: number;
   active_listings: Auction[];
   member_since: string | null;
+  seller_profile?: SellerProfile | null;
+  username?: string | null;
+  city?: string | null;
+  bio?: string | null;
+  avatar_url?: string | null;
 };
 
 
