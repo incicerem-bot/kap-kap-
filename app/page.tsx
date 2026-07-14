@@ -13,7 +13,8 @@ import Footer from "@/components/Footer";
 import ProfileModal from "@/components/ProfileModal";
 import NotificationPanel from "@/components/NotificationPanel";
 import MessagePanel from "@/components/MessagePanel";
-import type { Auction, AuctionCategory, Bid, ProfileSummary, AppNotification, ConversationMessage } from "@/components/types";
+import OrderCenterModal from "@/components/OrderCenterModal";
+import type { Auction, AuctionCategory, Bid, ProfileSummary, AppNotification, AuctionOrder, ConversationMessage, OrderStatus } from "@/components/types";
 
 export default function HomePage() {
   const [user, setUser] = useState<User | null>(null);
@@ -49,6 +50,10 @@ export default function HomePage() {
   const [myFavoriteAuctions, setMyFavoriteAuctions] = useState<Auction[]>([]);
   const [myWonAuctions, setMyWonAuctions] = useState<Auction[]>([]);
   const [profileLoading, setProfileLoading] = useState(false);
+  const [orders, setOrders] = useState<AuctionOrder[]>([]);
+  const [selectedOrder, setSelectedOrder] = useState<AuctionOrder | null>(null);
+  const [showOrderCenter, setShowOrderCenter] = useState(false);
+  const [orderLoading, setOrderLoading] = useState(false);
   const [auctionTitle, setAuctionTitle] = useState("");
   const [auctionDescription, setAuctionDescription] = useState("");
   const [auctionCategory, setAuctionCategory] = useState<AuctionCategory>("phone");
@@ -481,6 +486,93 @@ export default function HomePage() {
     });
   }, [auctions, query, activeCategory, showFavoritesOnly, favoriteIds]);
 
+  async function loadOrders(userId: string) {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) return;
+
+    await supabase.rpc("create_orders_from_results");
+
+    const { data, error } = await supabase
+      .from("orders")
+      .select(
+        "id, auction_id, seller_id, buyer_id, amount, status, tracking_code, created_at, updated_at"
+      )
+      .or(`seller_id.eq.${userId},buyer_id.eq.${userId}`)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      setMessage(`Siparişler yüklenemedi: ${error.message}`);
+      return;
+    }
+
+    const rows = (data ?? []) as AuctionOrder[];
+    const auctionIds = Array.from(new Set(rows.map((item) => item.auction_id)));
+
+    if (auctionIds.length === 0) {
+      setOrders([]);
+      return;
+    }
+
+    const { data: auctionRows, error: auctionError } = await supabase
+      .from("auctions")
+      .select(
+        "id, seller_id, title, description, category, start_price, current_price, min_increment, ends_at, status, image_url, created_at"
+      )
+      .in("id", auctionIds);
+
+    if (auctionError) {
+      setMessage(`Sipariş ürünleri yüklenemedi: ${auctionError.message}`);
+    }
+
+    const auctionMap = new Map(
+      ((auctionRows ?? []) as Auction[]).map((auction) => [auction.id, auction])
+    );
+
+    setOrders(
+      rows.map((order) => ({
+        ...order,
+        auction: auctionMap.get(order.auction_id) ?? null,
+      }))
+    );
+  }
+
+  async function updateOrderStatus(
+    status: OrderStatus,
+    trackingCode?: string
+  ) {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase || !user || !selectedOrder) return;
+
+    setOrderLoading(true);
+
+    const { data, error } = await supabase.rpc("update_order_status", {
+      p_order_id: selectedOrder.id,
+      p_status: status,
+      p_tracking_code: trackingCode || null,
+    });
+
+    setOrderLoading(false);
+
+    if (error) {
+      setMessage(`Sipariş güncellenemedi: ${error.message}`);
+      return;
+    }
+
+    const updated = data as AuctionOrder;
+
+    setSelectedOrder((current) =>
+      current ? { ...current, ...updated } : current
+    );
+
+    setOrders((current) =>
+      current.map((order) =>
+        order.id === updated.id ? { ...order, ...updated } : order
+      )
+    );
+
+    setMessage("Sipariş durumu güncellendi.");
+  }
+
   async function loadProfileCenter() {
     const supabase = getSupabaseBrowserClient();
 
@@ -628,6 +720,7 @@ export default function HomePage() {
     setMyBidAuctions(orderedBidAuctions);
     setMyFavoriteAuctions(orderedFavoriteAuctions);
     setMyWonAuctions(orderedWonAuctions);
+    await loadOrders(user.id);
     setProfileLoading(false);
   }
 
@@ -1003,6 +1096,17 @@ export default function HomePage() {
         onSubmit={handleCreateAuction}
       />
 
+      <OrderCenterModal
+        open={showOrderCenter}
+        order={selectedOrder}
+        currentUserId={user?.id || ""}
+        loading={orderLoading}
+        onClose={() => setShowOrderCenter(false)}
+        onUpdateStatus={(status, trackingCode) =>
+          updateOrderStatus(status, trackingCode)
+        }
+      />
+
       <MessagePanel
         open={showMessages}
         auction={selectedAuction}
@@ -1032,11 +1136,17 @@ export default function HomePage() {
         bidAuctions={myBidAuctions}
         favoriteAuctions={myFavoriteAuctions}
         wonAuctions={myWonAuctions}
+        orders={orders}
         loading={profileLoading}
         onClose={() => setShowProfile(false)}
         onOpenAuction={(auction) => {
           setShowProfile(false);
           void openDetail(auction);
+        }}
+        onOpenOrder={(order) => {
+          setSelectedOrder(order);
+          setShowProfile(false);
+          setShowOrderCenter(true);
         }}
         onOpenSell={() => {
           setShowProfile(false);

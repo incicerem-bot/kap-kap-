@@ -793,3 +793,370 @@ input,textarea,select { width:100%; border:1px solid #2a3540; border-radius:10px
 @media (max-width: 520px) {
   .profileQuickActionsFive { grid-template-columns: 1fr; }
 }
+
+
+.profileQuickActionsFive {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.profileOrdersGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.profileOrderCard {
+  display: grid;
+  grid-template-columns: 82px 1fr;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid #26313c;
+  border-radius: 12px;
+  background: #0a1118;
+  color: white;
+  text-align: left;
+}
+
+.profileOrderCard:hover {
+  border-color: #8c6b21;
+}
+
+.profileOrderImage {
+  overflow: hidden;
+  width: 82px;
+  height: 68px;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  background: #0e161e;
+  color: #c89b32;
+  font-weight: 950;
+}
+
+.profileOrderImage img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profileOrderCard > div:last-child {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.profileOrderCard strong {
+  overflow: hidden;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profileOrderCard span {
+  color: #ffc43d;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.profileOrderCard small {
+  color: #74808c;
+  font-size: 8px;
+}
+
+.orderBackdrop {
+  align-items: stretch;
+  overflow-y: auto;
+}
+
+.orderCenter {
+  position: relative;
+  width: min(820px, calc(100vw - 32px));
+  margin: auto;
+  overflow: hidden;
+  border: 1px solid #28333e;
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(200, 155, 50, 0.09), transparent 30%),
+    #081018;
+  box-shadow: 0 34px 110px rgba(0, 0, 0, 0.56);
+}
+
+.orderHeader {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 28px;
+  border-bottom: 1px solid #202a34;
+}
+
+.orderHeader > div:first-child {
+  display: grid;
+}
+
+.orderHeader span {
+  color: #b99337;
+  font-size: 8px;
+  font-weight: 950;
+  letter-spacing: 0.14em;
+}
+
+.orderHeader h2 {
+  margin: 7px 0 3px;
+  font-size: 24px;
+  letter-spacing: -0.02em;
+}
+
+.orderHeader p {
+  margin: 0;
+  color: #74808c;
+  font-size: 9px;
+}
+
+.orderStatusBadge {
+  border: 1px solid #3a4652;
+  border-radius: 999px;
+  padding: 8px 11px;
+  color: #aab3bc;
+  font-size: 8px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.status-paid,
+.status-preparing,
+.status-shipped {
+  border-color: #765b1e;
+  background: rgba(200, 155, 50, 0.08);
+  color: #ffc43d;
+}
+
+.status-delivered {
+  border-color: #2c6743;
+  background: rgba(44, 103, 67, 0.12);
+  color: #64dc92;
+}
+
+.status-cancelled {
+  border-color: #6d3437;
+  background: rgba(109, 52, 55, 0.12);
+  color: #e47a7f;
+}
+
+.orderProduct {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 28px;
+  border-bottom: 1px solid #202a34;
+  background: #091017;
+}
+
+.orderImage {
+  overflow: hidden;
+  width: 84px;
+  height: 70px;
+  display: grid;
+  place-items: center;
+  border-radius: 11px;
+  background: #0e161e;
+  color: #c89b32;
+  font-weight: 950;
+}
+
+.orderImage img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.orderProduct > div:last-child {
+  display: grid;
+  gap: 3px;
+}
+
+.orderProduct span,
+.orderProduct small {
+  color: #74808c;
+  font-size: 8px;
+}
+
+.orderProduct strong {
+  color: #ffc43d;
+  font-size: 22px;
+}
+
+.orderTimeline {
+  display: grid;
+  gap: 8px;
+  padding: 22px 28px;
+}
+
+.orderStep {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid #222d38;
+  border-radius: 11px;
+  background: #0a1118;
+  opacity: 0.48;
+}
+
+.orderStep > span {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #34404b;
+  border-radius: 9px;
+  color: #74808c;
+  font-size: 8px;
+  font-weight: 950;
+}
+
+.orderStep > div {
+  display: grid;
+  gap: 3px;
+}
+
+.orderStep strong {
+  font-size: 10px;
+}
+
+.orderStep small {
+  color: #74808c;
+  font-size: 8px;
+  line-height: 1.4;
+}
+
+.orderStepComplete {
+  border-color: #5c4718;
+  background: rgba(200, 155, 50, 0.06);
+  opacity: 1;
+}
+
+.orderStepComplete > span {
+  border-color: #9a7625;
+  color: #ffc43d;
+}
+
+.trackingCard {
+  display: grid;
+  gap: 4px;
+  margin: 0 28px 18px;
+  padding: 14px;
+  border: 1px solid #2e3a46;
+  border-radius: 11px;
+  background: #0a1118;
+}
+
+.trackingCard span {
+  color: #74808c;
+  font-size: 8px;
+}
+
+.trackingCard strong {
+  color: #ffc43d;
+  font-size: 13px;
+  letter-spacing: 0.05em;
+}
+
+.orderActions {
+  padding: 0 28px 22px;
+}
+
+.orderPrimary {
+  width: 100%;
+  border: 0;
+  border-radius: 10px;
+  padding: 13px 16px;
+  background: #ffc43d;
+  color: #0a0c0f;
+  font-size: 10px;
+  font-weight: 950;
+}
+
+.shippingForm {
+  display: grid;
+  gap: 12px;
+}
+
+.orderSuccess,
+.orderCancelled {
+  display: grid;
+  place-items: center;
+  gap: 4px;
+  min-height: 100px;
+  border: 1px solid #2c6743;
+  border-radius: 12px;
+  background: rgba(44, 103, 67, 0.1);
+  color: #64dc92;
+  text-align: center;
+}
+
+.orderSuccess span {
+  font-size: 9px;
+}
+
+.orderCancelled {
+  border-color: #6d3437;
+  background: rgba(109, 52, 55, 0.1);
+  color: #e47a7f;
+}
+
+.orderSafety {
+  padding: 12px 28px;
+  border-top: 1px solid #202a34;
+  background: #070d13;
+  color: #68737f;
+  font-size: 8px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+@media (max-width: 920px) {
+  .profileQuickActionsFive {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .profileOrdersGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 620px) {
+  .profileQuickActionsFive {
+    grid-template-columns: 1fr;
+  }
+
+  .orderCenter {
+    width: calc(100vw - 16px);
+    border-radius: 16px;
+  }
+
+  .orderHeader {
+    flex-direction: column;
+    padding: 20px 16px;
+  }
+
+  .orderProduct,
+  .orderTimeline,
+  .orderActions {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+
+  .trackingCard {
+    margin-right: 16px;
+    margin-left: 16px;
+  }
+
+  .orderSafety {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+}
