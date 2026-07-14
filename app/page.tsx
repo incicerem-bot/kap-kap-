@@ -727,9 +727,31 @@ export default function HomePage() {
             ))}
           </section>
 
+          <section className="filterBar">
+            <div className="filterGroup">
+              <button className="activeFilter" type="button">Tümü</button>
+              <button type="button">Bugün bitenler</button>
+              <button type="button">Yeni eklenenler</button>
+              <button type="button">En çok teklif alanlar</button>
+            </div>
+
+            <div className="sortGroup">
+              <label htmlFor="sort">Sırala</label>
+              <select id="sort" defaultValue="recommended">
+                <option value="recommended">Önerilen</option>
+                <option value="ending">Yakında biten</option>
+                <option value="price-low">Fiyat: düşükten yükseğe</option>
+                <option value="price-high">Fiyat: yüksekten düşüğe</option>
+              </select>
+            </div>
+          </section>
+
           <section className="panel categories">
             <div className="panelHeader">
-              <h2>KATEGORİLER</h2>
+              <div>
+                <span className="sectionLabel">KEŞFET</span>
+                <h2>KATEGORİLER</h2>
+              </div>
               <button type="button">Tüm Kategoriler ›</button>
             </div>
             <div className="categoryGrid">
@@ -754,9 +776,12 @@ export default function HomePage() {
 
           <section className="panel">
             <div className="panelHeader">
-              <div className="titleWithBadge">
+              <div>
+                <span className="sectionLabel">SON ŞANS</span>
+                <div className="titleWithBadge">
                 <h2>BUGÜN BİTENLER</h2>
                 <span>Son şans!</span>
+                </div>
               </div>
               <button type="button">Tümünü Gör ›</button>
             </div>
@@ -806,9 +831,12 @@ export default function HomePage() {
 
           <section className="panel" id="live-auctions">
             <div className="panelHeader">
-              <div className="titleWithDot">
+              <div>
+                <span className="sectionLabel">GERÇEK ZAMANLI</span>
+                <div className="titleWithDot">
                 <span />
                 <h2>CANLI AÇIK ARTIRMALAR</h2>
+                </div>
               </div>
               <button type="button" onClick={loadAuctions}>Yenile ›</button>
             </div>
@@ -989,6 +1017,30 @@ export default function HomePage() {
           </div>
         </section>
       )}
+
+      <footer className="siteFooter">
+        <div className="footerBrand">
+          <img src="/kapiskapis-icon.png" alt="KapışKapış" />
+          <div>
+            <strong>KapışKapış</strong>
+            <span>Güvenli açık artırma platformu</span>
+          </div>
+        </div>
+
+        <div className="footerLinks">
+          <a href="#">Hakkımızda</a>
+          <a href="#">Güvenlik</a>
+          <a href="#">Yardım Merkezi</a>
+          <a href="#">Kullanım Şartları</a>
+          <a href="#">KVKK</a>
+          <a href="#">İletişim</a>
+        </div>
+
+        <div className="footerMeta">
+          <span>© 2026 KapışKapış</span>
+          <span>Türkiye</span>
+        </div>
+      </footer>
 
       <nav className="bottomNav">
         <button className="active" type="button">
@@ -1492,12 +1544,24 @@ export default function HomePage() {
         .brandHero > img {
           display: block;
           width: 100%;
-          min-height: 320px;
+          min-height: 360px;
           object-fit: cover;
+          filter: saturate(0.92) contrast(1.04);
+        }
+
+        .brandHero::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          pointer-events: none;
+          background:
+            linear-gradient(90deg, rgba(5, 8, 12, 0.78) 0%, rgba(5, 8, 12, 0.18) 50%, rgba(5, 8, 12, 0.05) 100%),
+            linear-gradient(0deg, rgba(5, 8, 12, 0.42), transparent 44%);
         }
 
         .brandHeroActions {
           position: absolute;
+          z-index: 2;
           left: 4%;
           bottom: 7%;
           display: flex;
@@ -1709,6 +1773,65 @@ export default function HomePage() {
           font-size: 9px;
         }
 
+        .filterBar {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 16px;
+          margin: 16px 0;
+          padding: 12px;
+          border: 1px solid #1d2731;
+          border-radius: 14px;
+          background: rgba(9, 16, 23, 0.88);
+        }
+
+        .filterGroup {
+          display: flex;
+          gap: 8px;
+          overflow-x: auto;
+        }
+
+        .filterGroup button {
+          flex: 0 0 auto;
+          border: 1px solid transparent;
+          border-radius: 10px;
+          padding: 9px 12px;
+          background: transparent;
+          color: #8e99a4;
+          font-size: 10px;
+          font-weight: 800;
+        }
+
+        .filterGroup button:hover,
+        .filterGroup .activeFilter {
+          border-color: #554116;
+          background: rgba(255, 196, 61, 0.08);
+          color: #ffc43d;
+        }
+
+        .sortGroup {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .sortGroup label {
+          color: #707b86;
+          font-size: 9px;
+          font-weight: 800;
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+        }
+
+        .sortGroup select {
+          border: 1px solid #2a3540;
+          border-radius: 9px;
+          padding: 8px 10px;
+          background: #0b1219;
+          color: #d9dee4;
+          font-size: 10px;
+        }
+
         .panel,
         .sidePanel {
           border: 1px solid #1b2530;
@@ -1718,8 +1841,8 @@ export default function HomePage() {
         }
 
         .panel {
-          margin-bottom: 16px;
-          padding: 14px;
+          margin-bottom: 18px;
+          padding: 18px;
         }
 
         .sidePanel {
@@ -1735,9 +1858,16 @@ export default function HomePage() {
         }
 
         .panelHeader h2 {
-          margin: 0;
-          font-size: 13px;
-          letter-spacing: 0.02em;
+          margin: 4px 0 0;
+          font-size: 14px;
+          letter-spacing: 0.01em;
+        }
+
+        .sectionLabel {
+          color: #6f7a85;
+          font-size: 8px;
+          font-weight: 950;
+          letter-spacing: 0.14em;
         }
 
         .panelHeader button {
@@ -1841,7 +1971,7 @@ export default function HomePage() {
         }
 
         .productImage {
-          height: 160px;
+          height: 178px;
         }
 
         .productImage img,
@@ -1954,7 +2084,7 @@ export default function HomePage() {
         }
 
         .liveImage {
-          height: 120px;
+          height: 142px;
         }
 
         .sellerLine {
@@ -2250,6 +2380,68 @@ export default function HomePage() {
           padding: 12px 15px;
           background: #ffc43d;
           font-weight: 900;
+        }
+
+        .siteFooter {
+          display: grid;
+          grid-template-columns: auto 1fr auto;
+          align-items: center;
+          gap: 28px;
+          margin: 0 22px 100px;
+          padding: 24px;
+          border: 1px solid #1c2630;
+          border-radius: 16px;
+          background: #080e14;
+        }
+
+        .footerBrand {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+
+        .footerBrand img {
+          width: 40px;
+          height: 40px;
+          border-radius: 10px;
+          object-fit: cover;
+        }
+
+        .footerBrand div {
+          display: grid;
+        }
+
+        .footerBrand strong {
+          font-size: 13px;
+        }
+
+        .footerBrand span,
+        .footerMeta span {
+          color: #707b86;
+          font-size: 9px;
+        }
+
+        .footerLinks {
+          display: flex;
+          flex-wrap: wrap;
+          justify-content: center;
+          gap: 12px 18px;
+        }
+
+        .footerLinks a {
+          color: #8d98a3;
+          font-size: 9px;
+          text-decoration: none;
+        }
+
+        .footerLinks a:hover {
+          color: #ffc43d;
+        }
+
+        .footerMeta {
+          display: grid;
+          justify-items: end;
+          gap: 3px;
         }
 
         .bottomNav {
@@ -2645,6 +2837,28 @@ export default function HomePage() {
         }
 
         @media (max-width: 820px) {
+          .filterBar {
+            align-items: stretch;
+            flex-direction: column;
+          }
+
+          .sortGroup {
+            justify-content: space-between;
+          }
+
+          .siteFooter {
+            grid-template-columns: 1fr;
+            margin: 0 12px 96px;
+          }
+
+          .footerLinks {
+            justify-content: flex-start;
+          }
+
+          .footerMeta {
+            justify-items: start;
+          }
+
           .brandHero > img {
             min-height: 390px;
             object-position: 62% center;
