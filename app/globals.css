@@ -175,3 +175,90 @@ input,textarea,select { width:100%; border:1px solid #2a3540; border-radius:10px
   .auctionPulse,.bidRules { grid-template-columns:1fr; }
   .countdownBox { justify-items:start; }
 }
+
+
+.pricePulseCard {
+  animation: cardPulse 0.9s ease;
+}
+
+.pricePulseText {
+  animation: pricePulse 0.9s ease;
+}
+
+.liveEventToast {
+  position: fixed;
+  top: 86px;
+  right: 20px;
+  z-index: 120;
+  display: grid;
+  gap: 5px;
+  min-width: 280px;
+  max-width: 420px;
+  padding: 14px 16px;
+  border: 1px solid #2d6f49;
+  border-radius: 12px;
+  background: rgba(8, 20, 14, 0.96);
+  box-shadow: 0 18px 55px rgba(0, 0, 0, 0.42);
+  animation: liveToastIn 0.28s ease;
+}
+
+.liveEventToast span {
+  color: #53df8b;
+  font-size: 8px;
+  font-weight: 950;
+  letter-spacing: 0.14em;
+}
+
+.liveEventToast strong {
+  color: #eefaf3;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+@keyframes pricePulse {
+  0% {
+    color: #ffc43d;
+    transform: scale(1);
+    text-shadow: 0 0 0 rgba(255, 196, 61, 0);
+  }
+  45% {
+    color: #fff1b3;
+    transform: scale(1.08);
+    text-shadow: 0 0 20px rgba(255, 196, 61, 0.65);
+  }
+  100% {
+    color: #ffc43d;
+    transform: scale(1);
+    text-shadow: 0 0 0 rgba(255, 196, 61, 0);
+  }
+}
+
+@keyframes cardPulse {
+  0% { border-color: #25303b; }
+  50% {
+    border-color: #c89b32;
+    box-shadow: 0 0 0 1px rgba(200, 155, 50, 0.18), 0 14px 34px rgba(0, 0, 0, 0.28);
+  }
+  100% { border-color: #25303b; }
+}
+
+@keyframes liveToastIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (max-width: 720px) {
+  .liveEventToast {
+    top: auto;
+    right: 12px;
+    bottom: 16px;
+    left: 12px;
+    min-width: 0;
+  }
+}

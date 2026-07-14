@@ -42,6 +42,8 @@ export default function HomePage() {
 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [liveEvent, setLiveEvent] = useState("");
+  const [pricePulseId, setPricePulseId] = useState<string | null>(null);
 
   async function loadAuctions() {
     const supabase = getSupabaseBrowserClient();
@@ -104,6 +106,49 @@ export default function HomePage() {
       if (currentUser) await loadFavorites(currentUser.id);
     });
 
+    const realtimeChannel = supabase
+      .channel("kapiskapis-live")
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "auctions" },
+        (payload) => {
+          const updated = payload.new as Auction;
+
+          setAuctions((current) =>
+            current.map((auction) =>
+              auction.id === updated.id ? { ...auction, ...updated } : auction
+            )
+          );
+
+          setSelectedAuction((current) =>
+            current?.id === updated.id ? { ...current, ...updated } : current
+          );
+
+          setPricePulseId(updated.id);
+          setLiveEvent(`${updated.title} için yeni teklif: ${new Intl.NumberFormat("tr-TR", {
+            style: "currency",
+            currency: "TRY",
+            maximumFractionDigits: 0,
+          }).format(Number(updated.current_price))}`);
+
+          window.setTimeout(() => setPricePulseId(null), 900);
+          window.setTimeout(() => setLiveEvent(""), 4200);
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "bids" },
+        (payload) => {
+          const newBid = payload.new as Bid;
+
+          setBidHistory((current) => {
+            if (selectedAuction?.id !== newBid.auction_id) return current;
+            return [newBid, ...current].slice(0, 10);
+          });
+        }
+      )
+      .subscribe();
+
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -118,8 +163,11 @@ export default function HomePage() {
       }
     });
 
-    return () => subscription.unsubscribe();
-  }, []);
+    return () => {
+      subscription.unsubscribe();
+      void supabase.removeChannel(realtimeChannel);
+    };
+  }, [selectedAuction?.id]);
 
   useEffect(() => {
     if (!auctionImage) {
@@ -464,6 +512,7 @@ export default function HomePage() {
                   isFavorite={favoriteIds.includes(auction.id)}
                   onToggleFavorite={(id) => void toggleFavorite(id)}
                   onOpenDetail={(item) => void openDetail(item)}
+                  pricePulse={pricePulseId === auction.id}
                 />
               ))}
             </div>
@@ -520,7 +569,15 @@ export default function HomePage() {
         onBidAmountChange={setBidAmount}
         onSubmitBid={handleBid}
         onToggleFavorite={(id) => void toggleFavorite(id)}
+        pricePulse={Boolean(selectedAuction && pricePulseId === selectedAuction.id)}
       />
+
+      {liveEvent && (
+        <div className="liveEventToast">
+          <span>CANLI</span>
+          <strong>{liveEvent}</strong>
+        </div>
+      )}
 
       {message && <div className="toast">{message}</div>}
     </main>
