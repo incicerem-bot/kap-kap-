@@ -20,6 +20,7 @@ import SalesCenterModal from "@/components/SalesCenterModal";
 import BottomNav from "@/components/BottomNav";
 import CompareModal from "@/components/CompareModal";
 import LiveAuctionRoom from "@/components/LiveAuctionRoom";
+import FounderPanel from "@/components/FounderPanel";
 import type { Auction, AuctionCategory, Bid, ProfileSummary, AppNotification, AuctionOrder, ConversationMessage, OrderStatus } from "@/components/types";
 
 export default function HomePage() {
@@ -65,6 +66,9 @@ export default function HomePage() {
   const [compareIds, setCompareIds] = useState<string[]>([]);
   const [showCompare, setShowCompare] = useState(false);
   const [showLiveRoom, setShowLiveRoom] = useState(false);
+  const [showFounderPanel, setShowFounderPanel] = useState(false);
+  const [founderLoading, setFounderLoading] = useState(false);
+  const [founderProgress, setFounderProgress] = useState(0);
   const [auctionTitle, setAuctionTitle] = useState("");
   const [auctionDescription, setAuctionDescription] = useState("");
   const [auctionCategory, setAuctionCategory] = useState<AuctionCategory>("phone");
@@ -86,6 +90,162 @@ export default function HomePage() {
       if (current.length >= 4) { setMessage("En fazla 4 ilan karşılaştırabilirsin."); return current; }
       return [...current, auctionId];
     });
+  }
+
+  const BETA_MARKER = "[KAPISKAPIS_BETA_V1]";
+
+  const founderStats = useMemo(() => {
+    const testAuctions = auctions.filter((auction) =>
+      auction.description.includes(BETA_MARKER)
+    );
+    const categoryCount = new Set(
+      auctions.filter((auction) => auction.category !== "all").map((auction) => auction.category)
+    ).size;
+
+    return {
+      active: auctions.length,
+      test: testAuctions.length,
+      categories: categoryCount,
+    };
+  }, [auctions]);
+
+  function buildBetaAuctions(sellerId: string) {
+    const catalog: Record<Exclude<AuctionCategory, "all">, Array<[string, number]>> = {
+      phone: [
+        ["iPhone 15 Pro 256 GB Titanyum", 43000], ["Samsung Galaxy S24 Ultra", 39000],
+        ["iPhone 14 Pro Max 256 GB", 34000], ["Xiaomi 14 Ultra", 29000],
+      ],
+      computer: [
+        ["MacBook Pro M3 Pro 14 inç", 52000], ["ASUS ROG Strix G16 RTX 4070", 45000],
+        ["MacBook Air M3 15 inç", 37000], ["Lenovo Legion 5 Pro", 39000],
+      ],
+      gaming: [
+        ["PlayStation 5 Slim Diskli", 19000], ["Xbox Series X 1 TB", 17000],
+        ["Nintendo Switch OLED", 11000], ["Steam Deck OLED 1 TB", 24000],
+      ],
+      watch: [
+        ["Rolex Datejust 41", 280000], ["Omega Seamaster Diver 300M", 155000],
+        ["Apple Watch Ultra 2", 26000], ["Garmin Fenix 7X Pro", 23000],
+      ],
+      vehicle: [
+        ["2022 Tesla Model 3 Long Range", 1450000], ["2021 BMW 320i M Sport", 1850000],
+        ["2023 Toyota Corolla Hybrid", 1320000], ["2022 Hyundai Tucson Elite Plus", 1580000],
+      ],
+      home: [
+        ["Masif Meşe Yemek Masası", 18000], ["L Köşe Koltuk Takımı", 24000],
+        ["Dyson V15 Detect Absolute", 19000], ["LG OLED 65 inç C3", 42000],
+      ],
+      camera: [
+        ["Sony A7 IV Body", 62000], ["Canon EOS R6 Mark II", 68000],
+        ["Fujifilm X-T5 Kit", 57000], ["DJI Mavic 3 Classic", 53000],
+      ],
+      collection: [
+        ["İmzalı Michael Jordan Forma", 85000], ["1999 Pokemon Charizard Kartı", 65000],
+        ["Beatles Abbey Road Orijinal Plak", 12000], ["Vintage Leica M3", 74000],
+      ],
+    };
+
+    const imageUrls: Record<Exclude<AuctionCategory, "all">, string> = {
+      phone: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=1200&q=80",
+      computer: "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&fit=crop&w=1200&q=80",
+      gaming: "https://images.unsplash.com/photo-1606144042614-b2417e99c4e3?auto=format&fit=crop&w=1200&q=80",
+      watch: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=1200&q=80",
+      vehicle: "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=1200&q=80",
+      home: "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=1200&q=80",
+      camera: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&w=1200&q=80",
+      collection: "https://images.unsplash.com/photo-1608889825205-eebdb9fc5806?auto=format&fit=crop&w=1200&q=80",
+    };
+
+    const categories = Object.keys(catalog) as Array<Exclude<AuctionCategory, "all">>;
+    const createdAt = Date.now();
+
+    return Array.from({ length: 100 }, (_, index) => {
+      const category = categories[index % categories.length];
+      const products = catalog[category];
+      const [baseTitle, marketPrice] = products[Math.floor(index / categories.length) % products.length];
+      const cycle = Math.floor(index / 32) + 1;
+      const startPrice = Math.max(500, Math.round((marketPrice * (0.48 + (index % 7) * 0.035)) / 100) * 100);
+      const minimumIncrement = Math.max(100, Math.round((startPrice * 0.018) / 100) * 100);
+      const hours = 3 + ((index * 7) % 237);
+
+      return {
+        seller_id: sellerId,
+        title: `${baseTitle}${cycle > 1 ? ` · Beta Seri ${cycle}` : ""}`,
+        description: `${BETA_MARKER} Platform performans ve tasarım testi için hazırlanmış örnek ilandır. Ürün temiz kullanılmış, çalışır durumda ve güvenli gönderime uygundur.`,
+        category,
+        start_price: startPrice,
+        current_price: startPrice,
+        min_increment: minimumIncrement,
+        ends_at: new Date(createdAt + hours * 60 * 60 * 1000).toISOString(),
+        status: "active" as const,
+        image_url: imageUrls[category],
+      };
+    });
+  }
+
+  async function createBetaAuctions() {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase || !user) {
+      setShowAuth(true);
+      return;
+    }
+
+    if (founderStats.test > 0) {
+      setMessage("Önce mevcut beta ilanlarını temizle veya var olan test verileriyle devam et.");
+      return;
+    }
+
+    const rows = buildBetaAuctions(user.id);
+    setFounderLoading(true);
+    setFounderProgress(0);
+
+    for (let index = 0; index < rows.length; index += 10) {
+      const batch = rows.slice(index, index + 10);
+      const { error } = await supabase.from("auctions").insert(batch);
+
+      if (error) {
+        setFounderLoading(false);
+        setMessage(`Test ilanları oluşturulamadı: ${error.message}`);
+        return;
+      }
+
+      setFounderProgress(Math.round(((index + batch.length) / rows.length) * 100));
+    }
+
+    await loadAuctions();
+    setFounderLoading(false);
+    setFounderProgress(100);
+    setMessage("100 beta test ilanı başarıyla oluşturuldu.");
+  }
+
+  async function deleteBetaAuctions() {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase || !user) return;
+
+    const approved = window.confirm(
+      "Bu panelin oluşturduğu sana ait tüm beta ilanları silinsin mi?"
+    );
+    if (!approved) return;
+
+    setFounderLoading(true);
+    setFounderProgress(25);
+
+    const { error } = await supabase
+      .from("auctions")
+      .delete()
+      .eq("seller_id", user.id)
+      .like("description", `%${BETA_MARKER}%`);
+
+    if (error) {
+      setFounderLoading(false);
+      setMessage(`Test ilanları silinemedi: ${error.message}`);
+      return;
+    }
+
+    setFounderProgress(100);
+    await loadAuctions();
+    setFounderLoading(false);
+    setMessage("Beta test ilanları temizlendi.");
   }
 
   async function loadAuctions() {
@@ -1180,10 +1340,25 @@ export default function HomePage() {
           setShowProfile(false);
           handleOpenSell();
         }}
+        onOpenFounderPanel={() => {
+          setShowProfile(false);
+          setShowFounderPanel(true);
+        }}
         onSignOut={() => {
           setShowProfile(false);
           void handleSignOut();
         }}
+      />
+
+      <FounderPanel
+        open={showFounderPanel}
+        loading={founderLoading}
+        progress={founderProgress}
+        stats={founderStats}
+        onClose={() => setShowFounderPanel(false)}
+        onCreateTestAuctions={() => void createBetaAuctions()}
+        onDeleteTestAuctions={() => void deleteBetaAuctions()}
+        onRefresh={() => void loadAuctions()}
       />
 
       <LiveAuctionRoom
