@@ -31,3 +31,13 @@ export type Bid = {
   amount: number;
   created_at: string;
 };
+
+export type ProfileSummary = {
+  id: string;
+  full_name: string;
+  email: string;
+  created_at: string | null;
+  active_listings: number;
+  favorite_count: number;
+  bid_count: number;
+};

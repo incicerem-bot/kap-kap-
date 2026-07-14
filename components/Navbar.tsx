@@ -10,7 +10,7 @@ type NavbarProps = {
   onOpenAuth: () => void;
   onOpenSell: () => void;
   onToggleFavorites: () => void;
-  onSignOut: () => void;
+  onOpenProfile: () => void;
 };
 
 export default function Navbar({
@@ -23,7 +23,7 @@ export default function Navbar({
   onOpenAuth,
   onOpenSell,
   onToggleFavorites,
-  onSignOut,
+  onOpenProfile,
 }: NavbarProps) {
   return (
     <header className="navbar">
@@ -62,7 +62,7 @@ export default function Navbar({
         </button>
 
         {loggedIn ? (
-          <button className="profileButton" type="button" onClick={onSignOut} title="Çıkış yap">
+          <button className="profileButton" type="button" onClick={onOpenProfile} title="Profil merkezi">
             <span>{userLabel.slice(0, 1).toLocaleUpperCase("tr")}</span>
           </button>
         ) : (
