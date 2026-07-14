@@ -26,6 +26,7 @@ type Auction = {
   seller_id: string;
   title: string;
   description: string;
+  category: AuctionCategory;
   start_price: number;
   current_price: number;
   min_increment: number;
@@ -101,6 +102,10 @@ function remainingTime(endsAt: string) {
 }
 
 function detectCategory(auction: Auction): AuctionCategory {
+  if (auction.category && auction.category !== "all") {
+    return auction.category;
+  }
+
   const text = `${auction.title} ${auction.description}`.toLocaleLowerCase("tr");
 
   if (/(iphone|telefon|samsung|xiaomi|pixel|android)/.test(text)) return "phone";
@@ -128,6 +133,8 @@ export default function HomePage() {
   const [auctions, setAuctions] = useState<Auction[]>([]);
   const [auctionTitle, setAuctionTitle] = useState("");
   const [auctionDescription, setAuctionDescription] = useState("");
+  const [auctionCategory, setAuctionCategory] =
+    useState<AuctionCategory>("phone");
   const [startPrice, setStartPrice] = useState("1000");
   const [minIncrement, setMinIncrement] = useState("100");
   const [durationHours, setDurationHours] = useState("24");
@@ -153,7 +160,7 @@ export default function HomePage() {
     const { data, error } = await supabase
       .from("auctions")
       .select(
-        "id, seller_id, title, description, start_price, current_price, min_increment, ends_at, status, image_url, created_at"
+        "id, seller_id, title, description, category, start_price, current_price, min_increment, ends_at, status, image_url, created_at"
       )
       .eq("status", "active")
       .order("created_at", { ascending: false })
@@ -571,6 +578,7 @@ export default function HomePage() {
         seller_id: user.id,
         title: cleanTitle,
         description: auctionDescription.trim(),
+        category: auctionCategory,
         start_price: parsedStartPrice,
         current_price: parsedStartPrice,
         min_increment: parsedMinIncrement,
@@ -591,6 +599,7 @@ export default function HomePage() {
 
       setAuctionTitle("");
       setAuctionDescription("");
+      setAuctionCategory("phone");
       setStartPrice("1000");
       setMinIncrement("100");
       setDurationHours("24");
@@ -1031,6 +1040,19 @@ export default function HomePage() {
                           <div className="imageFallback">KK</div>
                         )}
                       </div>
+                      <span className="categoryBadge">
+                        {({
+                          phone: "Telefon",
+                          computer: "Bilgisayar",
+                          gaming: "Oyun",
+                          watch: "Saat",
+                          vehicle: "Araç",
+                          home: "Ev & Yaşam",
+                          camera: "Kamera",
+                          collection: "Koleksiyon",
+                          all: "Diğer",
+                        } as Record<AuctionCategory, string>)[auction.category || "all"]}
+                      </span>
                       <h3>{auction.title}</h3>
                       <div className="priceLine">
                         <div>
@@ -1139,6 +1161,19 @@ export default function HomePage() {
                         <div className="imageFallback">KK</div>
                       )}
                     </div>
+                    <span className="categoryBadge">
+                      {({
+                        phone: "Telefon",
+                        computer: "Bilgisayar",
+                        gaming: "Oyun",
+                        watch: "Saat",
+                        vehicle: "Araç",
+                        home: "Ev & Yaşam",
+                        camera: "Kamera",
+                        collection: "Koleksiyon",
+                        all: "Diğer",
+                      } as Record<AuctionCategory, string>)[auction.category || "all"]}
+                    </span>
                     <h3>{auction.title}</h3>
                     <span className="sellerLine">Doğrulanmış satıcı</span>
                     <div className="liveMeta">
@@ -1517,6 +1552,25 @@ export default function HomePage() {
                 />
               </label>
 
+              <label>
+                Kategori
+                <select
+                  value={auctionCategory}
+                  onChange={(event) =>
+                    setAuctionCategory(event.target.value as AuctionCategory)
+                  }
+                >
+                  <option value="phone">Telefon</option>
+                  <option value="computer">Bilgisayar</option>
+                  <option value="gaming">Oyun</option>
+                  <option value="watch">Saat</option>
+                  <option value="vehicle">Araç</option>
+                  <option value="home">Ev & Yaşam</option>
+                  <option value="camera">Kamera</option>
+                  <option value="collection">Koleksiyon</option>
+                </select>
+              </label>
+
               <div className="formGrid">
                 <label>
                   Başlangıç fiyatı
@@ -1577,6 +1631,19 @@ export default function HomePage() {
             </div>
             <div className="detailContent">
               <span className="liveBadge">● CANLI</span>
+              <span className="detailCategory">
+                {({
+                  phone: "Telefon",
+                  computer: "Bilgisayar",
+                  gaming: "Oyun",
+                  watch: "Saat",
+                  vehicle: "Araç",
+                  home: "Ev & Yaşam",
+                  camera: "Kamera",
+                  collection: "Koleksiyon",
+                  all: "Diğer",
+                } as Record<AuctionCategory, string>)[selectedAuction.category || "all"]}
+              </span>
               <h2>{selectedAuction.title}</h2>
               <p>{selectedAuction.description}</p>
               <div className="detailPrice">
@@ -2382,6 +2449,29 @@ export default function HomePage() {
         .liveCard h3 {
           margin: 11px 0 8px;
           font-size: 13px;
+        }
+
+        .categoryBadge,
+        .detailCategory {
+          display: inline-flex;
+          align-items: center;
+          width: fit-content;
+          border: 1px solid #3a4652;
+          border-radius: 999px;
+          padding: 5px 7px;
+          background: rgba(255, 255, 255, 0.02);
+          color: #8f9aa5;
+          font-size: 8px;
+          font-weight: 850;
+          letter-spacing: 0.04em;
+        }
+
+        .categoryBadge {
+          margin-top: 10px;
+        }
+
+        .detailCategory {
+          margin: 12px 0 0;
         }
 
         .priceLine,
