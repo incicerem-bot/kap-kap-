@@ -27,7 +27,8 @@ import SellerReviewsModal from "@/components/SellerReviewsModal";
 import ReviewFormModal from "@/components/ReviewFormModal";
 import ReportListingModal from "@/components/ReportListingModal";
 import ModerationPanel from "@/components/ModerationPanel";
-import type { Auction, AuctionCategory, Bid, ProfileSummary, AppNotification, AuctionOrder, ConversationMessage, OrderStatus, ProductSpecifications, ProductType, SavedSearch, SellerReview, SellerTrustSummary, AuctionReport, AuctionReportStatus } from "@/components/types";
+import AddressBookModal from "@/components/AddressBookModal";
+import type { Auction, AuctionCategory, Bid, ProfileSummary, AppNotification, AuctionOrder, ConversationMessage, OrderStatus, ProductSpecifications, ProductType, SavedSearch, SellerReview, SellerTrustSummary, AuctionReport, AuctionReportStatus, UserAddress } from "@/components/types";
 
 export default function HomePage() {
   const [user, setUser] = useState<User | null>(null);
@@ -83,6 +84,10 @@ export default function HomePage() {
   const [myWonAuctions, setMyWonAuctions] = useState<Auction[]>([]);
   const [profileLoading, setProfileLoading] = useState(false);
   const [orders, setOrders] = useState<AuctionOrder[]>([]);
+  const [addresses, setAddresses] = useState<UserAddress[]>([]);
+  const [addressesLoading, setAddressesLoading] = useState(false);
+  const [showAddressBook, setShowAddressBook] = useState(false);
+  const [addressSelectionMode, setAddressSelectionMode] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<AuctionOrder | null>(null);
   const [showOrderCenter, setShowOrderCenter] = useState(false);
   const [orderLoading, setOrderLoading] = useState(false);
@@ -593,6 +598,7 @@ export default function HomePage() {
           loadNotifications(currentUser.id),
           loadReviewedOrders(currentUser.id),
           loadCurrentUserRole(currentUser.id),
+          loadAddresses(currentUser.id),
         ]);
       }
     });
@@ -690,6 +696,7 @@ export default function HomePage() {
         void loadNotifications(session.user.id);
         void loadReviewedOrders(session.user.id);
         void loadCurrentUserRole(session.user.id);
+        void loadAddresses(session.user.id);
       } else {
         setFavoriteIds([]);
         setNotifications([]);
@@ -698,6 +705,8 @@ export default function HomePage() {
         setIsAdmin(false);
         setShowFounderPanel(false);
         setShowModeration(false);
+        setAddresses([]);
+        setShowAddressBook(false);
       }
     });
 
@@ -1001,6 +1010,174 @@ export default function HomePage() {
     favoriteIds,
   ]);
 
+  async function loadAddresses(userId: string) {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) return;
+
+    setAddressesLoading(true);
+
+    const { data, error } = await supabase
+      .from("user_addresses")
+      .select(
+        "id, user_id, title, full_name, phone, city, district, neighborhood, address_line, postal_code, is_default, created_at, updated_at"
+      )
+      .eq("user_id", userId)
+      .order("is_default", { ascending: false })
+      .order("created_at", { ascending: false });
+
+    setAddressesLoading(false);
+
+    if (error) {
+      setMessage(`Adresler yüklenemedi: ${error.message}`);
+      return;
+    }
+
+    setAddresses((data ?? []) as UserAddress[]);
+  }
+
+  async function saveAddress(
+    draft: {
+      title: string;
+      full_name: string;
+      phone: string;
+      city: string;
+      district: string;
+      neighborhood: string;
+      address_line: string;
+      postal_code: string;
+      is_default: boolean;
+    },
+    addressId?: string
+  ) {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase || !user) return;
+
+    setAddressesLoading(true);
+
+    if (draft.is_default) {
+      await supabase
+        .from("user_addresses")
+        .update({ is_default: false })
+        .eq("user_id", user.id);
+    }
+
+    const payload = {
+      user_id: user.id,
+      title: draft.title.trim(),
+      full_name: draft.full_name.trim(),
+      phone: draft.phone.trim(),
+      city: draft.city.trim(),
+      district: draft.district.trim(),
+      neighborhood: draft.neighborhood.trim(),
+      address_line: draft.address_line.trim(),
+      postal_code: draft.postal_code.trim() || null,
+      is_default: draft.is_default || addresses.length === 0,
+      updated_at: new Date().toISOString(),
+    };
+
+    const query = addressId
+      ? supabase
+          .from("user_addresses")
+          .update(payload)
+          .eq("id", addressId)
+          .eq("user_id", user.id)
+      : supabase.from("user_addresses").insert(payload);
+
+    const { error } = await query;
+
+    setAddressesLoading(false);
+
+    if (error) {
+      setMessage(`Adres kaydedilemedi: ${error.message}`);
+      return;
+    }
+
+    await loadAddresses(user.id);
+    setMessage("Adres kaydedildi.");
+  }
+
+  async function deleteAddress(addressId: string) {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase || !user) return;
+
+    const inUse = orders.some(
+      (order) => order.shipping_address_id === addressId
+    );
+
+    if (inUse) {
+      setMessage("Bu adres aktif bir siparişte kullanıldığı için silinemez.");
+      return;
+    }
+
+    const { error } = await supabase
+      .from("user_addresses")
+      .delete()
+      .eq("id", addressId)
+      .eq("user_id", user.id);
+
+    if (error) {
+      setMessage(`Adres silinemedi: ${error.message}`);
+      return;
+    }
+
+    await loadAddresses(user.id);
+  }
+
+  async function setDefaultAddress(addressId: string) {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase || !user) return;
+
+    await supabase
+      .from("user_addresses")
+      .update({ is_default: false })
+      .eq("user_id", user.id);
+
+    const { error } = await supabase
+      .from("user_addresses")
+      .update({ is_default: true })
+      .eq("id", addressId)
+      .eq("user_id", user.id);
+
+    if (error) {
+      setMessage(`Varsayılan adres değiştirilemedi: ${error.message}`);
+      return;
+    }
+
+    await loadAddresses(user.id);
+  }
+
+  async function assignOrderAddress(address: UserAddress) {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase || !user || !selectedOrder) return;
+
+    const { data, error } = await supabase.rpc("set_order_shipping_address", {
+      p_order_id: selectedOrder.id,
+      p_address_id: address.id,
+    });
+
+    if (error) {
+      setMessage(`Teslimat adresi seçilemedi: ${error.message}`);
+      return;
+    }
+
+    const updatedOrder = {
+      ...selectedOrder,
+      ...(data as AuctionOrder),
+      shipping_address_id: address.id,
+      shipping_address: address,
+    };
+
+    setSelectedOrder(updatedOrder);
+    setOrders((current) =>
+      current.map((order) =>
+        order.id === updatedOrder.id ? updatedOrder : order
+      )
+    );
+    setShowAddressBook(false);
+    setAddressSelectionMode(false);
+    setMessage("Teslimat adresi siparişe bağlandı.");
+  }
+
   async function loadOrders(userId: string) {
     const supabase = getSupabaseBrowserClient();
     if (!supabase) return;
@@ -1010,7 +1187,7 @@ export default function HomePage() {
     const { data, error } = await supabase
       .from("orders")
       .select(
-        "id, auction_id, seller_id, buyer_id, amount, status, tracking_code, created_at, updated_at"
+        "id, auction_id, seller_id, buyer_id, amount, status, tracking_code, shipping_address_id, created_at, updated_at"
       )
       .or(`seller_id.eq.${userId},buyer_id.eq.${userId}`)
       .order("created_at", { ascending: false });
@@ -1235,7 +1412,10 @@ export default function HomePage() {
     setMyBidAuctions(orderedBidAuctions);
     setMyFavoriteAuctions(orderedFavoriteAuctions);
     setMyWonAuctions(orderedWonAuctions);
-    await loadOrders(user.id);
+    await Promise.all([
+      loadOrders(user.id),
+      loadAddresses(user.id),
+    ]);
     setProfileLoading(false);
   }
 
@@ -2052,6 +2232,24 @@ export default function HomePage() {
         onToggleAlert={(search) => void toggleSavedSearchAlert(search)}
       />
 
+      <AddressBookModal
+        open={showAddressBook}
+        addresses={addresses}
+        loading={addressesLoading}
+        selectedAddressId={selectedOrder?.shipping_address_id ?? null}
+        selectionMode={addressSelectionMode}
+        onClose={() => {
+          setShowAddressBook(false);
+          setAddressSelectionMode(false);
+        }}
+        onSave={(draft, addressId) =>
+          saveAddress(draft, addressId)
+        }
+        onDelete={(addressId) => deleteAddress(addressId)}
+        onSetDefault={(addressId) => setDefaultAddress(addressId)}
+        onSelect={(address) => void assignOrderAddress(address)}
+      />
+
       <WalletModal open={showWallet} userId={user?.id||""} orders={orders} onClose={()=>setShowWallet(false)} />
       <SalesCenterModal open={showSalesCenter} userId={user?.id||""} auctions={auctions} orders={orders} onClose={()=>setShowSalesCenter(false)} onOpenAuction={(a)=>{setShowSalesCenter(false);void openDetail(a)}} onOpenOrder={(o)=>{setSelectedOrder(o);setShowSalesCenter(false);setShowOrderCenter(true)}} onOpenSell={()=>{setShowSalesCenter(false);handleOpenSell()}} />
       <OrderCenterModal
@@ -2067,6 +2265,23 @@ export default function HomePage() {
           selectedOrder && reviewedOrderIds.includes(selectedOrder.id)
         )}
         onOpenReview={() => setShowReviewForm(true)}
+        shippingAddress={
+          selectedOrder?.shipping_address ??
+          addresses.find(
+            (address) =>
+              address.id === selectedOrder?.shipping_address_id
+          ) ??
+          null
+        }
+        onChooseAddress={() => {
+          if (!user) {
+            setShowAuth(true);
+            return;
+          }
+          setAddressSelectionMode(true);
+          setShowAddressBook(true);
+          void loadAddresses(user.id);
+        }}
       />
 
       <MessagePanel
@@ -2114,6 +2329,16 @@ export default function HomePage() {
         onOpenSell={() => {
           setShowProfile(false);
           handleOpenSell();
+        }}
+        onOpenAddresses={() => {
+          if (!user) {
+            setShowAuth(true);
+            return;
+          }
+          setShowProfile(false);
+          setAddressSelectionMode(false);
+          setShowAddressBook(true);
+          void loadAddresses(user.id);
         }}
         onOpenFounderPanel={() => {
           if (!isAdmin) {

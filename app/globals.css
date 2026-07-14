@@ -2430,3 +2430,332 @@ input,textarea,select { width:100%; border:1px solid #2a3540; border-radius:10px
 .adminFounderEntry > div > span {
   color: #ffc43d;
 }
+
+
+.addressBackdrop {
+  align-items: stretch;
+  overflow-y: auto;
+}
+
+.addressBookModal {
+  position: relative;
+  width: min(860px, calc(100vw - 32px));
+  max-height: calc(100vh - 36px);
+  margin: auto;
+  overflow-y: auto;
+  border: 1px solid #28333e;
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(200,155,50,.08), transparent 30%),
+    #081018;
+  box-shadow: 0 34px 110px rgba(0,0,0,.56);
+}
+
+.addressHeader {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 26px;
+  border-bottom: 1px solid #202a34;
+}
+
+.addressHeader > div {
+  display: grid;
+  gap: 4px;
+}
+
+.addressHeader span,
+.addressFormTitle span,
+.orderAddressHeader span {
+  color: #b99337;
+  font-size: 8px;
+  font-weight: 950;
+  letter-spacing: .14em;
+}
+
+.addressHeader h2 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.addressHeader p {
+  margin: 0;
+  color: #74808c;
+  font-size: 9px;
+}
+
+.addressHeader > button {
+  border: 0;
+  border-radius: 10px;
+  padding: 10px 13px;
+  background: #ffc43d;
+  color: #0a0c0f;
+  font-size: 9px;
+  font-weight: 950;
+}
+
+.addressForm {
+  padding: 20px 26px 26px;
+}
+
+.addressFormTitle {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 14px;
+}
+
+.addressFormTitle strong {
+  font-size: 15px;
+}
+
+.addressFormGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.addressDefaultCheck {
+  display: flex !important;
+  align-items: center;
+  gap: 8px;
+  align-self: end;
+  min-height: 43px;
+}
+
+.addressDefaultCheck input {
+  width: auto;
+}
+
+.addressFormActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.addressFormActions button {
+  border: 1px solid #34404b;
+  border-radius: 9px;
+  padding: 9px 12px;
+  background: #0b1219;
+  color: #9da7b1;
+  font-size: 8px;
+  font-weight: 850;
+}
+
+.addressFormActions button:last-child {
+  border-color: #6a511a;
+  background: #ffc43d;
+  color: #0a0c0f;
+}
+
+.addressList {
+  display: grid;
+  gap: 10px;
+  padding: 18px 26px 26px;
+}
+
+.addressCard {
+  padding: 14px;
+  border: 1px solid #26313c;
+  border-radius: 13px;
+  background: #0a1118;
+}
+
+.addressCardSelected {
+  border-color: #9a7625;
+  box-shadow: inset 0 0 0 1px rgba(200,155,50,.08);
+}
+
+.addressCardTop {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.addressCardTop > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.addressCardTop strong {
+  font-size: 11px;
+}
+
+.addressCardTop span {
+  padding: 5px 7px;
+  border: 1px solid #5c4718;
+  border-radius: 999px;
+  color: #ffc43d;
+  font-size: 7px;
+}
+
+.addressCardTop small {
+  color: #74808c;
+  font-size: 8px;
+}
+
+.addressCard p {
+  margin: 12px 0;
+  color: #cbd2d9;
+  font-size: 9px;
+  line-height: 1.55;
+}
+
+.addressCardFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #202a34;
+}
+
+.addressCardFooter > span {
+  color: #8f9aa5;
+  font-size: 8px;
+}
+
+.addressCardFooter > div {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 7px;
+}
+
+.addressCardFooter button {
+  border: 1px solid #3d4954;
+  border-radius: 8px;
+  padding: 7px 9px;
+  background: #0b1219;
+  color: #a7b0b8;
+  font-size: 8px;
+}
+
+.addressCardFooter .addressDeleteButton {
+  border-color: #633639;
+  color: #dc7b80;
+}
+
+.addressEmpty {
+  min-height: 240px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 7px;
+  margin: 18px 26px 26px;
+  border: 1px dashed #2a3540;
+  border-radius: 12px;
+  color: #74808c;
+  text-align: center;
+}
+
+.addressEmpty strong {
+  color: white;
+  font-size: 11px;
+}
+
+.addressEmpty span {
+  max-width: 340px;
+  font-size: 9px;
+}
+
+.orderAddressCard {
+  margin: 0 28px 18px;
+  padding: 14px;
+  border: 1px solid #26313c;
+  border-radius: 12px;
+  background: #0a1118;
+}
+
+.orderAddressHeader {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.orderAddressHeader > div {
+  display: grid;
+  gap: 4px;
+}
+
+.orderAddressHeader strong {
+  font-size: 11px;
+}
+
+.orderAddressHeader button {
+  border: 1px solid #5c4718;
+  border-radius: 8px;
+  padding: 7px 9px;
+  background: rgba(200,155,50,.07);
+  color: #ffc43d;
+  font-size: 8px;
+  font-weight: 850;
+}
+
+.orderAddressBody {
+  display: grid;
+  gap: 5px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #202a34;
+}
+
+.orderAddressBody strong {
+  font-size: 10px;
+}
+
+.orderAddressBody p {
+  margin: 0;
+  color: #a4adb6;
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+.orderAddressBody span {
+  color: #74808c;
+  font-size: 8px;
+}
+
+.orderAddressWarning {
+  margin: 12px 0 0;
+  color: #d88a62;
+  font-size: 8px;
+}
+
+@media (max-width: 620px) {
+  .addressBookModal {
+    width: calc(100vw - 16px);
+    border-radius: 16px;
+  }
+
+  .addressHeader,
+  .addressCardTop,
+  .addressCardFooter,
+  .orderAddressHeader {
+    flex-direction: column;
+  }
+
+  .addressHeader,
+  .addressForm,
+  .addressList {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+
+  .addressFormGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .addressCardFooter > div {
+    justify-content: flex-start;
+  }
+
+  .orderAddressCard {
+    margin-right: 16px;
+    margin-left: 16px;
+  }
+}
