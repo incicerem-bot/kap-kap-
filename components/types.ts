@@ -216,3 +216,15 @@ export type OrderDispute = {
   resolved_by: string | null;
   order?: AuctionOrder | null;
 };
+
+
+export type SellerStoreSummary = {
+  seller_id: string;
+  seller_name: string;
+  average_rating: number;
+  review_count: number;
+  completed_sales: number;
+  follower_count: number;
+  active_listings: Auction[];
+  member_since: string | null;
+};

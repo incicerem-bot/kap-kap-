@@ -46,6 +46,10 @@ type ProductDetailModalProps = {
   sellerTrust: SellerTrustSummary | null;
   sellerTrustLoading: boolean;
   onOpenSellerReviews: () => void;
+  onOpenSellerStore: () => void;
+  isFollowingSeller: boolean;
+  followLoading: boolean;
+  onToggleSellerFollow: () => void;
   onReportListing: () => void;
   pricePulse?: boolean;
 };
@@ -220,6 +224,27 @@ export default function ProductDetailModal(props: ProductDetailModalProps) {
             >
               Satıcı yorumlarını görüntüle
             </button>
+
+            <div className="sellerStoreActions">
+              <button
+                type="button"
+                onClick={props.onOpenSellerStore}
+              >
+                Satıcının mağazasını aç
+              </button>
+              <button
+                type="button"
+                className={props.isFollowingSeller ? "sellerFollowActive" : ""}
+                disabled={props.followLoading}
+                onClick={props.onToggleSellerFollow}
+              >
+                {props.followLoading
+                  ? "İşleniyor..."
+                  : props.isFollowingSeller
+                    ? "Takibi bırak"
+                    : "Satıcıyı takip et"}
+              </button>
+            </div>
           </section>
 
           <button
