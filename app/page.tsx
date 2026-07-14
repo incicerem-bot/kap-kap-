@@ -144,6 +144,7 @@ export default function HomePage() {
   const [showAuth, setShowAuth] = useState(false);
   const [showSell, setShowSell] = useState(false);
   const [selectedAuction, setSelectedAuction] = useState<SelectedAuction>(null);
+  const [detailTab, setDetailTab] = useState<"details" | "bids" | "seller">("details");
   const [query, setQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState<AuctionFilter>("all");
   const [sortMode, setSortMode] = useState<AuctionSort>("recommended");
@@ -1619,49 +1620,120 @@ export default function HomePage() {
       )}
 
       {selectedAuction && (
-        <div className="modalBackdrop" onMouseDown={() => setSelectedAuction(null)}>
-          <section className="detailModal" onMouseDown={(event) => event.stopPropagation()}>
-            <button className="closeButton" type="button" onClick={() => setSelectedAuction(null)}>×</button>
-            <div className="detailImage">
-              {selectedAuction.image_url ? (
-                <img src={selectedAuction.image_url} alt={selectedAuction.title} />
-              ) : (
-                <div className="imageFallback">KK</div>
-              )}
+        <div className="modalBackdrop detailBackdrop" onMouseDown={() => setSelectedAuction(null)}>
+          <section className="premiumDetail" onMouseDown={(event) => event.stopPropagation()}>
+            <button
+              className="closeButton detailClose"
+              type="button"
+              onClick={() => setSelectedAuction(null)}
+              aria-label="Kapat"
+            >
+              ×
+            </button>
+
+            <div className="premiumGallery">
+              <div className="galleryTop">
+                <span className="liveBadge">● CANLI</span>
+                <button
+                  className={`detailFavorite ${
+                    favoriteAuctionIds.includes(selectedAuction.id)
+                      ? "detailFavoriteActive"
+                      : ""
+                  }`}
+                  type="button"
+                  onClick={() => void toggleFavorite(selectedAuction.id)}
+                >
+                  {favoriteAuctionIds.includes(selectedAuction.id)
+                    ? "♥ Favorilerde"
+                    : "♡ Favoriye ekle"}
+                </button>
+              </div>
+
+              <div className="mainProductImage">
+                {selectedAuction.image_url ? (
+                  <img src={selectedAuction.image_url} alt={selectedAuction.title} />
+                ) : (
+                  <div className="imageFallback largeFallback">KK</div>
+                )}
+              </div>
+
+              <div className="thumbnailRail">
+                {[0, 1, 2, 3].map((item) => (
+                  <button
+                    type="button"
+                    className={item === 0 ? "activeThumb" : ""}
+                    key={item}
+                  >
+                    {selectedAuction.image_url ? (
+                      <img src={selectedAuction.image_url} alt="" />
+                    ) : (
+                      <span>KK</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+
+              <div className="protectionStrip">
+                <article>
+                  <strong>KapışKapış Güvencesi</strong>
+                  <span>Ödeme teslimata kadar korunur.</span>
+                </article>
+                <article>
+                  <strong>Güvenli Kargo</strong>
+                  <span>Takipli gönderim ve teslimat kaydı.</span>
+                </article>
+                <article>
+                  <strong>Doğrulanmış Satıcı</strong>
+                  <span>Kimlik ve hesap kontrolleri tamamlandı.</span>
+                </article>
+              </div>
             </div>
-            <div className="detailContent">
-              <span className="liveBadge">● CANLI</span>
-              <span className="detailCategory">
-                {({
-                  phone: "Telefon",
-                  computer: "Bilgisayar",
-                  gaming: "Oyun",
-                  watch: "Saat",
-                  vehicle: "Araç",
-                  home: "Ev & Yaşam",
-                  camera: "Kamera",
-                  collection: "Koleksiyon",
-                  all: "Diğer",
-                } as Record<AuctionCategory, string>)[selectedAuction.category || "all"]}
-              </span>
-              <h2>{selectedAuction.title}</h2>
-              <p>{selectedAuction.description}</p>
-              <div className="detailPrice">
-                <span>Güncel teklif</span>
-                <strong>{money(Number(selectedAuction.current_price))}</strong>
+
+            <aside className="premiumBidPanel">
+              <div className="detailHeading">
+                <span className="detailCategory">
+                  {({
+                    phone: "Telefon",
+                    computer: "Bilgisayar",
+                    gaming: "Oyun",
+                    watch: "Saat",
+                    vehicle: "Araç",
+                    home: "Ev & Yaşam",
+                    camera: "Kamera",
+                    collection: "Koleksiyon",
+                    all: "Diğer",
+                  } as Record<AuctionCategory, string>)[selectedAuction.category || "all"]}
+                </span>
+                <h2>{selectedAuction.title}</h2>
+                <p>{selectedAuction.description || "Ürün açıklaması eklenmemiş."}</p>
               </div>
-              <div className="detailInfo">
-                <span>Minimum artış</span>
-                <b>{money(Number(selectedAuction.min_increment))}</b>
+
+              <div className="auctionPulse">
+                <div>
+                  <span>Güncel teklif</span>
+                  <strong>{money(Number(selectedAuction.current_price))}</strong>
+                </div>
+                <div className="countdownBox">
+                  <span>Kalan süre</span>
+                  <strong>{remainingTime(selectedAuction.ends_at)}</strong>
+                </div>
               </div>
-              <div className="detailInfo">
-                <span>Kalan süre</span>
-                <b>{remainingTime(selectedAuction.ends_at)}</b>
+
+              <div className="bidRules">
+                <div>
+                  <span>Başlangıç fiyatı</span>
+                  <strong>{money(Number(selectedAuction.start_price))}</strong>
+                </div>
+                <div>
+                  <span>Minimum artış</span>
+                  <strong>{money(Number(selectedAuction.min_increment))}</strong>
+                </div>
               </div>
-              <form className="bidForm" onSubmit={handlePlaceBid}>
+
+              <form className="premiumBidForm" onSubmit={handlePlaceBid}>
                 <label>
                   Teklif tutarın
-                  <div className="bidInputWrap">
+                  <div className="bidInputWrap premiumBidInput">
                     <input
                       type="number"
                       min={Number(selectedAuction.current_price) + Number(selectedAuction.min_increment)}
@@ -1674,35 +1746,137 @@ export default function HomePage() {
                   </div>
                 </label>
 
-                <button className="kapisButton large" type="submit" disabled={loading}>
-                  {loading ? "Teklif veriliyor..." : "KAPIŞ! (Teklif Ver)"}
+                <button className="kapisButton premiumKapis" type="submit" disabled={loading}>
+                  {loading ? "Teklif veriliyor..." : "KAPIŞ! — Teklif Ver"}
                 </button>
+
+                <small className="bidConsent">
+                  Teklif vererek açık artırma kurallarını ve satış koşullarını kabul etmiş olursun.
+                </small>
               </form>
 
-              <div className="bidHistory">
-                <div className="bidHistoryHeader">
-                  <strong>Son teklifler</strong>
-                  <span>{bidHistory.length} kayıt</span>
+              <div className="sellerSummary">
+                <div className="sellerInitial">K</div>
+                <div>
+                  <span>Satıcı</span>
+                  <strong>KapışKapış Satıcısı</strong>
+                  <small>★ 4.98 · Doğrulanmış hesap · Hızlı gönderim</small>
                 </div>
+                <button type="button" onClick={() => setDetailTab("seller")}>
+                  Profili gör
+                </button>
+              </div>
 
-                {bidHistory.length === 0 ? (
-                  <p className="emptyBidHistory">Henüz teklif verilmedi.</p>
-                ) : (
-                  bidHistory.map((bid, index) => (
-                    <div className="bidHistoryRow" key={bid.id}>
-                      <span>#{index + 1}</span>
-                      <strong>{money(Number(bid.amount))}</strong>
-                      <small>
-                        {new Date(bid.created_at).toLocaleTimeString("tr-TR", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </small>
+              <div className="detailTabs">
+                <button
+                  className={detailTab === "details" ? "activeDetailTab" : ""}
+                  type="button"
+                  onClick={() => setDetailTab("details")}
+                >
+                  Ürün bilgileri
+                </button>
+                <button
+                  className={detailTab === "bids" ? "activeDetailTab" : ""}
+                  type="button"
+                  onClick={() => setDetailTab("bids")}
+                >
+                  Teklif geçmişi
+                </button>
+                <button
+                  className={detailTab === "seller" ? "activeDetailTab" : ""}
+                  type="button"
+                  onClick={() => setDetailTab("seller")}
+                >
+                  Satıcı
+                </button>
+              </div>
+
+              <div className="detailTabContent">
+                {detailTab === "details" && (
+                  <div className="specGrid">
+                    <div>
+                      <span>Kategori</span>
+                      <strong>
+                        {({
+                          phone: "Telefon",
+                          computer: "Bilgisayar",
+                          gaming: "Oyun",
+                          watch: "Saat",
+                          vehicle: "Araç",
+                          home: "Ev & Yaşam",
+                          camera: "Kamera",
+                          collection: "Koleksiyon",
+                          all: "Diğer",
+                        } as Record<AuctionCategory, string>)[selectedAuction.category || "all"]}
+                      </strong>
                     </div>
-                  ))
+                    <div>
+                      <span>İlan durumu</span>
+                      <strong>Aktif açık artırma</strong>
+                    </div>
+                    <div>
+                      <span>Kargo</span>
+                      <strong>Takipli gönderim</strong>
+                    </div>
+                    <div>
+                      <span>Koruma</span>
+                      <strong>KapışKapış Güvencesi</strong>
+                    </div>
+                  </div>
+                )}
+
+                {detailTab === "bids" && (
+                  <div className="premiumBidHistory">
+                    {bidHistory.length === 0 ? (
+                      <div className="historyEmpty">
+                        <strong>Henüz teklif verilmedi.</strong>
+                        <span>İlk teklifi sen ver.</span>
+                      </div>
+                    ) : (
+                      bidHistory.map((bid, index) => (
+                        <div className="premiumBidRow" key={bid.id}>
+                          <span className="bidRank">{String(index + 1).padStart(2, "0")}</span>
+                          <div>
+                            <strong>{money(Number(bid.amount))}</strong>
+                            <small>
+                              {new Date(bid.created_at).toLocaleString("tr-TR", {
+                                dateStyle: "short",
+                                timeStyle: "short",
+                              })}
+                            </small>
+                          </div>
+                          <span className="bidStatus">
+                            {index === 0 ? "En yüksek" : "Geçildi"}
+                          </span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+
+                {detailTab === "seller" && (
+                  <div className="sellerProfileCard">
+                    <div className="sellerProfileTop">
+                      <span className="sellerProfileAvatar">K</span>
+                      <div>
+                        <strong>KapışKapış Satıcısı</strong>
+                        <span>2026'dan beri üye</span>
+                      </div>
+                    </div>
+                    <div className="sellerMetrics">
+                      <div><strong>4.98</strong><span>Puan</span></div>
+                      <div><strong>100%</strong><span>Olumlu</span></div>
+                      <div><strong>24s</strong><span>Yanıt süresi</span></div>
+                    </div>
+                    <div className="sellerBadges">
+                      <span>Doğrulanmış hesap</span>
+                      <span>Hızlı kargo</span>
+                      <span>Güvenli satıcı</span>
+                    </div>
+                  </div>
                 )}
               </div>
-            </div>
+            </aside>
           </section>
         </div>
       )}
@@ -3390,6 +3564,538 @@ export default function HomePage() {
           margin: 0;
           color: #7f8a96;
           font-size: 10px;
+        }
+
+
+        .detailBackdrop {
+          align-items: stretch;
+          overflow-y: auto;
+        }
+
+        .premiumDetail {
+          position: relative;
+          width: min(1240px, calc(100vw - 32px));
+          margin: auto;
+          display: grid;
+          grid-template-columns: minmax(0, 1.15fr) minmax(420px, 0.85fr);
+          overflow: hidden;
+          border: 1px solid #28333e;
+          border-radius: 22px;
+          background: #081018;
+          box-shadow: 0 34px 120px rgba(0, 0, 0, 0.58);
+        }
+
+        .detailClose {
+          top: 16px;
+          right: 16px;
+        }
+
+        .premiumGallery {
+          position: relative;
+          padding: 22px;
+          border-right: 1px solid #202a34;
+          background:
+            radial-gradient(circle at 50% 30%, rgba(200, 155, 50, 0.08), transparent 42%),
+            #070d13;
+        }
+
+        .galleryTop {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 14px;
+        }
+
+        .detailFavorite {
+          border: 1px solid #37424d;
+          border-radius: 999px;
+          padding: 9px 12px;
+          background: rgba(255,255,255,0.03);
+          color: #aeb7c0;
+          font-size: 10px;
+          font-weight: 850;
+        }
+
+        .detailFavoriteActive {
+          border-color: #7d6020;
+          background: rgba(200,155,50,0.12);
+          color: #ffc43d;
+        }
+
+        .mainProductImage {
+          overflow: hidden;
+          min-height: 560px;
+          border: 1px solid #202b36;
+          border-radius: 18px;
+          background: #0b1219;
+        }
+
+        .mainProductImage img {
+          width: 100%;
+          height: 560px;
+          object-fit: contain;
+          background: #0a0f15;
+        }
+
+        .largeFallback {
+          min-height: 560px;
+        }
+
+        .thumbnailRail {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 10px;
+          margin-top: 12px;
+        }
+
+        .thumbnailRail button {
+          overflow: hidden;
+          height: 82px;
+          border: 1px solid #2a3540;
+          border-radius: 11px;
+          background: #0b1219;
+          color: #c89b32;
+          font-weight: 950;
+        }
+
+        .thumbnailRail button.activeThumb {
+          border-color: #c89b32;
+          box-shadow: inset 0 0 0 1px rgba(200,155,50,0.28);
+        }
+
+        .thumbnailRail img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+
+        .protectionStrip {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 10px;
+          margin-top: 14px;
+        }
+
+        .protectionStrip article {
+          display: grid;
+          gap: 4px;
+          padding: 13px;
+          border: 1px solid #26313c;
+          border-radius: 12px;
+          background: rgba(255,255,255,0.02);
+        }
+
+        .protectionStrip strong {
+          font-size: 10px;
+        }
+
+        .protectionStrip span {
+          color: #7f8a96;
+          font-size: 8px;
+          line-height: 1.45;
+        }
+
+        .premiumBidPanel {
+          position: sticky;
+          top: 0;
+          align-self: start;
+          max-height: calc(100vh - 36px);
+          overflow-y: auto;
+          padding: 34px;
+          background:
+            linear-gradient(180deg, rgba(255,196,61,0.02), transparent 32%),
+            #091017;
+        }
+
+        .detailHeading h2 {
+          margin: 14px 0 8px;
+          font-size: 30px;
+          line-height: 1.12;
+          letter-spacing: -0.03em;
+        }
+
+        .detailHeading p {
+          margin: 0;
+          color: #8d98a3;
+          font-size: 11px;
+          line-height: 1.65;
+        }
+
+        .auctionPulse {
+          display: grid;
+          grid-template-columns: 1fr auto;
+          gap: 12px;
+          margin-top: 22px;
+          padding: 18px;
+          border: 1px solid #5c4617;
+          border-radius: 14px;
+          background:
+            linear-gradient(135deg, rgba(200,155,50,0.15), rgba(200,155,50,0.04));
+        }
+
+        .auctionPulse > div {
+          display: grid;
+        }
+
+        .auctionPulse span {
+          color: #9a927e;
+          font-size: 9px;
+          font-weight: 800;
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+        }
+
+        .auctionPulse strong {
+          margin-top: 5px;
+          color: #ffc43d;
+          font-size: 30px;
+          letter-spacing: -0.03em;
+        }
+
+        .countdownBox {
+          justify-items: end;
+        }
+
+        .countdownBox strong {
+          font-size: 18px;
+          color: white;
+        }
+
+        .bidRules {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 10px;
+          margin-top: 12px;
+        }
+
+        .bidRules div {
+          display: grid;
+          gap: 4px;
+          padding: 12px;
+          border: 1px solid #26313c;
+          border-radius: 11px;
+          background: #0b1219;
+        }
+
+        .bidRules span {
+          color: #7f8a96;
+          font-size: 8px;
+        }
+
+        .bidRules strong {
+          font-size: 11px;
+        }
+
+        .premiumBidForm {
+          margin-top: 16px;
+        }
+
+        .premiumBidInput {
+          border-color: #4e3d16;
+          background: #0c1117;
+        }
+
+        .premiumBidInput input {
+          font-size: 18px;
+          font-weight: 900;
+        }
+
+        .premiumKapis {
+          margin-top: 10px;
+          padding: 14px;
+          font-size: 12px;
+          letter-spacing: 0.02em;
+        }
+
+        .bidConsent {
+          color: #68737f;
+          font-size: 8px;
+          line-height: 1.45;
+          text-align: center;
+        }
+
+        .sellerSummary {
+          display: grid;
+          grid-template-columns: auto 1fr auto;
+          align-items: center;
+          gap: 10px;
+          margin-top: 18px;
+          padding: 14px;
+          border: 1px solid #26313c;
+          border-radius: 12px;
+          background: #0a1118;
+        }
+
+        .sellerInitial {
+          width: 42px;
+          height: 42px;
+          display: grid;
+          place-items: center;
+          border-radius: 50%;
+          background: #ffc43d;
+          color: #0a0c0f;
+          font-weight: 950;
+        }
+
+        .sellerSummary > div:nth-child(2) {
+          display: grid;
+        }
+
+        .sellerSummary span,
+        .sellerSummary small {
+          color: #7f8a96;
+          font-size: 8px;
+        }
+
+        .sellerSummary strong {
+          margin: 2px 0;
+          font-size: 11px;
+        }
+
+        .sellerSummary button {
+          border: 0;
+          background: transparent;
+          color: #c89b32;
+          font-size: 9px;
+          font-weight: 850;
+        }
+
+        .detailTabs {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 5px;
+          margin-top: 18px;
+          padding: 5px;
+          border-radius: 11px;
+          background: #0d151d;
+        }
+
+        .detailTabs button {
+          border: 0;
+          border-radius: 8px;
+          padding: 9px;
+          background: transparent;
+          color: #74808c;
+          font-size: 9px;
+          font-weight: 850;
+        }
+
+        .detailTabs button.activeDetailTab {
+          background: #17212b;
+          color: #ffc43d;
+        }
+
+        .detailTabContent {
+          margin-top: 12px;
+        }
+
+        .specGrid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 8px;
+        }
+
+        .specGrid div {
+          display: grid;
+          gap: 4px;
+          padding: 12px;
+          border: 1px solid #222d38;
+          border-radius: 10px;
+          background: #0b1219;
+        }
+
+        .specGrid span {
+          color: #74808c;
+          font-size: 8px;
+        }
+
+        .specGrid strong {
+          font-size: 10px;
+        }
+
+        .premiumBidHistory {
+          display: grid;
+        }
+
+        .premiumBidRow {
+          display: grid;
+          grid-template-columns: auto 1fr auto;
+          align-items: center;
+          gap: 10px;
+          padding: 11px 0;
+          border-bottom: 1px solid #1f2933;
+        }
+
+        .bidRank {
+          width: 28px;
+          height: 28px;
+          display: grid;
+          place-items: center;
+          border: 1px solid #2c3742;
+          border-radius: 8px;
+          color: #7f8a96;
+          font-size: 8px;
+          font-weight: 900;
+        }
+
+        .premiumBidRow div {
+          display: grid;
+        }
+
+        .premiumBidRow strong {
+          color: #ffc43d;
+          font-size: 12px;
+        }
+
+        .premiumBidRow small,
+        .bidStatus {
+          color: #74808c;
+          font-size: 8px;
+        }
+
+        .historyEmpty {
+          display: grid;
+          place-items: center;
+          min-height: 120px;
+          border: 1px dashed #2a3540;
+          border-radius: 10px;
+          color: #7f8a96;
+        }
+
+        .historyEmpty span {
+          margin-top: 4px;
+          font-size: 9px;
+        }
+
+        .sellerProfileCard {
+          padding: 14px;
+          border: 1px solid #26313c;
+          border-radius: 12px;
+          background: #0b1219;
+        }
+
+        .sellerProfileTop {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+
+        .sellerProfileAvatar {
+          width: 44px;
+          height: 44px;
+          display: grid;
+          place-items: center;
+          border-radius: 50%;
+          background: #ffc43d;
+          color: #0a0c0f;
+          font-weight: 950;
+        }
+
+        .sellerProfileTop div {
+          display: grid;
+        }
+
+        .sellerProfileTop span {
+          color: #74808c;
+          font-size: 8px;
+        }
+
+        .sellerMetrics {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 8px;
+          margin-top: 14px;
+        }
+
+        .sellerMetrics div {
+          display: grid;
+          place-items: center;
+          padding: 10px;
+          border: 1px solid #222d38;
+          border-radius: 9px;
+        }
+
+        .sellerMetrics strong {
+          color: #ffc43d;
+          font-size: 13px;
+        }
+
+        .sellerMetrics span {
+          color: #74808c;
+          font-size: 8px;
+        }
+
+        .sellerBadges {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 6px;
+          margin-top: 12px;
+        }
+
+        .sellerBadges span {
+          padding: 6px 8px;
+          border: 1px solid #294534;
+          border-radius: 999px;
+          color: #5fd18a;
+          font-size: 8px;
+        }
+
+        @media (max-width: 980px) {
+          .premiumDetail {
+            grid-template-columns: 1fr;
+          }
+
+          .premiumGallery {
+            border-right: 0;
+            border-bottom: 1px solid #202a34;
+          }
+
+          .premiumBidPanel {
+            position: static;
+            max-height: none;
+          }
+        }
+
+        @media (max-width: 620px) {
+          .premiumDetail {
+            width: calc(100vw - 16px);
+            border-radius: 16px;
+          }
+
+          .premiumGallery,
+          .premiumBidPanel {
+            padding: 16px;
+          }
+
+          .mainProductImage,
+          .mainProductImage img,
+          .largeFallback {
+            min-height: 330px;
+            height: 330px;
+          }
+
+          .thumbnailRail {
+            grid-template-columns: repeat(4, 70px);
+            overflow-x: auto;
+          }
+
+          .protectionStrip,
+          .specGrid,
+          .bidRules {
+            grid-template-columns: 1fr;
+          }
+
+          .auctionPulse {
+            grid-template-columns: 1fr;
+          }
+
+          .countdownBox {
+            justify-items: start;
+          }
+
+          .detailHeading h2 {
+            font-size: 24px;
+          }
         }
 
         @media (max-width: 1180px) {
