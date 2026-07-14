@@ -245,6 +245,16 @@ export default function HomePage() {
   async function toggleFavorite(auctionId: string) {
     const supabase = getSupabaseBrowserClient();
 
+    const isUuid =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+        auctionId
+      );
+
+    if (!isUuid) {
+      setMessage("Bu örnek kart favorilere eklenemez. Gerçek bir ilan seç.");
+      return;
+    }
+
     if (!supabase || !user) {
       setShowAuth(true);
       setMessage("Favorilere eklemek için giriş yapmalısın.");
@@ -1044,14 +1054,29 @@ export default function HomePage() {
                     <button
                       type="button"
                       className={
-                        favoriteAuctionIds.includes(auction.id)
-                          ? "favoriteActive"
-                          : ""
+                        auction.id.startsWith("demo-")
+                          ? "favoriteDisabled"
+                          : favoriteAuctionIds.includes(auction.id)
+                            ? "favoriteActive"
+                            : ""
                       }
                       onClick={() => void toggleFavorite(auction.id)}
-                      aria-label="Favoriye ekle"
+                      aria-label={
+                        auction.id.startsWith("demo-")
+                          ? "Örnek ilan"
+                          : "Favoriye ekle"
+                      }
+                      title={
+                        auction.id.startsWith("demo-")
+                          ? "Örnek ilanlar favoriye eklenemez"
+                          : "Favoriye ekle"
+                      }
                     >
-                      {favoriteAuctionIds.includes(auction.id) ? "♥" : "♡"}
+                      {auction.id.startsWith("demo-")
+                        ? "–"
+                        : favoriteAuctionIds.includes(auction.id)
+                          ? "♥"
+                          : "♡"}
                     </button>
                     {auction.image_url ? (
                       <img src={auction.image_url} alt={auction.title} />
@@ -1120,14 +1145,29 @@ export default function HomePage() {
                     <button
                       type="button"
                       className={
-                        favoriteAuctionIds.includes(auction.id)
-                          ? "favoriteActive"
-                          : ""
+                        auction.id.startsWith("demo-")
+                          ? "favoriteDisabled"
+                          : favoriteAuctionIds.includes(auction.id)
+                            ? "favoriteActive"
+                            : ""
                       }
                       onClick={() => void toggleFavorite(auction.id)}
-                      aria-label="Favoriye ekle"
+                      aria-label={
+                        auction.id.startsWith("demo-")
+                          ? "Örnek ilan"
+                          : "Favoriye ekle"
+                      }
+                      title={
+                        auction.id.startsWith("demo-")
+                          ? "Örnek ilanlar favoriye eklenemez"
+                          : "Favoriye ekle"
+                      }
                     >
-                      {favoriteAuctionIds.includes(auction.id) ? "♥" : "♡"}
+                      {auction.id.startsWith("demo-")
+                        ? "–"
+                        : favoriteAuctionIds.includes(auction.id)
+                          ? "♥"
+                          : "♡"}
                     </button>
                     {auction.image_url ? (
                       <img src={auction.image_url} alt={auction.title} />
@@ -2346,6 +2386,12 @@ export default function HomePage() {
         .liveImage button.favoriteActive {
           background: #ffc43d;
           color: #0a0c0f;
+        }
+
+        .productImage button.favoriteDisabled,
+        .liveImage button.favoriteDisabled {
+          cursor: not-allowed;
+          opacity: 0.45;
         }
 
         .endingCard h3,
