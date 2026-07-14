@@ -34,6 +34,9 @@ export type Auction = {
   brand?: string | null;
   model?: string | null;
   specifications?: ProductSpecifications | null;
+  live_enabled?: boolean;
+  live_is_open?: boolean;
+  live_opened_at?: string | null;
   start_price: number;
   current_price: number;
   min_increment: number;

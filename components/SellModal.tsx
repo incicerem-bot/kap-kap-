@@ -24,6 +24,8 @@ type SellModalProps = {
   startPrice: string;
   minIncrement: string;
   durationHours: string;
+  liveEnabled: boolean;
+  liveStartOpen: boolean;
   imagePreview: string;
   onClose: () => void;
   onTitleChange: (value: string) => void;
@@ -39,6 +41,8 @@ type SellModalProps = {
   onStartPriceChange: (value: string) => void;
   onMinIncrementChange: (value: string) => void;
   onDurationChange: (value: string) => void;
+  onLiveEnabledChange: (value: boolean) => void;
+  onLiveStartOpenChange: (value: boolean) => void;
   onImageChange: (file: File | null) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 };
@@ -342,6 +346,42 @@ export default function SellModal(props: SellModalProps) {
                 <option value="168">7 gün</option>
               </select>
             </label>
+
+            <div className="liveListingOption">
+              <div className="liveListingOptionHead">
+                <div>
+                  <span>CANLI AÇIK ARTIRMA</span>
+                  <strong>Bu ilan için canlı oda kullan</strong>
+                  <small>
+                    İzleyiciler canlı teklif akışını, geri sayımı ve oda
+                    sohbetini görebilir.
+                  </small>
+                </div>
+                <label className="liveSwitch">
+                  <input
+                    type="checkbox"
+                    checked={props.liveEnabled}
+                    onChange={(event) =>
+                      props.onLiveEnabledChange(event.target.checked)
+                    }
+                  />
+                  <span />
+                </label>
+              </div>
+
+              {props.liveEnabled && (
+                <label className="liveStartCheck">
+                  <input
+                    type="checkbox"
+                    checked={props.liveStartOpen}
+                    onChange={(event) =>
+                      props.onLiveStartOpenChange(event.target.checked)
+                    }
+                  />
+                  İlan yayınlandığında canlı oda açık başlasın
+                </label>
+              )}
+            </div>
           </section>
 
           <button

@@ -43,6 +43,9 @@ type ProductDetailModalProps = {
   onToggleFavorite: (auctionId: string) => void;
   onOpenMessages: () => void;
   onOpenLiveRoom: () => void;
+  currentUserId: string;
+  liveControlLoading: boolean;
+  onToggleLiveStatus: () => void;
   sellerTrust: SellerTrustSummary | null;
   sellerTrustLoading: boolean;
   onOpenSellerReviews: () => void;
@@ -65,7 +68,15 @@ export default function ProductDetailModal(props: ProductDetailModalProps) {
 
         <div className="premiumGallery">
           <div className="galleryTop">
-            <span className="liveBadge">CANLI</span>
+            {auction.live_enabled && (
+              <span
+                className={`liveBadge ${
+                  auction.live_is_open ? "liveBadgeOpen" : "liveBadgeClosed"
+                }`}
+              >
+                {auction.live_is_open ? "CANLI" : "CANLI PLANLI"}
+              </span>
+            )}
             <button
               className={`detailFavorite ${props.isFavorite ? "detailFavoriteActive" : ""}`}
               type="button"
@@ -176,9 +187,57 @@ export default function ProductDetailModal(props: ProductDetailModalProps) {
             </button>
           </form>
 
-          <button className="openLiveRoomButton" type="button" onClick={props.onOpenLiveRoom}>
-            Canlı açık artırma odasına gir
-          </button>
+          {auction.live_enabled && (
+            <section className="liveAuctionControlCard">
+              <div>
+                <span>CANLI AÇIK ARTIRMA</span>
+                <strong>
+                  {auction.live_is_open
+                    ? "Canlı oda şu anda açık"
+                    : "Canlı oda henüz açılmadı"}
+                </strong>
+                <small>
+                  {auction.seller_id === props.currentUserId
+                    ? "İlan sahibi olarak canlı odayı istediğin zaman açıp kapatabilirsin."
+                    : auction.live_is_open
+                      ? "Canlı teklif akışına ve oda sohbetine katılabilirsin."
+                      : "Satıcı canlı odayı açtığında katılım başlayacak."}
+                </small>
+              </div>
+
+              <div className="liveAuctionControlActions">
+                {auction.seller_id === props.currentUserId && (
+                  <button
+                    className={
+                      auction.live_is_open
+                        ? "closeLiveAuctionButton"
+                        : "startLiveAuctionButton"
+                    }
+                    type="button"
+                    disabled={props.liveControlLoading}
+                    onClick={props.onToggleLiveStatus}
+                  >
+                    {props.liveControlLoading
+                      ? "İşleniyor..."
+                      : auction.live_is_open
+                        ? "Canlı odayı kapat"
+                        : "Canlı odayı aç"}
+                  </button>
+                )}
+
+                <button
+                  className="openLiveRoomButton"
+                  type="button"
+                  disabled={!auction.live_is_open}
+                  onClick={props.onOpenLiveRoom}
+                >
+                  {auction.live_is_open
+                    ? "Canlı açık artırma odasına gir"
+                    : "Canlı oda kapalı"}
+                </button>
+              </div>
+            </section>
+          )}
 
           <section className="sellerTrustCard">
             <div className="sellerTrustCardHeader">
