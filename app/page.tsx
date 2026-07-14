@@ -109,7 +109,21 @@ export default function HomePage() {
     };
   }, [auctions]);
 
-  function buildBetaAuctions(sellerId: string) {
+  async function resolveAuctionCondition() {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) return "good";
+
+    const { data } = await supabase
+      .from("auctions")
+      .select("condition")
+      .not("condition", "is", null)
+      .limit(1)
+      .maybeSingle();
+
+    return data?.condition || "good";
+  }
+
+  function buildBetaAuctions(sellerId: string, condition: string) {
     const catalog: Record<Exclude<AuctionCategory, "all">, Array<[string, number]>> = {
       phone: [
         ["iPhone 15 Pro 256 GB Titanyum", 43000], ["Samsung Galaxy S24 Ultra", 39000],
@@ -173,6 +187,7 @@ export default function HomePage() {
         title: `${baseTitle}${cycle > 1 ? ` · Beta Seri ${cycle}` : ""}`,
         description: `${BETA_MARKER} Platform performans ve tasarım testi için hazırlanmış örnek ilandır. Ürün temiz kullanılmış, çalışır durumda ve güvenli gönderime uygundur.`,
         category,
+        condition,
         start_price: startPrice,
         current_price: startPrice,
         min_increment: minimumIncrement,
@@ -195,7 +210,8 @@ export default function HomePage() {
       return;
     }
 
-    const rows = buildBetaAuctions(user.id);
+    const condition = await resolveAuctionCondition();
+    const rows = buildBetaAuctions(user.id, condition);
     setFounderLoading(true);
     setFounderProgress(0);
 
@@ -1093,11 +1109,14 @@ export default function HomePage() {
       imageUrl = supabase.storage.from("auction-images").getPublicUrl(path).data.publicUrl;
     }
 
+    const condition = await resolveAuctionCondition();
+
     const { error } = await supabase.from("auctions").insert({
       seller_id: user.id,
       title: auctionTitle.trim(),
       description: auctionDescription.trim(),
       category: auctionCategory,
+      condition,
       start_price: Number(startPrice),
       current_price: Number(startPrice),
       min_increment: Number(minIncrement),
