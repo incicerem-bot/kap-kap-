@@ -21,7 +21,7 @@ import BottomNav from "@/components/BottomNav";
 import CompareModal from "@/components/CompareModal";
 import LiveAuctionRoom from "@/components/LiveAuctionRoom";
 import FounderPanel from "@/components/FounderPanel";
-import type { Auction, AuctionCategory, Bid, ProfileSummary, AppNotification, AuctionOrder, ConversationMessage, OrderStatus } from "@/components/types";
+import type { Auction, AuctionCategory, Bid, ProfileSummary, AppNotification, AuctionOrder, ConversationMessage, OrderStatus, ProductSpecifications, ProductType } from "@/components/types";
 
 export default function HomePage() {
   const [user, setUser] = useState<User | null>(null);
@@ -72,6 +72,12 @@ export default function HomePage() {
   const [auctionTitle, setAuctionTitle] = useState("");
   const [auctionDescription, setAuctionDescription] = useState("");
   const [auctionCategory, setAuctionCategory] = useState<AuctionCategory>("phone");
+  const [auctionProductType, setAuctionProductType] =
+    useState<ProductType | "">("smartphone");
+  const [auctionBrand, setAuctionBrand] = useState("");
+  const [auctionModel, setAuctionModel] = useState("");
+  const [auctionSpecifications, setAuctionSpecifications] =
+    useState<ProductSpecifications>({});
   const [startPrice, setStartPrice] = useState("1000");
   const [minIncrement, setMinIncrement] = useState("100");
   const [durationHours, setDurationHours] = useState("24");
@@ -261,7 +267,7 @@ export default function HomePage() {
 
     const { data, error } = await supabase
       .from("auctions")
-      .select("id, seller_id, title, description, category, start_price, current_price, min_increment, ends_at, status, image_url, created_at")
+      .select("id, seller_id, title, description, category, product_type, brand, model, specifications, start_price, current_price, min_increment, ends_at, status, image_url, created_at")
       .eq("status", "active")
       .order("created_at", { ascending: false });
 
@@ -372,7 +378,7 @@ export default function HomePage() {
 
     const { data, error } = await supabase
       .from("auctions")
-      .select("id, seller_id, title, description, category, start_price, current_price, min_increment, ends_at, status, image_url, created_at")
+      .select("id, seller_id, title, description, category, product_type, brand, model, specifications, start_price, current_price, min_increment, ends_at, status, image_url, created_at")
       .eq("id", notification.auction_id)
       .maybeSingle();
 
@@ -701,7 +707,7 @@ export default function HomePage() {
     const { data: auctionRows, error: auctionError } = await supabase
       .from("auctions")
       .select(
-        "id, seller_id, title, description, category, start_price, current_price, min_increment, ends_at, status, image_url, created_at"
+        "id, seller_id, title, description, category, product_type, brand, model, specifications, start_price, current_price, min_increment, ends_at, status, image_url, created_at"
       )
       .in("id", auctionIds);
 
@@ -783,7 +789,7 @@ export default function HomePage() {
       supabase
         .from("auctions")
         .select(
-          "id, seller_id, title, description, category, start_price, current_price, min_increment, ends_at, status, image_url, created_at"
+          "id, seller_id, title, description, category, product_type, brand, model, specifications, start_price, current_price, min_increment, ends_at, status, image_url, created_at"
         )
         .eq("seller_id", user.id)
         .eq("status", "active")
@@ -838,7 +844,7 @@ export default function HomePage() {
           ? supabase
               .from("auctions")
               .select(
-                "id, seller_id, title, description, category, start_price, current_price, min_increment, ends_at, status, image_url, created_at"
+                "id, seller_id, title, description, category, product_type, brand, model, specifications, start_price, current_price, min_increment, ends_at, status, image_url, created_at"
               )
               .in("id", bidAuctionIds)
           : Promise.resolve({ data: [] }),
@@ -846,7 +852,7 @@ export default function HomePage() {
           ? supabase
               .from("auctions")
               .select(
-                "id, seller_id, title, description, category, start_price, current_price, min_increment, ends_at, status, image_url, created_at"
+                "id, seller_id, title, description, category, product_type, brand, model, specifications, start_price, current_price, min_increment, ends_at, status, image_url, created_at"
               )
               .in("id", favoriteAuctionIds)
           : Promise.resolve({ data: [] }),
@@ -854,7 +860,7 @@ export default function HomePage() {
           ? supabase
               .from("auctions")
               .select(
-                "id, seller_id, title, description, category, start_price, current_price, min_increment, ends_at, status, image_url, created_at"
+                "id, seller_id, title, description, category, product_type, brand, model, specifications, start_price, current_price, min_increment, ends_at, status, image_url, created_at"
               )
               .in("id", wonAuctionIds)
           : Promise.resolve({ data: [] }),
@@ -1104,6 +1110,10 @@ export default function HomePage() {
       title: auctionTitle.trim(),
       description: auctionDescription.trim(),
       category: auctionCategory,
+      product_type: auctionProductType,
+      brand: auctionBrand.trim(),
+      model: auctionModel.trim(),
+      specifications: auctionSpecifications,
       start_price: Number(startPrice),
       starting_bid: Number(startPrice),
       current_bid: Number(startPrice),
@@ -1126,6 +1136,10 @@ export default function HomePage() {
     setAuctionTitle("");
     setAuctionDescription("");
     setAuctionCategory("phone");
+    setAuctionProductType("smartphone");
+    setAuctionBrand("");
+    setAuctionModel("");
+    setAuctionSpecifications({});
     setStartPrice("1000");
     setMinIncrement("100");
     setDurationHours("24");
@@ -1275,6 +1289,10 @@ export default function HomePage() {
         title={auctionTitle}
         description={auctionDescription}
         category={auctionCategory}
+        productType={auctionProductType}
+        brand={auctionBrand}
+        model={auctionModel}
+        specifications={auctionSpecifications}
         startPrice={startPrice}
         minIncrement={minIncrement}
         durationHours={durationHours}
@@ -1282,7 +1300,35 @@ export default function HomePage() {
         onClose={() => setShowSell(false)}
         onTitleChange={setAuctionTitle}
         onDescriptionChange={setAuctionDescription}
-        onCategoryChange={setAuctionCategory}
+        onCategoryChange={(category) => {
+          setAuctionCategory(category);
+          setAuctionProductType("");
+          setAuctionBrand("");
+          setAuctionModel("");
+          setAuctionSpecifications({});
+        }}
+        onProductTypeChange={(productType) => {
+          setAuctionProductType(productType);
+          setAuctionBrand("");
+          setAuctionModel("");
+          setAuctionSpecifications({});
+        }}
+        onBrandChange={(brand) => {
+          setAuctionBrand(brand);
+          setAuctionModel("");
+        }}
+        onModelChange={(model) => {
+          setAuctionModel(model);
+          if (!auctionTitle.trim() && auctionBrand && model) {
+            setAuctionTitle(`${auctionBrand} ${model}`);
+          }
+        }}
+        onSpecificationChange={(key, value) =>
+          setAuctionSpecifications((current) => ({
+            ...current,
+            [key]: value,
+          }))
+        }
         onStartPriceChange={setStartPrice}
         onMinIncrementChange={setMinIncrement}
         onDurationChange={setDurationHours}
