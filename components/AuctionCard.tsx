@@ -35,6 +35,8 @@ type AuctionCardProps = {
   isFavorite: boolean;
   onToggleFavorite: (auctionId: string) => void;
   onOpenDetail: (auction: Auction) => void;
+  isCompared: boolean;
+  onToggleCompare: (auctionId: string) => void;
   pricePulse?: boolean;
 };
 
@@ -43,6 +45,8 @@ export default function AuctionCard({
   isFavorite,
   onToggleFavorite,
   onOpenDetail,
+  isCompared,
+  onToggleCompare,
   pricePulse = false,
 }: AuctionCardProps) {
   return (
@@ -78,6 +82,8 @@ export default function AuctionCard({
         </div>
         <small>{remainingTime(auction.ends_at)}</small>
       </div>
+
+      <button className={`compareCardButton ${isCompared ? "compareCardActive" : ""}`} type="button" onClick={() => onToggleCompare(auction.id)}>{isCompared ? "Karşılaştırmada" : "Karşılaştır"}</button>
 
       <div className="cardActions">
         <button
