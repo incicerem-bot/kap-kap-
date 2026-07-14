@@ -45,45 +45,6 @@ type Bid = {
   created_at: string;
 };
 
-const demoProducts = [
-  {
-    id: "demo-macbook",
-    title: 'MacBook Pro M4 14"',
-    price: 47250,
-    time: "01:42:11",
-    bids: 18,
-    image:
-      "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&w=900&q=80",
-  },
-  {
-    id: "demo-iphone",
-    title: "iPhone 15 Pro 256GB",
-    price: 32750,
-    time: "00:58:32",
-    bids: 23,
-    image:
-      "https://images.unsplash.com/photo-1695048133142-1a20484d2569?auto=format&fit=crop&w=900&q=80",
-  },
-  {
-    id: "demo-watch",
-    title: "Rolex Datejust 41",
-    price: 91500,
-    time: "02:21:45",
-    bids: 31,
-    image:
-      "https://images.unsplash.com/photo-1524805444758-089113d48a6d?auto=format&fit=crop&w=900&q=80",
-  },
-  {
-    id: "demo-ps5",
-    title: "PlayStation 5 Digital",
-    price: 18750,
-    time: "00:35:18",
-    bids: 15,
-    image:
-      "https://images.unsplash.com/photo-1607853202273-797f1c22a38e?auto=format&fit=crop&w=900&q=80",
-  },
-];
-
 const activity = [
   { name: "Ayşe", text: "MacBook Pro’ya", value: "47.500 ₺", time: "2 saniye önce" },
   { name: "Mehmet", text: "Rolex Datejust saatini kazandı", value: "", time: "45 saniye önce" },
@@ -794,21 +755,7 @@ export default function HomePage() {
     favoriteAuctionIds,
   ]);
 
-  const activeCards = filteredAuctions.length
-    ? filteredAuctions
-    : demoProducts.map((product, index) => ({
-        id: product.id,
-        seller_id: "demo",
-        title: product.title,
-        description: "KapışKapış seçkisi",
-        start_price: product.price - 2000,
-        current_price: product.price,
-        min_increment: 250,
-        ends_at: new Date(Date.now() + (index + 1) * 3600000).toISOString(),
-        status: "active" as const,
-        image_url: product.image,
-        created_at: new Date().toISOString(),
-      }));
+  const activeCards = filteredAuctions;
 
   return (
     <main className="app">
@@ -1037,95 +984,94 @@ export default function HomePage() {
               <div>
                 <span className="sectionLabel">SON ŞANS</span>
                 <div className="titleWithBadge">
-                <h2>BUGÜN BİTENLER</h2>
-                <span>Son şans!</span>
+                  <h2>BUGÜN BİTENLER</h2>
+                  <span>Son şans!</span>
                 </div>
               </div>
               <button type="button">Tümünü Gör ›</button>
             </div>
 
-            <div className="endingGrid">
-              {activeCards.slice(0, 4).map((auction) => (
-                <article className="endingCard" key={auction.id}>
-                  <div className="productImage">
-                    <span className="countdownBadge">
-                      {remainingTime(auction.ends_at)}
-                    </span>
-                    <button
-                      type="button"
-                      className={
-                        auction.id.startsWith("demo-")
-                          ? "favoriteDisabled"
-                          : favoriteAuctionIds.includes(auction.id)
-                            ? "favoriteActive"
-                            : ""
-                      }
-                      onClick={() => void toggleFavorite(auction.id)}
-                      aria-label={
-                        auction.id.startsWith("demo-")
-                          ? "Örnek ilan"
-                          : "Favoriye ekle"
-                      }
-                      title={
-                        auction.id.startsWith("demo-")
-                          ? "Örnek ilanlar favoriye eklenemez"
-                          : "Favoriye ekle"
-                      }
-                    >
-                      {auction.id.startsWith("demo-")
-                        ? "–"
-                        : favoriteAuctionIds.includes(auction.id)
-                          ? "♥"
-                          : "♡"}
-                    </button>
-                    {auction.image_url ? (
-                      <img src={auction.image_url} alt={auction.title} />
-                    ) : (
-                      <div className="imageFallback">KK</div>
-                    )}
-                  </div>
-                  <h3>{auction.title}</h3>
-                  <div className="priceLine">
-                    <div>
-                      <span>Son teklif</span>
-                      <strong>{money(Number(auction.current_price))}</strong>
-                    </div>
-                    <small>
-                      Min. artış {money(Number(auction.min_increment))}
-                    </small>
-                  </div>
-                  <div className="cardActions">
-                    <button
-                      className={`favoriteTextButton ${
-                        favoriteAuctionIds.includes(auction.id)
-                          ? "favoriteTextActive"
-                          : ""
-                      }`}
-                      type="button"
-                      disabled={auction.id.startsWith("demo-")}
-                      onClick={() => void toggleFavorite(auction.id)}
-                    >
-                      <span>
-                        {favoriteAuctionIds.includes(auction.id) ? "♥" : "♡"}
-                      </span>
-                      {auction.id.startsWith("demo-")
-                        ? "Örnek ilan"
-                        : favoriteAuctionIds.includes(auction.id)
-                          ? "Favorilerde"
-                          : "Favoriye ekle"}
-                    </button>
+            {activeCards.filter((auction) => {
+              const diff = new Date(auction.ends_at).getTime() - Date.now();
+              return diff > 0 && diff <= 24 * 60 * 60 * 1000;
+            }).length === 0 ? (
+              <div className="sectionEmpty">
+                <strong>Bugün biten açık artırma yok.</strong>
+                <span>Yeni ilanlar eklendiğinde burada görünecek.</span>
+              </div>
+            ) : (
+              <div className="endingGrid">
+                {activeCards
+                  .filter((auction) => {
+                    const diff = new Date(auction.ends_at).getTime() - Date.now();
+                    return diff > 0 && diff <= 24 * 60 * 60 * 1000;
+                  })
+                  .slice(0, 4)
+                  .map((auction) => (
+                    <article className="endingCard" key={auction.id}>
+                      <div className="productImage">
+                        <span className="countdownBadge">
+                          {remainingTime(auction.ends_at)}
+                        </span>
+                        <button
+                          type="button"
+                          className={
+                            favoriteAuctionIds.includes(auction.id)
+                              ? "favoriteActive"
+                              : ""
+                          }
+                          onClick={() => void toggleFavorite(auction.id)}
+                          aria-label="Favoriye ekle"
+                        >
+                          {favoriteAuctionIds.includes(auction.id) ? "♥" : "♡"}
+                        </button>
+                        {auction.image_url ? (
+                          <img src={auction.image_url} alt={auction.title} />
+                        ) : (
+                          <div className="imageFallback">KK</div>
+                        )}
+                      </div>
+                      <h3>{auction.title}</h3>
+                      <div className="priceLine">
+                        <div>
+                          <span>Son teklif</span>
+                          <strong>{money(Number(auction.current_price))}</strong>
+                        </div>
+                        <small>
+                          Min. artış {money(Number(auction.min_increment))}
+                        </small>
+                      </div>
 
-                    <button
-                      className="kapisButton"
-                      type="button"
-                      onClick={() => void openAuctionDetail(auction)}
-                    >
-                      KAPIŞ!
-                    </button>
-                  </div>
-                </article>
-              ))}
-            </div>
+                      <div className="cardActions">
+                        <button
+                          className={`favoriteTextButton ${
+                            favoriteAuctionIds.includes(auction.id)
+                              ? "favoriteTextActive"
+                              : ""
+                          }`}
+                          type="button"
+                          onClick={() => void toggleFavorite(auction.id)}
+                        >
+                          <span>
+                            {favoriteAuctionIds.includes(auction.id) ? "♥" : "♡"}
+                          </span>
+                          {favoriteAuctionIds.includes(auction.id)
+                            ? "Favorilerde"
+                            : "Favoriye ekle"}
+                        </button>
+
+                        <button
+                          className="kapisButton"
+                          type="button"
+                          onClick={() => void openAuctionDetail(auction)}
+                        >
+                          KAPIŞ!
+                        </button>
+                      </div>
+                    </article>
+                  ))}
+              </div>
+            )}
           </section>
 
           <section className="panel" id="live-auctions">
@@ -1140,7 +1086,19 @@ export default function HomePage() {
               <button type="button" onClick={loadAuctions}>Yenile ›</button>
             </div>
 
-            {auctions.length > 0 && filteredAuctions.length === 0 ? (
+            {auctions.length === 0 ? (
+              <div className="realEmptyState">
+                <div className="emptyMonogram">KK</div>
+                <strong>Henüz aktif açık artırma yok.</strong>
+                <span>İlk gerçek ilanı oluşturarak KapışKapış’ı başlat.</span>
+                <button
+                  type="button"
+                  onClick={() => (user ? setShowSell(true) : setShowAuth(true))}
+                >
+                  İlk ilanı oluştur
+                </button>
+              </div>
+            ) : filteredAuctions.length === 0 ? (
               <div className="filteredEmpty">
                 <strong>Bu filtreye uygun ilan bulunamadı.</strong>
                 <span>Filtreleri temizleyerek tüm aktif ilanları görebilirsin.</span>
@@ -1152,92 +1110,74 @@ export default function HomePage() {
                     setSortMode("recommended");
                     setActiveCategory("all");
                     setShowFavoritesOnly(false);
-                  setShowFavoritesOnly(false);
                   }}
                 >
                   Tüm ilanları göster
                 </button>
               </div>
             ) : (
-            <div className="liveGrid">
-              {activeCards.slice(0, 5).map((auction) => (
-                <article className="liveCard" key={auction.id}>
-                  <div className="liveImage">
-                    <span className="liveBadge">● CANLI</span>
-                    <button
-                      type="button"
-                      className={
-                        auction.id.startsWith("demo-")
-                          ? "favoriteDisabled"
-                          : favoriteAuctionIds.includes(auction.id)
+              <div className="liveGrid">
+                {activeCards.slice(0, 12).map((auction) => (
+                  <article className="liveCard" key={auction.id}>
+                    <div className="liveImage">
+                      <span className="liveBadge">● CANLI</span>
+                      <button
+                        type="button"
+                        className={
+                          favoriteAuctionIds.includes(auction.id)
                             ? "favoriteActive"
                             : ""
-                      }
-                      onClick={() => void toggleFavorite(auction.id)}
-                      aria-label={
-                        auction.id.startsWith("demo-")
-                          ? "Örnek ilan"
-                          : "Favoriye ekle"
-                      }
-                      title={
-                        auction.id.startsWith("demo-")
-                          ? "Örnek ilanlar favoriye eklenemez"
-                          : "Favoriye ekle"
-                      }
-                    >
-                      {auction.id.startsWith("demo-")
-                        ? "–"
-                        : favoriteAuctionIds.includes(auction.id)
-                          ? "♥"
-                          : "♡"}
-                    </button>
-                    {auction.image_url ? (
-                      <img src={auction.image_url} alt={auction.title} />
-                    ) : (
-                      <div className="imageFallback">KK</div>
-                    )}
-                  </div>
-                  <h3>{auction.title}</h3>
-                  <span className="sellerLine">✓ Doğrulanmış satıcı</span>
-                  <div className="liveMeta">
-                    <div>
-                      <span>Son teklif</span>
-                      <strong>{money(Number(auction.current_price))}</strong>
-                    </div>
-                    <small>{remainingTime(auction.ends_at)}</small>
-                  </div>
-                  <div className="cardActions">
-                    <button
-                      className={`favoriteTextButton ${
-                        favoriteAuctionIds.includes(auction.id)
-                          ? "favoriteTextActive"
-                          : ""
-                      }`}
-                      type="button"
-                      disabled={auction.id.startsWith("demo-")}
-                      onClick={() => void toggleFavorite(auction.id)}
-                    >
-                      <span>
+                        }
+                        onClick={() => void toggleFavorite(auction.id)}
+                        aria-label="Favoriye ekle"
+                      >
                         {favoriteAuctionIds.includes(auction.id) ? "♥" : "♡"}
-                      </span>
-                      {auction.id.startsWith("demo-")
-                        ? "Örnek ilan"
-                        : favoriteAuctionIds.includes(auction.id)
+                      </button>
+                      {auction.image_url ? (
+                        <img src={auction.image_url} alt={auction.title} />
+                      ) : (
+                        <div className="imageFallback">KK</div>
+                      )}
+                    </div>
+                    <h3>{auction.title}</h3>
+                    <span className="sellerLine">Doğrulanmış satıcı</span>
+                    <div className="liveMeta">
+                      <div>
+                        <span>Son teklif</span>
+                        <strong>{money(Number(auction.current_price))}</strong>
+                      </div>
+                      <small>{remainingTime(auction.ends_at)}</small>
+                    </div>
+
+                    <div className="cardActions">
+                      <button
+                        className={`favoriteTextButton ${
+                          favoriteAuctionIds.includes(auction.id)
+                            ? "favoriteTextActive"
+                            : ""
+                        }`}
+                        type="button"
+                        onClick={() => void toggleFavorite(auction.id)}
+                      >
+                        <span>
+                          {favoriteAuctionIds.includes(auction.id) ? "♥" : "♡"}
+                        </span>
+                        {favoriteAuctionIds.includes(auction.id)
                           ? "Favorilerde"
                           : "Favoriye ekle"}
-                    </button>
+                      </button>
 
-                    <button
-                      className="kapisButton"
-                      type="button"
-                      onClick={() => void openAuctionDetail(auction)}
-                    >
-                      KAPIŞ!
-                    </button>
-                  </div>
-                </article>
-              ))}
-            </div>
+                      <button
+                        className="kapisButton"
+                        type="button"
+                        onClick={() => void openAuctionDetail(auction)}
+                      >
+                        KAPIŞ!
+                      </button>
+                    </div>
+                  </article>
+                ))}
+              </div>
             )}
           </section>
 
@@ -2534,6 +2474,55 @@ export default function HomePage() {
         .kapisButton.large {
           padding: 14px;
           font-size: 14px;
+        }
+
+        .sectionEmpty,
+        .realEmptyState {
+          display: grid;
+          place-items: center;
+          gap: 8px;
+          min-height: 180px;
+          padding: 28px;
+          border: 1px dashed #2a3540;
+          border-radius: 12px;
+          background: #0a1118;
+          text-align: center;
+        }
+
+        .sectionEmpty strong,
+        .realEmptyState strong {
+          font-size: 13px;
+        }
+
+        .sectionEmpty span,
+        .realEmptyState span {
+          color: #7f8a96;
+          font-size: 10px;
+        }
+
+        .emptyMonogram {
+          width: 54px;
+          height: 54px;
+          display: grid;
+          place-items: center;
+          border: 1px solid #5a4316;
+          border-radius: 14px;
+          background: rgba(200, 155, 50, 0.08);
+          color: #c89b32;
+          font-size: 18px;
+          font-weight: 1000;
+          letter-spacing: -0.08em;
+        }
+
+        .realEmptyState button {
+          margin-top: 8px;
+          border: 0;
+          border-radius: 9px;
+          padding: 11px 15px;
+          background: #ffc43d;
+          color: #0a0c0f;
+          font-size: 10px;
+          font-weight: 900;
         }
 
         .filteredEmpty {
