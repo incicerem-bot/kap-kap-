@@ -31,6 +31,8 @@ type BuyerFiltersProps = {
   onMinPriceChange: (value: string) => void;
   onMaxPriceChange: (value: string) => void;
   onClear: () => void;
+  onSaveSearch: () => void;
+  onOpenSavedSearches: () => void;
 };
 
 const categories: Array<{ value: AuctionCategory; label: string }> = [
@@ -248,11 +250,21 @@ export default function BuyerFilters(props: BuyerFiltersProps) {
           özellikleri birlikte tarar.
         </span>
 
-        {hasActiveFilters && (
-          <button type="button" onClick={props.onClear}>
-            Tüm filtreleri temizle
+        <div className="buyerFilterActions">
+          <button type="button" onClick={props.onOpenSavedSearches}>
+            Kayıtlı aramalar
           </button>
-        )}
+          {hasActiveFilters && (
+            <>
+              <button type="button" onClick={props.onSaveSearch}>
+                Aramayı kaydet
+              </button>
+              <button type="button" onClick={props.onClear}>
+                Filtreleri temizle
+              </button>
+            </>
+          )}
+        </div>
       </footer>
     </section>
   );

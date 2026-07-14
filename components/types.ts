@@ -115,3 +115,19 @@ export type LiveRoomMessage = {
   body: string;
   created_at: string;
 };
+
+
+export type SavedSearch = {
+  id: string;
+  user_id: string;
+  name: string;
+  category: AuctionCategory;
+  product_type: ProductType | null;
+  brand: string | null;
+  model: string | null;
+  min_price: number | null;
+  max_price: number | null;
+  specifications: ProductSpecifications;
+  alerts_enabled: boolean;
+  created_at: string;
+};
