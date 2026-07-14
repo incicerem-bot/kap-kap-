@@ -14,6 +14,10 @@ import ProfileModal from "@/components/ProfileModal";
 import NotificationPanel from "@/components/NotificationPanel";
 import MessagePanel from "@/components/MessagePanel";
 import OrderCenterModal from "@/components/OrderCenterModal";
+import DashboardSections from "@/components/DashboardSections";
+import WalletModal from "@/components/WalletModal";
+import SalesCenterModal from "@/components/SalesCenterModal";
+import BottomNav from "@/components/BottomNav";
 import type { Auction, AuctionCategory, Bid, ProfileSummary, AppNotification, AuctionOrder, ConversationMessage, OrderStatus } from "@/components/types";
 
 export default function HomePage() {
@@ -54,6 +58,8 @@ export default function HomePage() {
   const [selectedOrder, setSelectedOrder] = useState<AuctionOrder | null>(null);
   const [showOrderCenter, setShowOrderCenter] = useState(false);
   const [orderLoading, setOrderLoading] = useState(false);
+  const [showWallet, setShowWallet] = useState(false);
+  const [showSalesCenter, setShowSalesCenter] = useState(false);
   const [auctionTitle, setAuctionTitle] = useState("");
   const [auctionDescription, setAuctionDescription] = useState("");
   const [auctionCategory, setAuctionCategory] = useState<AuctionCategory>("phone");
@@ -1010,6 +1016,8 @@ export default function HomePage() {
           ))}
         </section>
 
+        <DashboardSections auctions={auctions} orders={orders} onOpenAuction={(a)=>void openDetail(a)} />
+        <section className="v20Quick"><button onClick={()=>{if(!user){setShowAuth(true);return;}setShowSalesCenter(true);void loadOrders(user.id)}}><span>01</span><strong>Satış Merkezi</strong><small>İlanlar ve siparişler</small></button><button onClick={()=>{if(!user){setShowAuth(true);return;}setShowWallet(true);void loadOrders(user.id)}}><span>02</span><strong>Cüzdanım</strong><small>Bakiye ve hareketler</small></button><button onClick={()=>void openProfileCenter()}><span>03</span><strong>Siparişlerim</strong><small>Ödeme ve kargo takibi</small></button></section>
         <section className="auctionSection" id="live-auctions">
           <div className="sectionHeader">
             <div>
@@ -1096,6 +1104,8 @@ export default function HomePage() {
         onSubmit={handleCreateAuction}
       />
 
+      <WalletModal open={showWallet} userId={user?.id||""} orders={orders} onClose={()=>setShowWallet(false)} />
+      <SalesCenterModal open={showSalesCenter} userId={user?.id||""} auctions={auctions} orders={orders} onClose={()=>setShowSalesCenter(false)} onOpenAuction={(a)=>{setShowSalesCenter(false);void openDetail(a)}} onOpenOrder={(o)=>{setSelectedOrder(o);setShowSalesCenter(false);setShowOrderCenter(true)}} onOpenSell={()=>{setShowSalesCenter(false);handleOpenSell()}} />
       <OrderCenterModal
         open={showOrderCenter}
         order={selectedOrder}
@@ -1178,6 +1188,7 @@ export default function HomePage() {
         pricePulse={Boolean(selectedAuction && pricePulseId === selectedAuction.id)}
       />
 
+      <BottomNav onHome={()=>window.scrollTo({top:0,behavior:"smooth"})} onSearch={()=>document.querySelector<HTMLInputElement>(".navSearch input")?.focus()} onSell={handleOpenSell} onNotifications={()=>{if(!user){setShowAuth(true);return;}setShowNotifications(true);void loadNotifications(user.id)}} onProfile={()=>void openProfileCenter()} />
       {liveEvent && (
         <div className="liveEventToast">
           <span>CANLI</span>
