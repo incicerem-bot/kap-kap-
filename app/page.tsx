@@ -630,7 +630,11 @@ export default function HomePage() {
     <main className="app">
       <header className="navbar">
         <button className="brand" type="button" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
-          <span className="brandLogo">KK</span>
+          <img
+            className="brandImage"
+            src="/kapiskapis-icon.png"
+            alt="KapışKapış"
+          />
           <strong>KAPIŞKAPIŞ</strong>
         </button>
 
@@ -665,54 +669,30 @@ export default function HomePage() {
 
       <div className="dashboard">
         <section className="mainColumn">
-          <section className="hero">
-            <div className="heroCopy">
-              <span className="heroKicker">TÜRKİYE'NİN CANLI PAZARYERİ</span>
-              <h1>
-                Beğendiysen bekleme,
-                <br />
-                <em>KapışKapış kap.</em>
-              </h1>
-              <p>Türkiye’nin en güvenli açık artırma platformu</p>
-
-              <div className="heroActions">
-                <button
-                  className="goldButton"
-                  type="button"
-                  onClick={() => (user ? setShowSell(true) : setShowAuth(true))}
-                >
-                  ⚡ Açık Artırmaya Başla
-                </button>
-                <button
-                  className="outlineButton"
-                  type="button"
-                  onClick={() =>
-                    document.getElementById("live-auctions")?.scrollIntoView({
-                      behavior: "smooth",
-                    })
-                  }
-                >
-                  ◉ Canlı Teklifleri İzle
-                </button>
-              </div>
-
-              <div className="heroTrust">
-                <span>🛡 Güvenli Ödeme</span>
-                <span>🚚 Kargo Koruması</span>
-                <span>✓ Doğrulanmış Satıcı</span>
-                <span>🎧 7/24 Destek</span>
-              </div>
-            </div>
-
-            <div className="heroVisual">
-              <div className="glow" />
-              <img
-                src="https://images.unsplash.com/photo-1598327105666-5b89351aff97?auto=format&fit=crop&w=900&q=80"
-                alt="Premium ürün"
-              />
-              <div className="floatingProduct watch">⌚</div>
-              <div className="floatingProduct game">🎮</div>
-              <div className="floatingProduct laptop">💻</div>
+          <section className="brandHero">
+            <img
+              src="/kapiskapis-hero.jpg"
+              alt="KapışKapış açık artırma fırsatları"
+            />
+            <div className="brandHeroActions">
+              <button
+                className="goldButton"
+                type="button"
+                onClick={() => (user ? setShowSell(true) : setShowAuth(true))}
+              >
+                ⚡ Hemen Katıl
+              </button>
+              <button
+                className="outlineButton"
+                type="button"
+                onClick={() =>
+                  document.getElementById("live-auctions")?.scrollIntoView({
+                    behavior: "smooth",
+                  })
+                }
+              >
+                ◉ Canlı Teklifleri İzle
+              </button>
             </div>
           </section>
 
@@ -890,16 +870,23 @@ export default function HomePage() {
               ))}
             </section>
 
-            <section className="sponsorCard">
-              <div>
-                <span>SPONSORLU</span>
-                <h2>AirPods Max</h2>
-                <p>KapışKapış Fırsatı!</p>
-                <button type="button">HEMEN KAP!</button>
-              </div>
+            <section className="brandAds">
+              <button
+                type="button"
+                onClick={() =>
+                  document.getElementById("live-auctions")?.scrollIntoView({
+                    behavior: "smooth",
+                  })
+                }
+              >
+                <img
+                  src="/kapiskapis-promo.jpg"
+                  alt="Her gün yeni ürünler"
+                />
+              </button>
               <img
-                src="https://images.unsplash.com/photo-1613040809024-b4ef7ba99bc3?auto=format&fit=crop&w=800&q=80"
-                alt="AirPods Max"
+                src="/kapiskapis-security.jpg"
+                alt="KapışKapış korumalı ödeme sistemi"
               />
             </section>
           </section>
@@ -1018,7 +1005,11 @@ export default function HomePage() {
           <section className="modalCard" onMouseDown={(event) => event.stopPropagation()}>
             <button className="closeButton" type="button" onClick={() => setShowAuth(false)}>×</button>
             <div className="modalBrand">
-              <span className="brandLogo">KK</span>
+              <img
+                className="modalBrandImage"
+                src="/kapiskapis-icon.png"
+                alt="KapışKapış"
+              />
               <div>
                 <strong>KapışKapış</strong>
                 <small>Hesabına eriş</small>
@@ -1317,17 +1308,22 @@ export default function HomePage() {
           color: white;
         }
 
-        .brandLogo {
-          width: 44px;
-          height: 44px;
-          display: grid;
-          place-items: center;
+        .brandImage,
+        .modalBrandImage {
+          display: block;
           border-radius: 12px;
-          background: linear-gradient(135deg, #ffd35b, #f2a900);
-          color: #080a0d;
-          font-weight: 1000;
-          letter-spacing: -0.12em;
-          box-shadow: 0 10px 30px rgba(255, 187, 0, 0.24);
+          object-fit: cover;
+          box-shadow: 0 10px 30px rgba(255, 187, 0, 0.18);
+        }
+
+        .brandImage {
+          width: 46px;
+          height: 46px;
+        }
+
+        .modalBrandImage {
+          width: 54px;
+          height: 54px;
         }
 
         .brand strong {
@@ -1437,6 +1433,32 @@ export default function HomePage() {
 
         .mainColumn {
           min-width: 0;
+        }
+
+        .brandHero {
+          position: relative;
+          overflow: hidden;
+          margin-top: 4px;
+          border: 1px solid #33260d;
+          border-radius: 18px;
+          background: #06080b;
+          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.28);
+        }
+
+        .brandHero > img {
+          display: block;
+          width: 100%;
+          min-height: 320px;
+          object-fit: cover;
+        }
+
+        .brandHeroActions {
+          position: absolute;
+          left: 4%;
+          bottom: 7%;
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
         }
 
         .hero {
@@ -1952,58 +1974,30 @@ export default function HomePage() {
           font-size: 9px;
         }
 
-        .sponsorCard {
-          position: relative;
-          min-height: 210px;
+        .brandAds {
           display: grid;
-          grid-template-columns: 1fr 1fr;
+          gap: 10px;
+        }
+
+        .brandAds button {
           overflow: hidden;
-          border: 1px solid #49350f;
-          border-radius: 16px;
-          background: linear-gradient(135deg, #2b1b08, #0b0d0f);
+          border: 1px solid #44330f;
+          border-radius: 14px;
+          padding: 0;
+          background: #0b0d10;
         }
 
-        .sponsorCard > div {
-          position: relative;
-          z-index: 2;
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-          padding: 24px;
-        }
-
-        .sponsorCard span {
-          color: #8a7650;
-          font-size: 8px;
-        }
-
-        .sponsorCard h2 {
-          margin: 10px 0 4px;
-          font-size: 28px;
-        }
-
-        .sponsorCard p {
-          margin: 0;
-          color: #d4d7dc;
-        }
-
-        .sponsorCard button {
-          align-self: flex-start;
-          margin-top: 18px;
-          border: 0;
-          border-radius: 8px;
-          padding: 10px 13px;
-          background: #ffc43d;
-          color: #0b0d0f;
-          font-weight: 900;
-        }
-
-        .sponsorCard img {
+        .brandAds img {
+          display: block;
           width: 100%;
-          height: 100%;
+          border: 1px solid #2b3239;
+          border-radius: 14px;
           object-fit: cover;
-          opacity: 0.72;
-          mask-image: linear-gradient(to right, transparent, black 40%);
+        }
+
+        .brandAds button img {
+          border: 0;
+          border-radius: 0;
         }
 
         .sidebar {
@@ -2549,6 +2543,17 @@ export default function HomePage() {
         }
 
         @media (max-width: 820px) {
+          .brandHero > img {
+            min-height: 390px;
+            object-position: 62% center;
+          }
+
+          .brandHeroActions {
+            left: 20px;
+            right: 20px;
+            bottom: 18px;
+          }
+
           .navbar {
             grid-template-columns: 1fr auto;
             gap: 12px;
