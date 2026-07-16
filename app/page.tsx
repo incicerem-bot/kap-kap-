@@ -32,7 +32,8 @@ import DisputeFormModal from "@/components/DisputeFormModal";
 import DisputeCenterModal from "@/components/DisputeCenterModal";
 import SellerStoreModal from "@/components/SellerStoreModal";
 import ProfileSettingsModal from "@/components/ProfileSettingsModal";
-import type { Auction, AuctionCategory, Bid, ProfileSummary, AppNotification, AuctionOrder, ConversationMessage, OrderStatus, ProductSpecifications, ProductType, SavedSearch, SellerReview, SellerTrustSummary, AuctionReport, AuctionReportStatus, UserAddress, DisputeStatus, DisputeType, OrderDispute, SellerStoreSummary, LiveReminder, EditableUserProfile, SellerProfile } from "@/components/types";
+import PublicUserProfileModal from "@/components/PublicUserProfileModal";
+import type { Auction, AuctionCategory, Bid, ProfileSummary, AppNotification, AuctionOrder, ConversationMessage, OrderStatus, ProductSpecifications, ProductType, SavedSearch, SellerReview, SellerTrustSummary, AuctionReport, AuctionReportStatus, UserAddress, DisputeStatus, DisputeType, OrderDispute, SellerStoreSummary, LiveReminder, EditableUserProfile, SellerProfile, PublicUserProfile } from "@/components/types";
 
 export default function HomePage() {
   const [user, setUser] = useState<User | null>(null);
@@ -94,6 +95,11 @@ export default function HomePage() {
     useState<SellerProfile | null>(null);
   const [showProfileSettings, setShowProfileSettings] = useState(false);
   const [profileSettingsLoading, setProfileSettingsLoading] = useState(false);
+  const [publicUserProfile, setPublicUserProfile] =
+    useState<PublicUserProfile | null>(null);
+  const [publicUserProfileLoading, setPublicUserProfileLoading] =
+    useState(false);
+  const [showPublicUserProfile, setShowPublicUserProfile] = useState(false);
   const [myAuctions, setMyAuctions] = useState<Auction[]>([]);
   const [myBidAuctions, setMyBidAuctions] = useState<Auction[]>([]);
   const [myFavoriteAuctions, setMyFavoriteAuctions] = useState<Auction[]>([]);
@@ -2028,6 +2034,99 @@ export default function HomePage() {
     );
   }
 
+  async function loadPublicUserProfile(profileUserId: string) {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) return;
+
+    setPublicUserProfileLoading(true);
+
+    const [
+      { data: profile, error: profileError },
+      { data: sellerProfile },
+      { count: activeListings },
+      { count: completedSales },
+      { count: completedPurchases },
+      { count: followerCount },
+      { data: ratings },
+    ] = await Promise.all([
+      supabase
+        .from("profiles")
+        .select(
+          "id, full_name, username, city, bio, avatar_url, account_type, email_verified, phone_verified, created_at"
+        )
+        .eq("id", profileUserId)
+        .maybeSingle(),
+      supabase
+        .from("seller_profiles")
+        .select(
+          "user_id, store_name, store_slug, description, logo_url, cover_url, city, verified, vacation_mode, created_at, updated_at"
+        )
+        .eq("user_id", profileUserId)
+        .maybeSingle(),
+      supabase
+        .from("auctions")
+        .select("id", { count: "exact", head: true })
+        .eq("seller_id", profileUserId)
+        .eq("status", "active"),
+      supabase
+        .from("orders")
+        .select("id", { count: "exact", head: true })
+        .eq("seller_id", profileUserId)
+        .eq("status", "delivered"),
+      supabase
+        .from("orders")
+        .select("id", { count: "exact", head: true })
+        .eq("buyer_id", profileUserId)
+        .eq("status", "delivered"),
+      supabase
+        .from("seller_follows")
+        .select("id", { count: "exact", head: true })
+        .eq("seller_id", profileUserId),
+      supabase
+        .from("seller_reviews")
+        .select("rating")
+        .eq("seller_id", profileUserId),
+    ]);
+
+    setPublicUserProfileLoading(false);
+
+    if (profileError || !profile) {
+      setMessage(
+        `Kullanıcı profili yüklenemedi: ${
+          profileError?.message || "Profil bulunamadı"
+        }`
+      );
+      return;
+    }
+
+    const ratingValues = (ratings ?? []).map((item) => Number(item.rating));
+    const averageRating =
+      ratingValues.length > 0
+        ? ratingValues.reduce((total, value) => total + value, 0) /
+          ratingValues.length
+        : 0;
+
+    setPublicUserProfile({
+      id: profile.id,
+      full_name: profile.full_name || "KapışKapış Kullanıcısı",
+      username: profile.username ?? null,
+      city: profile.city ?? null,
+      bio: profile.bio ?? null,
+      avatar_url: profile.avatar_url ?? null,
+      account_type: profile.account_type || "user",
+      created_at: profile.created_at ?? null,
+      email_verified: Boolean(profile.email_verified),
+      phone_verified: Boolean(profile.phone_verified),
+      active_listings: activeListings ?? 0,
+      completed_sales: completedSales ?? 0,
+      completed_purchases: completedPurchases ?? 0,
+      average_rating: averageRating,
+      review_count: ratingValues.length,
+      follower_count: followerCount ?? 0,
+      seller_profile: (sellerProfile as SellerProfile | null) ?? null,
+    });
+  }
+
   async function loadFollowedSellers(userId: string) {
     const supabase = getSupabaseBrowserClient();
     if (!supabase) return;
@@ -2847,6 +2946,29 @@ export default function HomePage() {
         }
       />}
 
+      <PublicUserProfileModal
+        open={showPublicUserProfile}
+        profile={publicUserProfile}
+        loading={publicUserProfileLoading}
+        currentUserId={user?.id || ""}
+        isFollowing={Boolean(
+          publicUserProfile &&
+            followedSellerIds.includes(publicUserProfile.id)
+        )}
+        followLoading={sellerFollowLoading}
+        onClose={() => setShowPublicUserProfile(false)}
+        onOpenStore={() => {
+          if (!publicUserProfile) return;
+          setShowPublicUserProfile(false);
+          setShowSellerStore(true);
+          void loadSellerStore(publicUserProfile.id);
+        }}
+        onToggleFollow={() => {
+          if (!publicUserProfile) return;
+          void toggleSellerFollow(publicUserProfile.id);
+        }}
+      />
+
       <ProfileSettingsModal
         open={showProfileSettings}
         userProfile={editableProfile}
@@ -2875,6 +2997,12 @@ export default function HomePage() {
         onToggleFollow={() => {
           if (!sellerStore) return;
           void toggleSellerFollow(sellerStore.seller_id);
+        }}
+        onOpenPublicProfile={() => {
+          if (!sellerStore) return;
+          setShowSellerStore(false);
+          setShowPublicUserProfile(true);
+          void loadPublicUserProfile(sellerStore.seller_id);
         }}
         onOpenAuction={(auction) => {
           setShowSellerStore(false);
@@ -3162,6 +3290,11 @@ export default function HomePage() {
           if (!selectedAuction) return;
           setShowSellerStore(true);
           void loadSellerStore(selectedAuction.seller_id);
+        }}
+        onOpenPublicUserProfile={() => {
+          if (!selectedAuction) return;
+          setShowPublicUserProfile(true);
+          void loadPublicUserProfile(selectedAuction.seller_id);
         }}
         isFollowingSeller={Boolean(
           selectedAuction &&
