@@ -19,6 +19,7 @@ type Props = {
   currentUserId: string;
   onClose: () => void;
   onToggleFollow: () => void;
+  onOpenPublicProfile: () => void;
   onOpenAuction: (auction: Auction) => void;
 };
 
@@ -31,6 +32,7 @@ export default function SellerStoreModal({
   currentUserId,
   onClose,
   onToggleFollow,
+  onOpenPublicProfile,
   onOpenAuction,
 }: Props) {
   if (!open) return null;
@@ -98,20 +100,26 @@ export default function SellerStoreModal({
             </div>
           </div>
 
-          {!ownStore && (
-            <button
-              className={isFollowing ? "sellerFollowActive" : ""}
-              type="button"
-              disabled={followLoading}
-              onClick={onToggleFollow}
-            >
-              {followLoading
-                ? "İşleniyor..."
-                : isFollowing
-                  ? "Takibi bırak"
-                  : "Satıcıyı takip et"}
+          <div className="sellerStoreHeaderActions">
+            <button type="button" onClick={onOpenPublicProfile}>
+              Kullanıcı profilini aç
             </button>
-          )}
+
+            {!ownStore && (
+              <button
+                className={isFollowing ? "sellerFollowActive" : ""}
+                type="button"
+                disabled={followLoading}
+                onClick={onToggleFollow}
+              >
+                {followLoading
+                  ? "İşleniyor..."
+                  : isFollowing
+                    ? "Takibi bırak"
+                    : "Satıcıyı takip et"}
+              </button>
+            )}
+          </div>
         </header>
 
         {loading ? (

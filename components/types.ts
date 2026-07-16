@@ -278,3 +278,24 @@ export type EditableUserProfile = {
   avatar_url: string | null;
   account_type: "user" | "seller";
 };
+
+
+export type PublicUserProfile = {
+  id: string;
+  full_name: string;
+  username: string | null;
+  city: string | null;
+  bio: string | null;
+  avatar_url: string | null;
+  account_type: "user" | "seller";
+  created_at: string | null;
+  email_verified: boolean;
+  phone_verified: boolean;
+  active_listings: number;
+  completed_sales: number;
+  completed_purchases: number;
+  average_rating: number;
+  review_count: number;
+  follower_count: number;
+  seller_profile?: SellerProfile | null;
+};

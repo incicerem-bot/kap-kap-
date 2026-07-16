@@ -53,6 +53,7 @@ type ProductDetailModalProps = {
   sellerTrustLoading: boolean;
   onOpenSellerReviews: () => void;
   onOpenSellerStore: () => void;
+  onOpenPublicUserProfile: () => void;
   isFollowingSeller: boolean;
   followLoading: boolean;
   onToggleSellerFollow: () => void;
@@ -321,6 +322,12 @@ export default function ProductDetailModal(props: ProductDetailModalProps) {
                 onClick={props.onOpenSellerStore}
               >
                 Satıcının mağazasını aç
+              </button>
+              <button
+                type="button"
+                onClick={props.onOpenPublicUserProfile}
+              >
+                Kullanıcı profilini görüntüle
               </button>
               <button
                 type="button"
