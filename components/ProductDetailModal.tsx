@@ -172,7 +172,7 @@ export default function ProductDetailModal(props: ProductDetailModalProps) {
                       <span>
                         {key
                           .replaceAll("_", " ")
-                          .replace(/\w/g, (letter) =>
+                          .replace(/\b\w/g, (letter) =>
                             letter.toLocaleUpperCase("tr")
                           )}
                       </span>
@@ -229,10 +229,44 @@ export default function ProductDetailModal(props: ProductDetailModalProps) {
               ))}
             </div>
 
+            <section className={`detailAutoBid ${props.autoBidEnabled ? "detailAutoBidActive" : ""}`}>
+              <label className="detailAutoBidToggle">
+                <input
+                  type="checkbox"
+                  checked={props.autoBidEnabled}
+                  disabled={isEnded || isOwnAuction}
+                  onChange={(event) => props.onAutoBidEnabledChange(event.target.checked)}
+                />
+                <span>
+                  <strong>Akıllı otomatik teklif</strong>
+                  <small>Rakip teklif geldikçe minimum artışla karşılık verir.</small>
+                </span>
+              </label>
+
+              {props.autoBidEnabled && (
+                <label className="detailAutoBidLimit">
+                  Maksimum bütçen
+                  <div className="bidInputWrap">
+                    <input
+                      type="number"
+                      value={props.autoBidMax}
+                      min={minimumBid}
+                      disabled={isEnded || isOwnAuction}
+                      onChange={(event) => props.onAutoBidMaxChange(event.target.value)}
+                      placeholder={String(minimumBid)}
+                      required
+                    />
+                    <span>₺</span>
+                  </div>
+                  <small>Bu üst sınır satıcıya ve diğer kullanıcılara gösterilmez.</small>
+                </label>
+              )}
+            </section>
+
             <button
               className="kapisButton premiumKapis"
               type="submit"
-              disabled={props.loading || isEnded || isOwnAuction || Number(props.bidAmount) < minimumBid}
+              disabled={props.loading || isEnded || isOwnAuction || Number(props.bidAmount) < minimumBid || (props.autoBidEnabled && Number(props.autoBidMax) < Number(props.bidAmount))}
             >
               {props.loading
                 ? "Teklif veriliyor..."
@@ -240,7 +274,9 @@ export default function ProductDetailModal(props: ProductDetailModalProps) {
                   ? "Açık artırma sona erdi"
                   : isOwnAuction
                     ? "Kendi ilanına teklif veremezsin"
-                    : `KAPIŞ! — En az ${money(minimumBid)}`}
+                    : props.autoBidEnabled
+                      ? `AKILLI KAPIŞ! — Üst sınır ${money(Number(props.autoBidMax) || minimumBid)}`
+                      : `KAPIŞ! — En az ${money(minimumBid)}`}
             </button>
           </form>
 
