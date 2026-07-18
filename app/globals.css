@@ -4562,3 +4562,62 @@ input,textarea,select { width:100%; border:1px solid #2a3540; border-radius:10px
   font-weight: 800;
   cursor: pointer;
 }
+
+
+/* v2.9 — Ürün detayında akıllı otomatik teklif */
+.detailAutoBid {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid rgba(255, 196, 61, 0.22);
+  border-radius: 14px;
+  background: rgba(255, 196, 61, 0.045);
+  transition: border-color 160ms ease, background 160ms ease;
+}
+
+.detailAutoBidActive {
+  border-color: rgba(255, 196, 61, 0.62);
+  background: rgba(255, 196, 61, 0.085);
+}
+
+.detailAutoBidToggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.detailAutoBidToggle input {
+  width: 18px;
+  height: 18px;
+  accent-color: #ffc43d;
+}
+
+.detailAutoBidToggle > span {
+  display: grid;
+  gap: 3px;
+}
+
+.detailAutoBidToggle strong {
+  color: #f5f7f8;
+  font-size: 13px;
+}
+
+.detailAutoBidToggle small,
+.detailAutoBidLimit > small {
+  color: #9da8b1;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.detailAutoBidLimit {
+  display: grid;
+  gap: 7px;
+  color: #dce2e7;
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.detailAutoBidLimit .bidInputWrap {
+  margin-top: 0;
+}
