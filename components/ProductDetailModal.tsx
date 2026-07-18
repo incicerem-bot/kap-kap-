@@ -39,6 +39,10 @@ type ProductDetailModalProps = {
   auction: Auction | null;
   bids: Bid[];
   bidAmount: string;
+  autoBidEnabled: boolean;
+  autoBidMax: string;
+  onAutoBidEnabledChange: (value: boolean) => void;
+  onAutoBidMaxChange: (value: string) => void;
   loading: boolean;
   isFavorite: boolean;
   onClose: () => void;
