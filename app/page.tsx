@@ -3163,6 +3163,11 @@ export default function HomePage() {
           setShowSellerStore(true);
           void loadSellerStore(selectedAuction.seller_id);
         }}
+        onOpenPublicUserProfile={() => {
+          if (!selectedAuction) return;
+          setShowSellerStore(true);
+          void loadSellerStore(selectedAuction.seller_id);
+        }}
         isFollowingSeller={Boolean(
           selectedAuction &&
             followedSellerIds.includes(selectedAuction.seller_id)
