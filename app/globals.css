@@ -135,7 +135,7 @@ input,textarea,select { width:100%; border:1px solid #2a3540; border-radius:10px
 .auctionPulse div { display:grid; }
 .auctionPulse span { color:#9a927e; font-size:8px; text-transform:uppercase; }
 .auctionPulse strong { margin-top:5px; color:#ffc43d; font-size:28px; }
-.countdownBox { justify-items: flex-end; }
+.countdownBox { justify-items:end; }
 .countdownBox strong { color:white; font-size:17px; }
 .bidRules { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px; }
 .bidRules div { display:grid; gap:4px; padding:12px; border:1px solid #26313c; border-radius:11px; }
@@ -273,7 +273,7 @@ input,textarea,select { width:100%; border:1px solid #2a3540; border-radius:10px
 .profileEyebrow { color:#b99337; font-size:8px; font-weight:950; letter-spacing:.14em; }
 .profileIdentity h2 { margin:7px 0 3px; font-size:28px; }
 .profileIdentity p { margin:0; color:#7f8a96; font-size:10px; }
-.profileVerification { display:grid; justify-items: flex-end; gap:4px; padding:12px 14px; border:1px solid #27593a; border-radius:12px; background:rgba(39,89,58,.12); }
+.profileVerification { display:grid; justify-items:end; gap:4px; padding:12px 14px; border:1px solid #27593a; border-radius:12px; background:rgba(39,89,58,.12); }
 .profileVerification span { color:#7f8a96; font-size:8px; }
 .profileVerification strong { color:#5fda8c; font-size:11px; }
 .profileStats { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; padding:18px 32px; border-bottom:1px solid #202a34; }
@@ -1475,7 +1475,7 @@ input,textarea,select { width:100%; border:1px solid #2a3540; border-radius:10px
 .buyerFilterResult {
   min-width: 94px;
   display: grid;
-  justify-items: flex-end;
+  justify-items: end;
   padding: 11px 13px;
   border: 1px solid #5c4718;
   border-radius: 11px;
@@ -4375,3 +4375,69 @@ input,textarea,select { width:100%; border:1px solid #2a3540; border-radius:10px
     flex: 1 1 45%;
   }
 }
+
+
+.autoBidCard {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 14px;
+  border: 1px solid #2a3540;
+  border-radius: 12px;
+  background: #091119;
+}
+.autoBidCardActive {
+  border-color: #73591f;
+  background: rgba(255, 196, 61, .055);
+}
+.autoBidToggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+}
+.autoBidToggle input,
+.roomAutoBid input[type="checkbox"] {
+  width: 17px;
+  height: 17px;
+  accent-color: #ffc43d;
+}
+.autoBidToggle > span {
+  display: grid;
+  gap: 4px;
+}
+.autoBidToggle strong { font-size: 10px; }
+.autoBidToggle small,
+.autoBidLimit small { color: #7f8a96; font-size: 8px; line-height: 1.45; }
+.autoBidLimit { display: grid; gap: 6px; color: #aeb8c2; font-size: 8px; }
+.autoBidLimit > div,
+.roomAutoBid > div {
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  border: 1px solid #3a4652;
+  border-radius: 9px;
+  background: #070d13;
+}
+.autoBidLimit input,
+.roomAutoBid > div input {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: #fff;
+  padding: 11px;
+  outline: none;
+}
+.autoBidLimit > div > span,
+.roomAutoBid > div > span { padding: 0 11px; color: #ffc43d; font-weight: 900; }
+.roomAutoBid {
+  display: grid;
+  gap: 9px;
+  margin-top: 10px;
+  padding: 11px;
+  border: 1px solid #303b46;
+  border-radius: 10px;
+  background: #091119;
+}
+.roomAutoBidActive { border-color: #73591f; }
+.roomAutoBid > label { display: flex; align-items: center; gap: 8px; color: #d4dbe1; font-size: 9px; font-weight: 850; }
