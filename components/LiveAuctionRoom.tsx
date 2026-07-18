@@ -27,9 +27,13 @@ type Props = {
   currentUserId: string;
   currentUserName: string;
   bidAmount: string;
+  autoBidEnabled: boolean;
+  autoBidMax: string;
   loading: boolean;
   onClose: () => void;
   onBidAmountChange: (value: string) => void;
+  onAutoBidEnabledChange: (value: boolean) => void;
+  onAutoBidMaxChange: (value: string) => void;
   onSubmitBid: (event: FormEvent<HTMLFormElement>) => void;
 };
 
@@ -40,9 +44,13 @@ export default function LiveAuctionRoom({
   currentUserId,
   currentUserName,
   bidAmount,
+  autoBidEnabled,
+  autoBidMax,
   loading,
   onClose,
   onBidAmountChange,
+  onAutoBidEnabledChange,
+  onAutoBidMaxChange,
   onSubmitBid,
 }: Props) {
   const [viewerCount, setViewerCount] = useState(1);
@@ -51,18 +59,22 @@ export default function LiveAuctionRoom({
   const [clock, setClock] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
 
-  const isLeader = useMemo(
-    () => Boolean(currentUserId && bids[0]?.bidder_id === currentUserId),
-    [bids, currentUserId]
-  );
-
   const minimumBid = useMemo(
-    () => auction ? Number(auction.current_price) + Number(auction.min_increment) : 0,
+    () => Number(auction?.current_price ?? 0) + Number(auction?.min_increment ?? 0),
     [auction?.current_price, auction?.min_increment]
   );
 
-  const isEnded = Boolean(
-    auction && (auction.status !== "active" || new Date(auction.ends_at).getTime() <= Date.now())
+  const quickBids = useMemo(() => {
+    const increment = Math.max(1, Number(auction?.min_increment ?? 1));
+    return [1, 2, 5].map((multiplier) => ({
+      label: `+${multiplier} artış`,
+      amount: minimumBid + increment * (multiplier - 1),
+    }));
+  }, [auction?.min_increment, minimumBid]);
+
+  const isLeader = useMemo(
+    () => Boolean(currentUserId && bids[0]?.bidder_id === currentUserId),
+    [bids, currentUserId]
   );
 
   useEffect(() => {
@@ -186,6 +198,20 @@ export default function LiveAuctionRoom({
               <strong>{bids[0] ? money(Number(bids[0].amount)) : "Henüz teklif yok"}</strong>
             </div>
 
+            <div className="roomQuickBids" aria-label="Hızlı teklif seçenekleri">
+              {quickBids.map((option) => (
+                <button
+                  type="button"
+                  key={option.label}
+                  onClick={() => onBidAmountChange(String(option.amount))}
+                  disabled={loading || auction.status !== "active"}
+                >
+                  <span>{option.label}</span>
+                  <strong>{money(option.amount)}</strong>
+                </button>
+              ))}
+            </div>
+
             <form className="roomBidForm" onSubmit={onSubmitBid}>
               <label>
                 Teklif tutarın
@@ -195,40 +221,40 @@ export default function LiveAuctionRoom({
                     value={bidAmount}
                     onChange={(event) => onBidAmountChange(event.target.value)}
                     min={minimumBid}
-                    disabled={isEnded || auction.seller_id === currentUserId}
                     required
                   />
                   <span>₺</span>
                 </div>
               </label>
-              <div className="roomQuickBids">
-                {[1, 2, 5].map((multiplier) => {
-                  const value = Number(auction.current_price) + Number(auction.min_increment) * multiplier;
-                  return (
-                    <button
-                      key={multiplier}
-                      type="button"
-                      disabled={isEnded || auction.seller_id === currentUserId}
-                      onClick={() => onBidAmountChange(String(value))}
-                    >
-                      +{multiplier} artış
-                    </button>
-                  );
-                })}
-              </div>
-              <button
-                type="submit"
-                disabled={loading || isEnded || auction.seller_id === currentUserId || Number(bidAmount) < minimumBid}
-              >
-                {loading
-                  ? "Teklif veriliyor..."
-                  : isEnded
-                    ? "Açık artırma sona erdi"
-                    : auction.seller_id === currentUserId
-                      ? "Kendi ilanına teklif veremezsin"
-                      : `KAPIŞ! — ${money(minimumBid)} ve üzeri`}
+              <button type="submit" disabled={loading || auction.status !== "active" || Number(bidAmount) < minimumBid}>
+                {loading ? "Teklif veriliyor..." : "KAPIŞ! — Canlı Teklif Ver"}
               </button>
             </form>
+
+            <section className={`roomAutoBid ${autoBidEnabled ? "roomAutoBidActive" : ""}`}>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={autoBidEnabled}
+                  onChange={(event) =>
+                    onAutoBidEnabledChange(event.target.checked)
+                  }
+                />
+                <span>Otomatik teklif kullan</span>
+              </label>
+              {autoBidEnabled && (
+                <div>
+                  <input
+                    type="number"
+                    value={autoBidMax}
+                    min={minimumBid}
+                    onChange={(event) => onAutoBidMaxChange(event.target.value)}
+                    placeholder="Maksimum bütçe"
+                  />
+                  <span>₺</span>
+                </div>
+              )}
+            </section>
 
             <p className="roomExtensionNote">
               Son 2 dakikada gelen teklif, açık artırmayı otomatik 2 dakika uzatır.
@@ -271,6 +297,7 @@ export default function LiveAuctionRoom({
                   disabled={!currentUserId}
                   maxLength={300}
                 />
+                <small className="roomChatCounter">{chatText.length}/300</small>
                 <button type="submit" disabled={!currentUserId || chatLoading || !chatText.trim()}>
                   Gönder
                 </button>
