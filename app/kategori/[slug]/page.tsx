@@ -1,0 +1,4 @@
+import MarketplaceShell from "@/components/MarketplaceShell";
+import { ProductGrid } from "@/components/MarketplaceUI";
+const labels:Record<string,string>={telefon:"Telefon",bilgisayar:"Bilgisayar",oyun:"Oyun & Konsol",saat:"Saat",koleksiyon:"Koleksiyon",elektronik:"Elektronik","ev-yasam":"Ev & Yaşam"};
+export default async function Page({params}:{params:Promise<{slug:string}>}){const {slug}=await params;const label=labels[slug]||"Kategori";return <MarketplaceShell eyebrow="KATEGORİ" title={label} description={`${label} kategorisindeki doğrulanmış açık artırmaları keşfet.`}><div className="filterBarPremium"><button className="active">Tümü</button><button>Yeni eklenen</button><button>En çok teklif alan</button><button>Azalan süre</button><select><option>Fiyat aralığı</option></select></div><ProductGrid filter={label}/></MarketplaceShell>}

@@ -1,0 +1,3 @@
+import MarketplaceShell from "@/components/MarketplaceShell";
+import { ProductGrid } from "@/components/MarketplaceUI";
+export default async function Page({searchParams}:{searchParams:Promise<{q?:string}>}){const {q=''}=await searchParams;return <MarketplaceShell eyebrow="ARAMA SONUÇLARI" title={q?`“${q}” için sonuçlar`:'Ürün ara'} description="KapışKapış'taki güncel açık artırmaları keşfet."><div className="filterBarPremium"><button className="active">En alakalı</button><button>Yeni eklenen</button><button>Fiyat: düşükten</button><button>Azalan süre</button></div><ProductGrid filter={q}/></MarketplaceShell>}
