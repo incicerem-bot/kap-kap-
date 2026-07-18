@@ -1,15 +1,3 @@
 import MarketplaceShell from "@/components/MarketplaceShell";
-import Link from "next/link";
-const activity=[
- ["⚡","MacBook Pro ilanına yeni teklif geldi","₺47.250 · 12 dakika önce"],
- ["◆","Rolex Submariner açık artırmasını kazandın","Ödeme bekleniyor · 1 saat önce"],
- ["↓","iPhone 15 Pro favori fiyatı düştü","₺2.100 indirim · 3 saat önce"],
- ["✓","PS5 Slim siparişin kargoya verildi","Kargo takip kodu oluşturuldu · Dün"]
-];
-export default function Page(){return <MarketplaceShell eyebrow="HESAP MERKEZİ" title="Profilim" description="Satışlarını, tekliflerini ve hesap güvenliğini tek merkezden yönet." action={<Link className="primaryActionPremium" href="/ilan-olustur">+ Yeni ilan</Link>}>
- <section className="profileCoverPremium"><div className="coverPattern"/><div className="profileAvatarLarge">K<span>✓</span></div><div className="profileIdentity"><div><h2>Kemal Akar</h2><b>@kemalakar</b></div><p>Doğrulanmış üye · İzmir · 2026'dan beri</p><div className="profileBadges"><b>★ 4.9 Puan</b><b>42 Başarılı satış</b><b>Yanıt süresi: 8 dk</b></div></div><Link href="/ayarlar" className="editProfileBtn">Profili düzenle</Link></section>
- <div className="profileTrustRow"><div><span>Güven puanı</span><strong>94<small>/100</small></strong><div className="trustMeter"><i/></div></div><div><span>Kimlik doğrulama</span><strong className="verifiedText">Tamamlandı ✓</strong><small>Hesabın güvenli ve doğrulanmış</small></div><div><span>Satıcı seviyesi</span><strong>Altın Satıcı</strong><small>Sonraki seviye için 8 satış</small></div></div>
- <div className="dashboardGridPremium"><article><span>Toplam kazanç</span><strong>₺86.450</strong><small>↑ Bu ay %18</small></article><article><span>Aktif ilan</span><strong>12</strong><small>4 ilan bugün bitiyor</small></article><article><span>Devam eden teklif</span><strong>8</strong><small>3 üründe lider sensin</small></article><article><span>Favori ürün</span><strong>37</strong><small>6 yeni fiyat değişimi</small></article></div>
- <div className="profileNavCards"><Link href="/ilanlarim"><span>▤</span><div><b>İlanlarım</b><small>12 aktif · 3 taslak</small></div><em>→</em></Link><Link href="/tekliflerim"><span>◆</span><div><b>Tekliflerim</b><small>8 devam ediyor</small></div><em>→</em></Link><Link href="/siparisler"><span>□</span><div><b>Siparişlerim</b><small>2 işlem bekliyor</small></div><em>→</em></Link><Link href="/cuzdan"><span>₺</span><div><b>Cüzdanım</b><small>₺12.840 kullanılabilir</small></div><em>→</em></Link></div>
- <div className="twoColPremium"><section className="panelPremium"><div className="panelHead"><div><span>SON AKTİVİTELER</span><h3>Hesap hareketleri</h3></div><Link href="/bildirimler">Tümünü gör</Link></div>{activity.map(([icon,title,time])=><div className="activityItem" key={title}><span>{icon}</span><div><b>{title}</b><small>{time}</small></div><button>Görüntüle</button></div>)}</section><section className="panelPremium performancePanel"><div className="panelHead"><div><span>SON 30 GÜN</span><h3>Satış performansı</h3></div></div><div className="fakeChart"><i/><i/><i/><i/><i/><i/><i/><i/><i/><i/><i/><i/></div><div className="chartStats"><div><span>Görüntülenme</span><strong>12.486</strong></div><div><span>Teklif</span><strong>328</strong></div><div><span>Dönüşüm</span><strong>%6,8</strong></div></div></section></div>
- </MarketplaceShell>}
+import ProfileDashboard from "@/components/ProfileDashboard";
+export default function Page(){return <MarketplaceShell title="" compact><ProfileDashboard/></MarketplaceShell>}
