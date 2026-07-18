@@ -27,13 +27,9 @@ type Props = {
   currentUserId: string;
   currentUserName: string;
   bidAmount: string;
-  autoBidEnabled: boolean;
-  autoBidMax: string;
   loading: boolean;
   onClose: () => void;
   onBidAmountChange: (value: string) => void;
-  onAutoBidEnabledChange: (value: boolean) => void;
-  onAutoBidMaxChange: (value: string) => void;
   onSubmitBid: (event: FormEvent<HTMLFormElement>) => void;
 };
 
@@ -44,13 +40,9 @@ export default function LiveAuctionRoom({
   currentUserId,
   currentUserName,
   bidAmount,
-  autoBidEnabled,
-  autoBidMax,
   loading,
   onClose,
   onBidAmountChange,
-  onAutoBidEnabledChange,
-  onAutoBidMaxChange,
   onSubmitBid,
 }: Props) {
   const [viewerCount, setViewerCount] = useState(1);
@@ -62,6 +54,15 @@ export default function LiveAuctionRoom({
   const isLeader = useMemo(
     () => Boolean(currentUserId && bids[0]?.bidder_id === currentUserId),
     [bids, currentUserId]
+  );
+
+  const minimumBid = useMemo(
+    () => auction ? Number(auction.current_price) + Number(auction.min_increment) : 0,
+    [auction?.current_price, auction?.min_increment]
+  );
+
+  const isEnded = Boolean(
+    auction && (auction.status !== "active" || new Date(auction.ends_at).getTime() <= Date.now())
   );
 
   useEffect(() => {
@@ -193,41 +194,41 @@ export default function LiveAuctionRoom({
                     type="number"
                     value={bidAmount}
                     onChange={(event) => onBidAmountChange(event.target.value)}
-                    min={Number(auction.current_price) + Number(auction.min_increment)}
+                    min={minimumBid}
+                    disabled={isEnded || auction.seller_id === currentUserId}
                     required
                   />
                   <span>₺</span>
                 </div>
               </label>
-              <button type="submit" disabled={loading}>
-                {loading ? "Teklif veriliyor..." : "KAPIŞ! — Canlı Teklif Ver"}
+              <div className="roomQuickBids">
+                {[1, 2, 5].map((multiplier) => {
+                  const value = Number(auction.current_price) + Number(auction.min_increment) * multiplier;
+                  return (
+                    <button
+                      key={multiplier}
+                      type="button"
+                      disabled={isEnded || auction.seller_id === currentUserId}
+                      onClick={() => onBidAmountChange(String(value))}
+                    >
+                      +{multiplier} artış
+                    </button>
+                  );
+                })}
+              </div>
+              <button
+                type="submit"
+                disabled={loading || isEnded || auction.seller_id === currentUserId || Number(bidAmount) < minimumBid}
+              >
+                {loading
+                  ? "Teklif veriliyor..."
+                  : isEnded
+                    ? "Açık artırma sona erdi"
+                    : auction.seller_id === currentUserId
+                      ? "Kendi ilanına teklif veremezsin"
+                      : `KAPIŞ! — ${money(minimumBid)} ve üzeri`}
               </button>
             </form>
-
-            <section className={`roomAutoBid ${autoBidEnabled ? "roomAutoBidActive" : ""}`}>
-              <label>
-                <input
-                  type="checkbox"
-                  checked={autoBidEnabled}
-                  onChange={(event) =>
-                    onAutoBidEnabledChange(event.target.checked)
-                  }
-                />
-                <span>Otomatik teklif kullan</span>
-              </label>
-              {autoBidEnabled && (
-                <div>
-                  <input
-                    type="number"
-                    value={autoBidMax}
-                    min={Number(auction.current_price) + Number(auction.min_increment)}
-                    onChange={(event) => onAutoBidMaxChange(event.target.value)}
-                    placeholder="Maksimum bütçe"
-                  />
-                  <span>₺</span>
-                </div>
-              )}
-            </section>
 
             <p className="roomExtensionNote">
               Son 2 dakikada gelen teklif, açık artırmayı otomatik 2 dakika uzatır.

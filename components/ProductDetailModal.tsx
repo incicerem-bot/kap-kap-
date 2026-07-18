@@ -1,6 +1,6 @@
 "use client";
 
-import type { FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import type { Auction, Bid, AuctionCategory, SellerTrustSummary } from "./types";
 
 const categoryLabels: Record<AuctionCategory, string> = {
@@ -24,25 +24,25 @@ function money(value: number) {
 }
 
 function remainingTime(endsAt: string) {
-  const diff = new Date(endsAt).getTime() - Date.now();
-  if (diff <= 0) return "Sona erdi";
-  const hours = Math.floor(diff / 3_600_000);
+  const diff = Math.max(0, new Date(endsAt).getTime() - Date.now());
+  const days = Math.floor(diff / 86_400_000);
+  const hours = Math.floor((diff % 86_400_000) / 3_600_000);
   const minutes = Math.floor((diff % 3_600_000) / 60_000);
-  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+  const seconds = Math.floor((diff % 60_000) / 1000);
+  if (diff <= 0) return "Sona erdi";
+  return days > 0
+    ? `${days}g ${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`
+    : `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
 
 type ProductDetailModalProps = {
   auction: Auction | null;
   bids: Bid[];
   bidAmount: string;
-  autoBidEnabled: boolean;
-  autoBidMax: string;
   loading: boolean;
   isFavorite: boolean;
   onClose: () => void;
   onBidAmountChange: (value: string) => void;
-  onAutoBidEnabledChange: (value: boolean) => void;
-  onAutoBidMaxChange: (value: string) => void;
   onSubmitBid: (event: FormEvent<HTMLFormElement>) => void;
   onToggleFavorite: (auctionId: string) => void;
   onOpenMessages: () => void;
@@ -66,8 +66,29 @@ type ProductDetailModalProps = {
 };
 
 export default function ProductDetailModal(props: ProductDetailModalProps) {
-  if (!props.auction) return null;
+  const [clock, setClock] = useState("");
   const auction = props.auction;
+
+  useEffect(() => {
+    if (!auction) return;
+    const updateClock = () => setClock(remainingTime(auction.ends_at));
+    updateClock();
+    const timer = window.setInterval(updateClock, 1000);
+    return () => window.clearInterval(timer);
+  }, [auction?.id, auction?.ends_at]);
+
+  const minimumBid = useMemo(
+    () => auction ? Number(auction.current_price) + Number(auction.min_increment) : 0,
+    [auction?.current_price, auction?.min_increment]
+  );
+
+  if (!auction) return null;
+
+  const isEnded = auction.status !== "active" || new Date(auction.ends_at).getTime() <= Date.now();
+  const isOwnAuction = auction.seller_id === props.currentUserId;
+  const quickBidValues = [1, 2, 5].map((multiplier) =>
+    Number(auction.current_price) + Number(auction.min_increment) * multiplier
+  );
 
   return (
     <div className="modalBackdrop detailBackdrop" onMouseDown={props.onClose}>
@@ -117,7 +138,7 @@ export default function ProductDetailModal(props: ProductDetailModalProps) {
             </div>
             <div className="countdownBox">
               <span>Kalan süre</span>
-              <strong>{remainingTime(auction.ends_at)}</strong>
+              <strong className={isEnded ? "auctionEndedClock" : clock.startsWith("00:00") ? "auctionUrgentClock" : ""}>{clock || remainingTime(auction.ends_at)}</strong>
             </div>
           </div>
 
@@ -183,52 +204,41 @@ export default function ProductDetailModal(props: ProductDetailModalProps) {
                   type="number"
                   value={props.bidAmount}
                   onChange={(event) => props.onBidAmountChange(event.target.value)}
-                  min={Number(auction.current_price) + Number(auction.min_increment)}
+                  min={minimumBid}
+                  disabled={isEnded || isOwnAuction}
                   required
                 />
                 <span>₺</span>
               </div>
             </label>
 
-            <button className="kapisButton premiumKapis" type="submit" disabled={props.loading}>
-              {props.loading ? "Teklif veriliyor..." : "KAPIŞ! — Teklif Ver"}
+            <div className="quickBidOptions" aria-label="Hızlı teklif seçenekleri">
+              {quickBidValues.map((value, index) => (
+                <button
+                  key={value}
+                  type="button"
+                  disabled={isEnded || isOwnAuction}
+                  onClick={() => props.onBidAmountChange(String(value))}
+                >
+                  +{index === 0 ? 1 : index === 1 ? 2 : 5} artış · {money(value)}
+                </button>
+              ))}
+            </div>
+
+            <button
+              className="kapisButton premiumKapis"
+              type="submit"
+              disabled={props.loading || isEnded || isOwnAuction || Number(props.bidAmount) < minimumBid}
+            >
+              {props.loading
+                ? "Teklif veriliyor..."
+                : isEnded
+                  ? "Açık artırma sona erdi"
+                  : isOwnAuction
+                    ? "Kendi ilanına teklif veremezsin"
+                    : `KAPIŞ! — En az ${money(minimumBid)}`}
             </button>
           </form>
-
-          <section className={`autoBidCard ${props.autoBidEnabled ? "autoBidCardActive" : ""}`}>
-            <label className="autoBidToggle">
-              <input
-                type="checkbox"
-                checked={props.autoBidEnabled}
-                onChange={(event) =>
-                  props.onAutoBidEnabledChange(event.target.checked)
-                }
-              />
-              <span>
-                <strong>Otomatik teklif</strong>
-                <small>Rakip teklif verdikçe minimum artışla otomatik karşılık verir.</small>
-              </span>
-            </label>
-
-            {props.autoBidEnabled && (
-              <label className="autoBidLimit">
-                Maksimum bütçen
-                <div>
-                  <input
-                    type="number"
-                    value={props.autoBidMax}
-                    min={Number(auction.current_price) + Number(auction.min_increment)}
-                    onChange={(event) =>
-                      props.onAutoBidMaxChange(event.target.value)
-                    }
-                    required
-                  />
-                  <span>₺</span>
-                </div>
-                <small>Bu limit diğer kullanıcılara gösterilmez.</small>
-              </label>
-            )}
-          </section>
 
           {auction.live_enabled && (
             <section className="liveAuctionControlCard">
