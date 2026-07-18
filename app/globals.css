@@ -58,7 +58,7 @@ button { cursor: pointer; }
 .categoryBar button.activeCategory { border-color:#b98b22; background:rgba(200,155,50,.12); color:#ffc43d; }
 
 .auctionSection { padding:18px; border:1px solid #1c2630; border-radius:16px; background:#091017; }
-.sectionHeader { display:flex; justify-content:space-between; align-items:end; gap:14px; margin-bottom:16px; }
+.sectionHeader { display:flex; justify-content:space-between; align-items: flex-end; gap:14px; margin-bottom:16px; }
 .sectionHeader span { color:#6f7a85; font-size:8px; font-weight:900; letter-spacing:.14em; }
 .sectionHeader h2 { margin:5px 0 0; font-size:22px; }
 .sectionHeader > strong { color:#7f8a96; font-size:10px; }
@@ -73,7 +73,7 @@ button { cursor: pointer; }
 .categoryBadge,.detailCategory { display:inline-flex; margin-top:10px; border:1px solid #3a4652; border-radius:999px; padding:5px 7px; color:#8f9aa5; font-size:8px; font-weight:850; }
 .liveCard h3 { margin:10px 0 6px; font-size:14px; }
 .sellerLine { color:#7f8a96; font-size:9px; }
-.liveMeta { display:flex; justify-content:space-between; align-items:end; gap:8px; margin-top:14px; }
+.liveMeta { display:flex; justify-content:space-between; align-items: flex-end; gap:8px; margin-top:14px; }
 .liveMeta div { display:grid; }
 .liveMeta span { color:#7f8a96; font-size:8px; }
 .liveMeta strong { margin-top:3px; color:#ffc43d; font-size:17px; }
@@ -1173,7 +1173,7 @@ input,textarea,select { width:100%; border:1px solid #2a3540; border-radius:10px
 .liveRoomMain{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(360px,.7fr)}.liveRoomStage{padding:22px;border-right:1px solid #202a34}.liveRoomImage{position:relative;overflow:hidden;min-height:480px;border:1px solid #222d38;border-radius:18px;background:radial-gradient(circle,rgba(200,155,50,.08),transparent 48%),#0a1118}.liveRoomImage img{width:100%;height:480px;object-fit:contain}.liveRoomImage>span{min-height:480px;display:grid;place-items:center;color:#c89b32;font-size:42px;font-weight:1000}.roomLiveBadge{position:absolute;top:14px;left:14px;padding:7px 9px;border-radius:8px;background:#d32f3c;color:white;font-size:8px;font-weight:950;letter-spacing:.1em;box-shadow:0 0 0 5px rgba(211,47,60,.12)}
 .roomPriceBoard{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}.roomPriceBoard>div{display:grid;gap:5px;padding:16px;border:1px solid #3a4652;border-radius:12px;background:#0a1118}.roomPriceBoard span{color:#74808c;font-size:8px}.roomPriceBoard strong{color:#ffc43d;font-size:25px}.roomPriceBoard>div:last-child strong{color:white}.roomUrgent{color:#ff6570!important;animation:roomUrgent 1s infinite}
 .leaderBanner{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:10px;padding:13px 15px;border:1px solid #37424d;border-radius:11px;background:#0b1219}.leaderBanner span{color:#74808c;font-size:8px;font-weight:950}.leaderBanner strong{font-size:12px}.leaderMine{border-color:#2f7349;background:rgba(47,115,73,.11)}.leaderMine span,.leaderMine strong{color:#60de8f}
-.roomBidForm{display:grid;grid-template-columns:1fr auto;align-items:end;gap:10px;margin-top:12px}.roomBidForm label{gap:6px}.roomBidForm label>div{display:grid;grid-template-columns:1fr auto;align-items:center;border:1px solid #4f3d15;border-radius:10px;background:#0b1219}.roomBidForm input{border:0;background:transparent;font-size:18px;font-weight:900}.roomBidForm label>div span{padding-right:14px;color:#ffc43d;font-weight:950}.roomBidForm>button{height:48px;border:0;border-radius:10px;padding:0 18px;background:#ffc43d;color:#080b0f;font-size:10px;font-weight:950}.roomExtensionNote{margin:10px 0 0;color:#68737f;font-size:8px;text-align:center}
+.roomBidForm{display:grid;grid-template-columns:1fr auto;align-items: flex-end;gap:10px;margin-top:12px}.roomBidForm label{gap:6px}.roomBidForm label>div{display:grid;grid-template-columns:1fr auto;align-items:center;border:1px solid #4f3d15;border-radius:10px;background:#0b1219}.roomBidForm input{border:0;background:transparent;font-size:18px;font-weight:900}.roomBidForm label>div span{padding-right:14px;color:#ffc43d;font-weight:950}.roomBidForm>button{height:48px;border:0;border-radius:10px;padding:0 18px;background:#ffc43d;color:#080b0f;font-size:10px;font-weight:950}.roomExtensionNote{margin:10px 0 0;color:#68737f;font-size:8px;text-align:center}
 .liveRoomSidebar{display:grid;grid-template-rows:minmax(280px,.9fr) minmax(300px,1.1fr);max-height:calc(100vh - 105px)}.roomFeed,.roomChat{min-height:0;display:grid;grid-template-rows:auto 1fr;border-bottom:1px solid #202a34}.roomFeed header,.roomChat header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid #202a34}.roomFeed header strong,.roomChat header strong{color:#ffc43d;font-size:10px}.roomFeed>div,.roomChatMessages{overflow-y:auto;padding:10px}.roomFeed>div>p,.roomChatMessages>p{color:#74808c;font-size:9px;text-align:center}.roomFeed article{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;padding:10px;border-bottom:1px solid #1d2731}.roomFeed article>span{width:28px;height:28px;display:grid;place-items:center;border:1px solid #2f3b46;border-radius:8px;color:#74808c;font-size:8px}.roomFeed article>div{display:grid}.roomFeed article strong{color:#ffc43d;font-size:11px}.roomFeed article small,.roomFeed article b{color:#74808c;font-size:8px}.roomFeed .topBid{border:1px solid #5c4718;border-radius:9px;background:rgba(200,155,50,.07)}.roomFeed .topBid b{color:#ffc43d}
 .roomChat{grid-template-rows:auto 1fr auto;border-bottom:0}.roomChatMessages article{display:grid;grid-template-columns:auto 1fr;gap:7px;padding:7px 3px}.roomChatMessages strong{color:#c89b32;font-size:8px}.roomChatMessages span{color:#cbd2d9;font-size:9px;line-height:1.45}.roomChat form{display:grid;grid-template-columns:1fr auto;gap:7px;padding:10px;border-top:1px solid #202a34}.roomChat input{padding:10px}.roomChat button{border:0;border-radius:9px;padding:0 13px;background:#ffc43d;color:#080b0f;font-size:8px;font-weight:950}
 @keyframes roomUrgent{50%{opacity:.5;transform:scale(1.03)}}
@@ -1475,7 +1475,7 @@ input,textarea,select { width:100%; border:1px solid #2a3540; border-radius:10px
 .buyerFilterResult {
   min-width: 94px;
   display: grid;
-  justify-items: flex-end;
+  justify-items: end;
   padding: 11px 13px;
   border: 1px solid #5c4718;
   border-radius: 11px;
@@ -4376,57 +4376,135 @@ input,textarea,select { width:100%; border:1px solid #2a3540; border-radius:10px
   }
 }
 
-/* v2.6 - hızlı teklif ve canlı sayaç geliştirmeleri */
-.quickBidOptions,
+
+.autoBidCard {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 14px;
+  border: 1px solid #2a3540;
+  border-radius: 12px;
+  background: #091119;
+}
+.autoBidCardActive {
+  border-color: #73591f;
+  background: rgba(255, 196, 61, .055);
+}
+.autoBidToggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+}
+.autoBidToggle input,
+.roomAutoBid input[type="checkbox"] {
+  width: 17px;
+  height: 17px;
+  accent-color: #ffc43d;
+}
+.autoBidToggle > span {
+  display: grid;
+  gap: 4px;
+}
+.autoBidToggle strong { font-size: 10px; }
+.autoBidToggle small,
+.autoBidLimit small { color: #7f8a96; font-size: 8px; line-height: 1.45; }
+.autoBidLimit { display: grid; gap: 6px; color: #aeb8c2; font-size: 8px; }
+.autoBidLimit > div,
+.roomAutoBid > div {
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  border: 1px solid #3a4652;
+  border-radius: 9px;
+  background: #070d13;
+}
+.autoBidLimit input,
+.roomAutoBid > div input {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: #fff;
+  padding: 11px;
+  outline: none;
+}
+.autoBidLimit > div > span,
+.roomAutoBid > div > span { padding: 0 11px; color: #ffc43d; font-weight: 900; }
+.roomAutoBid {
+  display: grid;
+  gap: 9px;
+  margin-top: 10px;
+  padding: 11px;
+  border: 1px solid #303b46;
+  border-radius: 10px;
+  background: #091119;
+}
+.roomAutoBidActive { border-color: #73591f; }
+.roomAutoBid > label { display: flex; align-items: center; gap: 8px; color: #d4dbe1; font-size: 9px; font-weight: 850; }
+
+
+/* v2.7 canlı teklif deneyimi */
 .roomQuickBids {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
+  gap: 10px;
+  margin: 14px 0;
 }
 
-.quickBidOptions button,
 .roomQuickBids button {
-  border: 1px solid #33404d;
-  border-radius: 10px;
-  padding: 10px 8px;
-  background: #101922;
-  color: #c9d3dc;
-  font-size: 10px;
-  font-weight: 800;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.045);
+  color: inherit;
+  padding: 11px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
   cursor: pointer;
+  transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
 }
 
-.quickBidOptions button:hover:not(:disabled),
 .roomQuickBids button:hover:not(:disabled) {
-  border-color: #f0a91d;
-  color: #ffd067;
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  border-color: rgba(255, 176, 32, 0.65);
+  background: rgba(255, 176, 32, 0.10);
 }
 
-.quickBidOptions button:disabled,
 .roomQuickBids button:disabled {
-  cursor: not-allowed;
   opacity: 0.45;
+  cursor: not-allowed;
 }
 
-.auctionUrgentClock,
-.roomUrgent {
-  color: #ff6d6d !important;
-  animation: auctionClockPulse 0.85s ease-in-out infinite alternate;
+.roomQuickBids span {
+  font-size: 11px;
+  opacity: 0.68;
 }
 
-.auctionEndedClock {
-  color: #8e98a3 !important;
+.roomQuickBids strong {
+  font-size: 13px;
 }
 
-@keyframes auctionClockPulse {
-  from { opacity: 0.65; transform: scale(0.98); }
-  to { opacity: 1; transform: scale(1.04); }
+.roomChat form {
+  position: relative;
 }
 
-@media (max-width: 560px) {
-  .quickBidOptions,
+.roomChatCounter {
+  position: absolute;
+  right: 72px;
+  bottom: 9px;
+  font-size: 10px;
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+@media (max-width: 720px) {
   .roomQuickBids {
     grid-template-columns: 1fr;
+  }
+
+  .roomQuickBids button {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
   }
 }
