@@ -27,9 +27,13 @@ type Props = {
   currentUserId: string;
   currentUserName: string;
   bidAmount: string;
+  autoBidEnabled: boolean;
+  autoBidMax: string;
   loading: boolean;
   onClose: () => void;
   onBidAmountChange: (value: string) => void;
+  onAutoBidEnabledChange: (value: boolean) => void;
+  onAutoBidMaxChange: (value: string) => void;
   onSubmitBid: (event: FormEvent<HTMLFormElement>) => void;
 };
 
@@ -40,9 +44,13 @@ export default function LiveAuctionRoom({
   currentUserId,
   currentUserName,
   bidAmount,
+  autoBidEnabled,
+  autoBidMax,
   loading,
   onClose,
   onBidAmountChange,
+  onAutoBidEnabledChange,
+  onAutoBidMaxChange,
   onSubmitBid,
 }: Props) {
   const [viewerCount, setViewerCount] = useState(1);
@@ -195,6 +203,31 @@ export default function LiveAuctionRoom({
                 {loading ? "Teklif veriliyor..." : "KAPIŞ! — Canlı Teklif Ver"}
               </button>
             </form>
+
+            <section className={`roomAutoBid ${autoBidEnabled ? "roomAutoBidActive" : ""}`}>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={autoBidEnabled}
+                  onChange={(event) =>
+                    onAutoBidEnabledChange(event.target.checked)
+                  }
+                />
+                <span>Otomatik teklif kullan</span>
+              </label>
+              {autoBidEnabled && (
+                <div>
+                  <input
+                    type="number"
+                    value={autoBidMax}
+                    min={Number(auction.current_price) + Number(auction.min_increment)}
+                    onChange={(event) => onAutoBidMaxChange(event.target.value)}
+                    placeholder="Maksimum bütçe"
+                  />
+                  <span>₺</span>
+                </div>
+              )}
+            </section>
 
             <p className="roomExtensionNote">
               Son 2 dakikada gelen teklif, açık artırmayı otomatik 2 dakika uzatır.

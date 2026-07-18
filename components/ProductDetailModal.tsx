@@ -35,10 +35,14 @@ type ProductDetailModalProps = {
   auction: Auction | null;
   bids: Bid[];
   bidAmount: string;
+  autoBidEnabled: boolean;
+  autoBidMax: string;
   loading: boolean;
   isFavorite: boolean;
   onClose: () => void;
   onBidAmountChange: (value: string) => void;
+  onAutoBidEnabledChange: (value: boolean) => void;
+  onAutoBidMaxChange: (value: string) => void;
   onSubmitBid: (event: FormEvent<HTMLFormElement>) => void;
   onToggleFavorite: (auctionId: string) => void;
   onOpenMessages: () => void;
@@ -190,6 +194,41 @@ export default function ProductDetailModal(props: ProductDetailModalProps) {
               {props.loading ? "Teklif veriliyor..." : "KAPIŞ! — Teklif Ver"}
             </button>
           </form>
+
+          <section className={`autoBidCard ${props.autoBidEnabled ? "autoBidCardActive" : ""}`}>
+            <label className="autoBidToggle">
+              <input
+                type="checkbox"
+                checked={props.autoBidEnabled}
+                onChange={(event) =>
+                  props.onAutoBidEnabledChange(event.target.checked)
+                }
+              />
+              <span>
+                <strong>Otomatik teklif</strong>
+                <small>Rakip teklif verdikçe minimum artışla otomatik karşılık verir.</small>
+              </span>
+            </label>
+
+            {props.autoBidEnabled && (
+              <label className="autoBidLimit">
+                Maksimum bütçen
+                <div>
+                  <input
+                    type="number"
+                    value={props.autoBidMax}
+                    min={Number(auction.current_price) + Number(auction.min_increment)}
+                    onChange={(event) =>
+                      props.onAutoBidMaxChange(event.target.value)
+                    }
+                    required
+                  />
+                  <span>₺</span>
+                </div>
+                <small>Bu limit diğer kullanıcılara gösterilmez.</small>
+              </label>
+            )}
+          </section>
 
           {auction.live_enabled && (
             <section className="liveAuctionControlCard">
