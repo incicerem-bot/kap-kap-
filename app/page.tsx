@@ -70,8 +70,6 @@ export default function HomePage() {
   const [reviewedOrderIds, setReviewedOrderIds] = useState<string[]>([]);
   const [bidHistory, setBidHistory] = useState<Bid[]>([]);
   const [bidAmount, setBidAmount] = useState("");
-  const [autoBidEnabled, setAutoBidEnabled] = useState(false);
-  const [autoBidMax, setAutoBidMax] = useState("");
 
   const [showAuth, setShowAuth] = useState(false);
   const [authMode, setAuthMode] = useState<"login" | "register">("login");
@@ -2315,9 +2313,9 @@ export default function HomePage() {
   async function openDetail(auction: Auction) {
     setSelectedAuction(auction);
     setSellerTrust(null);
-    const nextMinimum = Number(auction.current_price) + Number(auction.min_increment);
-    setBidAmount(String(nextMinimum));
-    setAutoBidMax(String(Math.max(nextMinimum, Number(autoBidMax) || nextMinimum)));
+    setBidAmount(
+      String(Number(auction.current_price) + Number(auction.min_increment))
+    );
 
     await Promise.all([
       loadBidHistory(auction.id),
@@ -2337,25 +2335,9 @@ export default function HomePage() {
 
     setLoading(true);
 
-    const bidValue = Number(bidAmount);
-    const maximumValue = autoBidEnabled ? Number(autoBidMax) : bidValue;
-
-    if (!Number.isFinite(bidValue) || !Number.isFinite(maximumValue)) {
-      setLoading(false);
-      setMessage("Geçerli bir teklif tutarı gir.");
-      return;
-    }
-
-    if (autoBidEnabled && maximumValue < bidValue) {
-      setLoading(false);
-      setMessage("Otomatik teklif limiti, teklif tutarından düşük olamaz.");
-      return;
-    }
-
-    const { data, error } = await supabase.rpc("place_smart_bid", {
+    const { data, error } = await supabase.rpc("place_bid", {
       p_auction_id: selectedAuction.id,
-      p_amount: bidValue,
-      p_max_amount: maximumValue,
+      p_amount: Number(bidAmount),
     });
 
     setLoading(false);
@@ -2365,46 +2347,23 @@ export default function HomePage() {
       return;
     }
 
-    const result = data as {
-      current_price?: number;
-      ends_at?: string;
-      leader_id?: string;
-      is_leader?: boolean;
-    } | null;
-    const updatedPrice = Number(result?.current_price ?? data);
-    const updatedEndsAt = result?.ends_at ?? selectedAuction.ends_at;
+    const updatedPrice = Number(data);
 
     setSelectedAuction((current) =>
-      current
-        ? {
-            ...current,
-            current_price: updatedPrice,
-            ends_at: updatedEndsAt,
-          }
-        : current
+      current ? { ...current, current_price: updatedPrice } : current
     );
 
     setAuctions((current) =>
       current.map((auction) =>
         auction.id === selectedAuction.id
-          ? {
-              ...auction,
-              current_price: updatedPrice,
-              ends_at: updatedEndsAt,
-            }
+          ? { ...auction, current_price: updatedPrice }
           : auction
       )
     );
 
     setBidAmount(String(updatedPrice + Number(selectedAuction.min_increment)));
     await loadBidHistory(selectedAuction.id);
-    setMessage(
-      result?.is_leader
-        ? autoBidEnabled
-          ? "Otomatik teklifin aktif. Şu anda lider sensin."
-          : "Teklifin verildi. Şu anda lider sensin."
-        : "Teklif kaydedildi; rakibin otomatik limiti daha yüksek."
-    );
+    setMessage("Teklifin verildi.");
   }
 
   async function handleCreateAuction(event: FormEvent<HTMLFormElement>) {
@@ -3156,13 +3115,9 @@ export default function HomePage() {
         currentUserId={user?.id || ""}
         currentUserName={profileName || user?.email || "KapışKapış Kullanıcısı"}
         bidAmount={bidAmount}
-        autoBidEnabled={autoBidEnabled}
-        autoBidMax={autoBidMax}
         loading={loading}
         onClose={() => setShowLiveRoom(false)}
         onBidAmountChange={setBidAmount}
-        onAutoBidEnabledChange={setAutoBidEnabled}
-        onAutoBidMaxChange={setAutoBidMax}
         onSubmitBid={handleBid}
       />
 
@@ -3170,14 +3125,10 @@ export default function HomePage() {
         auction={selectedAuction}
         bids={bidHistory}
         bidAmount={bidAmount}
-        autoBidEnabled={autoBidEnabled}
-        autoBidMax={autoBidMax}
         loading={loading}
         isFavorite={Boolean(selectedAuction && favoriteIds.includes(selectedAuction.id))}
         onClose={() => setSelectedAuction(null)}
         onBidAmountChange={setBidAmount}
-        onAutoBidEnabledChange={setAutoBidEnabled}
-        onAutoBidMaxChange={setAutoBidMax}
         onSubmitBid={handleBid}
         onToggleFavorite={(id) => void toggleFavorite(id)}
         onOpenLiveRoom={() => {
