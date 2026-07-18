@@ -2669,10 +2669,42 @@ export default function HomePage() {
         onOpenProfile={() => void openProfileCenter()}
       />
 
-      <div className="pageContainer">
-        <Hero onOpenSell={handleOpenSell} />
+      <div className="pageContainer premiumPage">
+        <div className="homeTopGrid">
+          <aside className="homeSidebar" id="categories">
+            <div className="sidebarPanel">
+              <h3>Kategoriler</h3>
+              {[
+                ["gaming", "🎮", "Oyun"],
+                ["computer", "⌨", "Bilgisayar"],
+                ["phone", "▯", "Telefon"],
+                ["watch", "◉", "Saat"],
+                ["vehicle", "▰", "Otomotiv"],
+                ["camera", "◫", "Kamera"],
+                ["collection", "◇", "Koleksiyon"],
+                ["home", "⌂", "Ev & Yaşam"],
+              ].map(([value, icon, label]) => (
+                <button key={value} className={activeCategory === value ? "activeSideCategory" : ""} onClick={() => setActiveCategory(value as AuctionCategory)}>
+                  <span>{icon}</span><strong>{label}</strong>{value === "gaming" && <small>YENİ</small>}
+                </button>
+              ))}
+              <button className="allCategories" onClick={() => setActiveCategory("all")}>Tüm Kategoriler <span>›</span></button>
+            </div>
+            <div className="sidebarSellCard">
+              <h3>İlan Ver</h3><p>Ürününü açık artırmayla binlerce kişiye ulaştır.</p>
+              <button onClick={handleOpenSell}>Ücretsiz İlan Ver <span>＋</span></button>
+            </div>
+            <div className="sidebarTrust">
+              <div><b>♢</b><span><strong>Güvenli Alışveriş</strong><small>Alıcı Koruma Sistemi</small></span></div>
+              <div><b>✓</b><span><strong>Doğrulanmış Satıcılar</strong><small>%100 Güvenli</small></span></div>
+            </div>
+          </aside>
+          <div className="homeMainColumn">
+            <Hero onOpenSell={handleOpenSell} />
+          </div>
+        </div>
 
-        <section className="categoryBar">
+        <section className="categoryBar premiumCategoryBar">
           {[
             ["all", "Tümü"],
             ["phone", "Telefon"],
@@ -2748,6 +2780,12 @@ export default function HomePage() {
           }}
         />
 
+        <section className="trustFeatureStrip" id="how-it-works">
+          <article><b>⚒</b><div><strong>Nasıl Çalışır?</strong><span>Ürünü bul, teklif ver, kazandığında keyfini çıkar!</span></div></article>
+          <article><b>♢</b><div><strong>Alıcı Koruması</strong><span>Güvenli ödeme ve iade garantisi ile için rahat olsun.</span></div></article>
+          <article><b>↗</b><div><strong>Satıcı Avantajları</strong><span>Kolay ilan verin, ürünlerinizi daha hızlı satın.</span></div></article>
+          <article><b>▣</b><div><strong>Güvenli Ödeme</strong><span>Ödemeniz güvende, önce ürün sonra ödeme.</span></div></article>
+        </section>
         <DashboardSections auctions={auctions} orders={orders} onOpenAuction={(a)=>void openDetail(a)} />
         <section className="v20Quick"><button onClick={()=>{if(!user){setShowAuth(true);return;}setShowSalesCenter(true);void loadOrders(user.id)}}><span>01</span><strong>Satış Merkezi</strong><small>İlanlar ve siparişler</small></button><button onClick={()=>{if(!user){setShowAuth(true);return;}setShowWallet(true);void loadOrders(user.id)}}><span>02</span><strong>Cüzdanım</strong><small>Bakiye ve hareketler</small></button><button onClick={()=>void openProfileCenter()}><span>03</span><strong>Siparişlerim</strong><small>Ödeme ve kargo takibi</small></button></section>
         <section className="auctionSection" id="live-auctions">
