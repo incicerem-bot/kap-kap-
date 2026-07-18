@@ -237,6 +237,11 @@ export type SellerStoreSummary = {
   follower_count: number;
   active_listings: Auction[];
   member_since: string | null;
+  seller_profile?: SellerProfile | null;
+  username?: string | null;
+  city?: string | null;
+  bio?: string | null;
+  avatar_url?: string | null;
 };
 
 
@@ -272,4 +277,53 @@ export type EditableUserProfile = {
   phone: string;
   avatar_url: string | null;
   account_type: "user" | "seller";
+};
+
+
+export type PublicUserProfile = {
+  id: string;
+  full_name: string;
+  username: string | null;
+  city: string | null;
+  bio: string | null;
+  avatar_url: string | null;
+  account_type: "user" | "seller";
+  created_at: string | null;
+  email_verified: boolean;
+  phone_verified: boolean;
+  active_listings: number;
+  completed_sales: number;
+  completed_purchases: number;
+  average_rating: number;
+  review_count: number;
+  follower_count: number;
+  seller_profile?: SellerProfile | null;
+};
+
+
+export type VerificationType = "identity" | "seller";
+export type VerificationStatus =
+  | "pending"
+  | "approved"
+  | "rejected"
+  | "needs_information";
+
+export type VerificationRequest = {
+  id: string;
+  user_id: string;
+  type: VerificationType;
+  legal_name: string;
+  identity_number_last4: string;
+  phone: string;
+  city: string;
+  note: string | null;
+  document_path: string;
+  status: VerificationStatus;
+  admin_note: string | null;
+  created_at: string;
+  updated_at: string;
+  reviewed_at: string | null;
+  reviewed_by: string | null;
+  user_name?: string | null;
+  username?: string | null;
 };
