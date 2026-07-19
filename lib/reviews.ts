@@ -71,8 +71,13 @@ export type BuyerOrder = {
   seller: string;
   sellerSlug: string;
   amount: number;
-  state: "payment" | "preparing" | "shipped" | "delivered";
+  state: "payment" | "preparing" | "shipped" | "delivered" | "expired";
   rawStatus: string;
+  paymentStatus: string;
+  paymentDueAt?: string;
+  paymentExpiredAt?: string;
+  winnerRank: number;
+  offerType: "winner" | "second_chance" | "standard";
   date: string;
   image: string;
   tracking: string;
@@ -98,7 +103,8 @@ function moneyValue(value: unknown) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-function mapOrderState(status: string): BuyerOrder["state"] {
+function mapOrderState(status: string, paymentStatus: string): BuyerOrder["state"] {
+  if (paymentStatus === "expired" || status === "cancelled") return "expired";
   if (status === "payment_pending") return "payment";
   if (status === "preparing") return "preparing";
   if (status === "shipped") return "shipped";
@@ -289,9 +295,12 @@ export async function loadBuyerOrders(): Promise<LoadResult<BuyerOrder[]>> {
   const { data: userData, error: userError } = await client.auth.getUser();
   if (userError || !userData.user) return { status: "signed-out" };
 
+  await client.rpc("kk_finalize_expired_auctions");
+  await client.rpc("kk_process_unpaid_auction_orders", { p_limit: 50 });
+
   const { data: rows, error } = await client
     .from("kk_orders")
-    .select("id,order_no,seller_id,product_id,product_title,product_image,amount,status,carrier,tracking_no,ordered_at,delivered_at,metadata")
+    .select("id,order_no,seller_id,product_id,product_title,product_image,amount,status,payment_status,payment_due_at,payment_expired_at,winner_rank,auction_offer_status,carrier,tracking_no,ordered_at,delivered_at,metadata")
     .eq("buyer_id", userData.user.id)
     .order("ordered_at", { ascending: false });
 
@@ -315,8 +324,15 @@ export async function loadBuyerOrders(): Promise<LoadResult<BuyerOrder[]>> {
         seller: seller?.name ?? "KapışKapış satıcısı",
         sellerSlug: seller?.slug ?? "",
         amount: moneyValue(row.amount),
-        state: mapOrderState(String(row.status)),
+        state: mapOrderState(String(row.status), String(row.payment_status || "unpaid")),
         rawStatus: String(row.status),
+        paymentStatus: String(row.payment_status || "unpaid"),
+        paymentDueAt: row.payment_due_at ? String(row.payment_due_at) : undefined,
+        paymentExpiredAt: row.payment_expired_at ? String(row.payment_expired_at) : undefined,
+        winnerRank: Number(row.winner_rank || 1),
+        offerType: row.auction_offer_status === "payment_pending" || row.auction_offer_status === "paid"
+          ? (Number(row.winner_rank || 1) > 1 ? "second_chance" : "winner")
+          : "standard",
         date: dateText(String(row.ordered_at)),
         image: String(row.product_image || "/kapiskapis-hero.jpg"),
         tracking: String(row.tracking_no || ""),

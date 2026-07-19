@@ -55,6 +55,10 @@ export function refundPayment(payload: Record<string, unknown>) {
   return callIyzico(getIyzicoClient().refund, "create", payload);
 }
 
+export function cancelPayment(payload: Record<string, unknown>) {
+  return callIyzico(getIyzicoClient().cancel, "create", payload);
+}
+
 export function approveMarketplaceItem(payload: Record<string, unknown>) {
   return callIyzico(getIyzicoClient().approval, "create", payload);
 }

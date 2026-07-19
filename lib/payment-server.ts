@@ -3,6 +3,7 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
+  cancelPayment,
   iyzicoRequiresResponseSignature,
   iyzicoRequiresStrictWebhook,
   retrieveCheckoutForm,
@@ -23,6 +24,10 @@ export type PaymentOrderRow = {
   currency: string;
   status: string;
   payment_status: string;
+  payment_due_at: string | null;
+  payment_expired_at: string | null;
+  winner_rank: number;
+  auction_offer_status: string;
   provider_payment_transaction_id: string | null;
   payout_approved_at: string | null;
   metadata: Record<string, unknown> | null;
@@ -50,6 +55,7 @@ export type PaymentAttemptRow = {
   response_signature_verified: boolean;
   payment_page_url: string | null;
   created_at: string;
+  request_ip: string | null;
 };
 
 export type PaymentFees = {
@@ -92,7 +98,7 @@ export function calculatePaymentFees(amount: number): PaymentFees {
 export async function loadOwnedPaymentOrder(admin: SupabaseClient, buyerId: string, orderNo: string) {
   const { data, error } = await admin
     .from("kk_orders")
-    .select("id,order_no,buyer_id,seller_id,product_id,product_title,product_image,amount,currency,status,payment_status,provider_payment_transaction_id,payout_approved_at,metadata")
+    .select("id,order_no,buyer_id,seller_id,product_id,product_title,product_image,amount,currency,status,payment_status,payment_due_at,payment_expired_at,winner_rank,auction_offer_status,provider_payment_transaction_id,payout_approved_at,metadata")
     .eq("order_no", orderNo)
     .eq("buyer_id", buyerId)
     .maybeSingle();
@@ -100,6 +106,12 @@ export async function loadOwnedPaymentOrder(admin: SupabaseClient, buyerId: stri
   if (error) throw new PaymentHttpError(500, "Sipariş okunamadı.", error.code);
   if (!data) throw new PaymentHttpError(404, "Bu numarayla sana ait bir sipariş bulunamadı.");
   return data as PaymentOrderRow;
+}
+
+
+export function auctionPaymentDeadlineExpired(order: Pick<PaymentOrderRow, "payment_due_at" | "payment_status" | "status">) {
+  if (!order.payment_due_at || order.payment_status === "paid") return false;
+  return order.status === "cancelled" || new Date(order.payment_due_at).getTime() <= Date.now();
 }
 
 export async function loadPaymentAttemptByToken(admin: SupabaseClient, token: string) {
@@ -244,6 +256,60 @@ export async function retrieveAndReconcilePayment(admin: SupabaseClient, attempt
     return { completed: false, status: "failed" as const, result, verification };
   }
 
+  const { data: currentOrder, error: currentOrderError } = await admin
+    .from("kk_orders")
+    .select("buyer_id,status,payment_status,auction_offer_status")
+    .eq("id", attempt.order_id)
+    .maybeSingle();
+  if (currentOrderError) throw new PaymentHttpError(500, "Sipariş ödeme uygunluğu doğrulanamadı.", currentOrderError.code);
+
+  const staleWinnerPayment = !currentOrder
+    || String(currentOrder.buyer_id) !== attempt.buyer_id
+    || currentOrder.status === "cancelled"
+    || currentOrder.payment_status === "expired"
+    || currentOrder.auction_offer_status === "expired";
+
+  if (staleWinnerPayment) {
+    let cancellationSummary: Record<string, unknown> = {};
+    let cancellationSucceeded = false;
+    try {
+      const cancellation = await cancelPayment({
+        locale: "tr",
+        conversationId: `LATE-${attempt.conversation_id}`,
+        paymentId: verification.paymentId,
+        ip: attempt.request_ip || "127.0.0.1",
+      });
+      cancellationSummary = sanitizedProviderSummary(cancellation);
+      cancellationSucceeded = cancellation.status === "success";
+      await recordPaymentEvent(
+        admin,
+        attempt,
+        "iyzico_late_payment_cancel",
+        `late-cancel:${attempt.id}:${verification.paymentId}:${String(cancellation.status ?? "none")}`,
+        false,
+        cancellationSummary,
+      );
+    } catch (cancellationError) {
+      cancellationSummary = { message: cancellationError instanceof Error ? cancellationError.message : "Geç ödeme iptali tamamlanamadı." };
+    }
+
+    await admin.from("kk_payment_attempts").update({
+      status: cancellationSucceeded ? "cancelled" : "failed",
+      retrieve_verified: true,
+      response_signature_verified: verification.signatureVerified,
+      provider_payment_id: verification.paymentId,
+      provider_payment_transaction_id: verification.paymentTransactionId,
+      failure_code: cancellationSucceeded ? "LATE_PAYMENT_CANCELLED" : "LATE_PAYMENT_MANUAL_REFUND_REQUIRED",
+      failure_message: cancellationSucceeded
+        ? "Ödeme süresi dolmuş kazanan siparişine ait tahsilat otomatik iptal edildi."
+        : "Ödeme süresi dolmuş sipariş için tahsilat alındı; manuel iade kontrolü gerekiyor.",
+      provider_summary: { retrieve: summary, cancellation: cancellationSummary },
+      completed_at: new Date().toISOString(),
+    }).eq("id", attempt.id);
+
+    return { completed: false, status: "failed" as const, result, verification };
+  }
+
   const webhookReady = source === "webhook" || attempt.webhook_verified;
   const completed = !iyzicoRequiresStrictWebhook() || webhookReady;
   const now = new Date().toISOString();
@@ -276,7 +342,11 @@ export async function retrieveAndReconcilePayment(admin: SupabaseClient, attempt
       seller_payout_amount: Number(attempt.seller_payout_amount),
       paid_at: now,
       payout_status: "held",
-    }).eq("id", attempt.order_id).eq("buyer_id", attempt.buyer_id).neq("payment_status", "paid");
+    }).eq("id", attempt.order_id)
+      .eq("buyer_id", attempt.buyer_id)
+      .eq("status", "payment_pending")
+      .eq("auction_offer_status", "payment_pending")
+      .neq("payment_status", "paid");
     if (orderError) throw new PaymentHttpError(500, "Sipariş ödeme durumu güncellenemedi.", orderError.code);
   }
 

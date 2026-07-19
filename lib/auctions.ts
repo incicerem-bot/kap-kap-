@@ -144,11 +144,29 @@ export async function finalizeExpiredAuctions() {
   return Number(data ?? 0);
 }
 
+export async function processUnpaidAuctionOrders(limit = 50) {
+  const client = getSupabaseBrowserClient();
+  if (!client) return 0;
+  const { data, error } = await client.rpc("kk_process_unpaid_auction_orders", { p_limit: limit });
+  if (error) {
+    // Migration henüz kurulmadıysa ürün keşif ekranını tamamen çökertmeyiz.
+    if (error.code === "PGRST202" || /kk_process_unpaid_auction_orders/i.test(error.message)) return 0;
+    throw error;
+  }
+  return Number(data ?? 0);
+}
+
+export async function processAuctionLifecycle() {
+  const finalized = await finalizeExpiredAuctions();
+  const reassigned = await processUnpaidAuctionOrders();
+  return { finalized, reassigned };
+}
+
 export async function fetchPublicListings(): Promise<Product[]> {
   const client = getSupabaseBrowserClient();
   if (!client) return [];
 
-  await client.rpc("kk_finalize_expired_auctions");
+  await processAuctionLifecycle();
   const { data, error } = await client
     .from("kk_public_listings")
     .select("*")
@@ -163,7 +181,7 @@ export async function fetchPublicListing(slug: string): Promise<Product | null> 
   const client = getSupabaseBrowserClient();
   if (!client) return null;
 
-  await client.rpc("kk_finalize_expired_auctions");
+  await processAuctionLifecycle();
   const { data, error } = await client
     .from("kk_public_listings")
     .select("*")
