@@ -342,36 +342,53 @@ export async function setListingStatus(listingId: string, status: "active" | "pa
   if (error) throw error;
 }
 
+let realtimeChannelCounter = 0;
+
+function createRealtimeChannelName(prefix: string) {
+  realtimeChannelCounter += 1;
+  return `${prefix}-${Date.now()}-${realtimeChannelCounter}`;
+}
+
 export function subscribeToListingLive(slug: string, onChange: (payload: { currentPrice: number; bidCount: number; endsAt: string | null; status: string }) => void): RealtimeChannel | null {
   const client = getSupabaseBrowserClient();
   if (!client) return null;
 
-  return client
-    .channel(`listing-live-${slug}`)
-    .on("postgres_changes", {
-      event: "UPDATE",
-      schema: "public",
-      table: "kk_listing_live",
-      filter: `slug=eq.${slug}`,
-    }, (payload) => {
-      const row = payload.new as Record<string, unknown>;
-      onChange({
-        currentPrice: numberValue(row.current_price as number | string),
-        bidCount: Number(row.bid_count ?? 0),
-        endsAt: row.ends_at ? String(row.ends_at) : null,
-        status: String(row.status ?? "active"),
-      });
-    })
-    .subscribe();
+  // Supabase reuses channels with the same topic. React Strict Mode may mount,
+  // clean up and mount the effect again before removeChannel() completes. A
+  // unique topic prevents adding callbacks to a channel that already subscribed.
+  const channel = client.channel(createRealtimeChannelName(`listing-live-${slug}`));
+
+  channel.on("postgres_changes", {
+    event: "UPDATE",
+    schema: "public",
+    table: "kk_listing_live",
+    filter: `slug=eq.${slug}`,
+  }, (payload) => {
+    const row = payload.new as Record<string, unknown>;
+    onChange({
+      currentPrice: numberValue(row.current_price as number | string),
+      bidCount: Number(row.bid_count ?? 0),
+      endsAt: row.ends_at ? String(row.ends_at) : null,
+      status: String(row.status ?? "active"),
+    });
+  });
+
+  channel.subscribe();
+  return channel;
 }
 
 export function subscribeToMarketplace(onChange: () => void): RealtimeChannel | null {
   const client = getSupabaseBrowserClient();
   if (!client) return null;
-  return client
-    .channel("marketplace-live-listings")
-    .on("postgres_changes", { event: "*", schema: "public", table: "kk_listing_live" }, onChange)
-    .subscribe();
+
+  const channel = client.channel(createRealtimeChannelName("marketplace-live-listings"));
+  channel.on(
+    "postgres_changes",
+    { event: "*", schema: "public", table: "kk_listing_live" },
+    onChange,
+  );
+  channel.subscribe();
+  return channel;
 }
 
 export { supabaseConfigured };
