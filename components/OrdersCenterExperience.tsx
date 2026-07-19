@@ -94,7 +94,7 @@ export default function OrdersCenterExperience() {
   async function nextAction() {
     if (selected.state === "payment") {
       if (dataMode === "database") {
-        setNotice("Gerçek ödeme durumu ödeme kuruluşu webhook'u tarafından güncellenmelidir.");
+        router.push(`/odeme?order=${encodeURIComponent(selected.id)}`);
       } else {
         setLocalStates((old) => ({ ...old, [selected.id]: "preparing" }));
         setNotice("Demo ödeme başarıyla tamamlandı. Tutar güvenli ödeme havuzuna alındı.");
@@ -170,9 +170,10 @@ export default function OrdersCenterExperience() {
           </div>
 
           {selected.state === "payment" ? (
-            <section className="orderPaymentBoxV6">
-              <header><span><Icon name="card" /></span><div><strong>Kayıtlı kart</strong><small>•••• 4821 · 3D Secure</small></div><button type="button">Değiştir</button></header>
-              <div><span>Ürün bedeli</span><strong>{money(selected.amount)}</strong></div><div><span>Alıcı koruma hizmeti</span><strong>{money(selected.amount * 0.025)}</strong></div><div className="total"><span>Toplam ödeme</span><strong>{money(selected.amount * 1.025)}</strong></div>
+            <section className="orderIyzicoBoxV16">
+              <header><span><Icon name="shield" /></span><div><strong>iyzico Checkout Form</strong><small>3D Secure · Kart verisi KapışKapış’a gelmez</small></div></header>
+              <p>Ödeme ekranına geçtiğinde alıcı bilgilerin doğrulanır ve iyzico’nun güvenli sayfasına yönlendirilirsin.</p>
+              <div className="orderPaymentBoxV6"><div><span>Ürün bedeli</span><strong>{money(selected.amount)}</strong></div><div><span>Alıcı koruma hizmeti</span><strong>{money(selected.amount * 0.025)}</strong></div><div className="total"><span>Toplam ödeme</span><strong>{money(selected.amount * 1.025)}</strong></div></div>
             </section>
           ) : (
             <section className="orderDeliveryBoxV6">
@@ -186,7 +187,7 @@ export default function OrdersCenterExperience() {
           </button>
           {(selected.state === "shipped" || selected.state === "delivered") && <button className="orderTrackingButtonV13" type="button" onClick={() => router.push(`/kargo?order=${selected.id}`)}><Icon name="truck" /> {selected.state === "shipped" ? "Kargoyu canlı takip et" : "Teslimat ve iade işlemleri"}</button>}
           <button className="orderProblemButtonV6" type="button" onClick={() => router.push(`/uyusmazlik?order=${selected.id}`)}><Icon name="alert" /> Siparişle ilgili sorun bildir</button>
-          <small className="financeDemoNoteV6">{dataMode === "database" ? "Siparişler ve teslimat onayı Supabase veritabanından çalışır." : "Supabase yapılandırılmadığı için demo siparişler gösteriliyor."}</small>
+          <small className="financeDemoNoteV6">{dataMode === "database" ? "Sipariş, iyzico ödeme doğrulaması ve teslimat sonrası satıcı aktarım onayı sunucu üzerinden çalışır." : "Supabase yapılandırılmadığı için demo siparişler gösteriliyor."}</small>
         </aside>
       </section>
     </div>
