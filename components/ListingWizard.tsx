@@ -402,7 +402,7 @@ export default function ListingWizard() {
                 </dl>
               </article>
             </div>
-            <label className="listingAgreementV4"><input type="checkbox" checked={accepted} onChange={(event) => { setAccepted(event.target.checked); setError(""); }}/><span><b>İlan bilgilerinin doğru olduğunu onaylıyorum.</b> KapışKapış ilan kurallarını ve güvenli ödeme koşullarını kabul ediyorum.</span></label>
+            <label className="listingAgreementV4"><input type="checkbox" checked={accepted} onChange={(event) => { setAccepted(event.target.checked); setError(""); }}/><span><b>İlan bilgilerinin doğru olduğunu onaylıyorum.</b> <Link href="/hukuk?doc=satici" target="_blank" rel="noreferrer">Satıcı Kuralları</Link>, <Link href="/hukuk?doc=acik-artirma" target="_blank" rel="noreferrer">Açık Artırma Kuralları</Link> ve <Link href="/hukuk?doc=guvenli-odeme" target="_blank" rel="noreferrer">güvenli ödeme koşullarını</Link> kabul ediyorum.</span></label>
           </div>
         )}
 

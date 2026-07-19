@@ -29,6 +29,7 @@ export default function AuthExperience({ mode }: { mode: Mode }) {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [accepted, setAccepted] = useState(false);
+  const [marketingOptIn, setMarketingOptIn] = useState(false);
   const [remember, setRemember] = useState(true);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
@@ -45,7 +46,7 @@ export default function AuthExperience({ mode }: { mode: Mode }) {
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (mode === "register" && !accepted) {
-      setMessage({ type: "error", text: "Üyelik sözleşmesi ve gizlilik koşullarını kabul etmelisin." });
+      setMessage({ type: "error", text: "Üyelik Sözleşmesi ve Platform Kuralları’nı kabul etmelisin." });
       return;
     }
 
@@ -67,7 +68,7 @@ export default function AuthExperience({ mode }: { mode: Mode }) {
         if (error) throw error;
         window.location.assign("/profil");
       } else {
-        const { error } = await client.auth.signUp({ email: email.trim(), password, options: { data: { full_name: fullName.trim() } } });
+        const { error } = await client.auth.signUp({ email: email.trim(), password, options: { data: { full_name: fullName.trim(), marketing_opt_in: marketingOptIn, terms_version: "2026.07" } } });
         if (error) throw error;
         setMessage({ type: "success", text: "Hesabın oluşturuldu. E-posta adresine gönderilen doğrulama bağlantısını aç." });
       }
@@ -120,14 +121,18 @@ export default function AuthExperience({ mode }: { mode: Mode }) {
 
             {mode === "register" && <div className="passwordStrengthV8"><div>{[1,2,3,4].map((item) => <span key={item} className={strength >= item ? "active" : ""}/>)}</div><small>{strength <= 1 ? "Zayıf şifre" : strength === 2 ? "Orta seviye" : strength === 3 ? "Güçlü" : "Çok güçlü"}</small></div>}
 
-            {mode === "login" ? <div className="authFormOptionsV8"><label><input type="checkbox" checked={remember} onChange={(event) => setRemember(event.target.checked)}/><span/>Beni hatırla</label><button type="button" onClick={resetPassword}>Şifremi unuttum</button></div> : <label className="authTermsV8"><input type="checkbox" checked={accepted} onChange={(event) => setAccepted(event.target.checked)}/><span/>Üyelik Sözleşmesi, Gizlilik Politikası ve Açık Artırma Kuralları’nı kabul ediyorum.</label>}
+            {mode === "login" ? <div className="authFormOptionsV8"><label><input type="checkbox" checked={remember} onChange={(event) => setRemember(event.target.checked)}/><span/>Beni hatırla</label><button type="button" onClick={resetPassword}>Şifremi unuttum</button></div> : <div className="authConsentStackV8">
+              <p className="authTermsCopyV8">Hesap oluşturmadan önce <Link href="/hukuk?doc=gizlilik" target="_blank">KVKK Aydınlatma Metni</Link> kapsamında kişisel verilerinin nasıl işlendiğini inceleyebilirsin.</p>
+              <label className="authTermsV8"><input type="checkbox" checked={accepted} onChange={(event) => setAccepted(event.target.checked)}/><span/><span><Link href="/hukuk?doc=uyelik" target="_blank">Üyelik Sözleşmesi</Link> ve <Link href="/hukuk?doc=acik-artirma" target="_blank">Platform / Açık Artırma Kuralları</Link>’nı kabul ediyorum.</span></label>
+              <label className="authMarketingV8"><input type="checkbox" checked={marketingOptIn} onChange={(event) => setMarketingOptIn(event.target.checked)}/><span/><span>Kampanya ve ürün önerileri almak istiyorum.<small>İsteğe bağlıdır; üyelik için zorunlu değildir.</small></span></label>
+            </div>}
 
             {message && <div className={`authMessageV8 ${message.type}`}><Icon name={message.type === "success" ? "check" : "shield"}/><span>{message.text}</span></div>}
             <button className="authSubmitV8" type="submit" disabled={loading}>{loading ? "İşleniyor..." : mode === "login" ? "Giriş yap" : "Ücretsiz hesap oluştur"}<Icon name="arrow"/></button>
           </form>
 
           <p className="authSwitchV8">{mode === "login" ? "Henüz hesabın yok mu?" : "Zaten hesabın var mı?"} <Link href={mode === "login" ? "/kayit" : "/giris"}>{mode === "login" ? "Hemen kayıt ol" : "Giriş yap"}</Link></p>
-          <footer className="authLegalV8"><Link href="/yardim">Yardım</Link><Link href="/nasil-calisir">Nasıl çalışır?</Link><span>© 2026 KapışKapış</span></footer>
+          <footer className="authLegalV8"><Link href="/yardim">Yardım</Link><Link href="/hukuk">Hukuk ve Güven</Link><Link href="/hukuk?doc=gizlilik">KVKK</Link><span>© 2026 KapışKapış</span></footer>
         </section>
       </section>
     </main>

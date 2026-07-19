@@ -86,6 +86,7 @@ const account = [
   ["/cuzdan", "Cüzdanım"],
   ["/ayarlar", "Ayarlar ve Güvenlik"],
   ["/yonetim", "Yönetim Merkezi"],
+  ["/hukuk", "Hukuk ve Güven"],
 ];
 
 export default function MarketplaceShell({
@@ -174,6 +175,8 @@ export default function MarketplaceShell({
             <nav aria-label="Alt menü">
               <Link href="/nasil-calisir">Nasıl çalışır?</Link>
               <Link href="/yardim">Yardım merkezi</Link>
+              <Link href="/hukuk">Hukuk ve güven</Link>
+              <Link href="/hukuk?doc=gizlilik">KVKK & Gizlilik</Link>
               <Link href="/ilan-olustur">İlan ver</Link>
               <Link href="/canli">Canlı açık artırmalar</Link>
               <Link href="/giris">Giriş yap</Link>
