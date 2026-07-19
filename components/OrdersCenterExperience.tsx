@@ -1,7 +1,8 @@
 "use client";
 
-import { ReactNode, useMemo, useState } from "react";
+import { ReactNode, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { confirmBuyerDelivery, loadBuyerOrders } from "@/lib/reviews";
 
 type OrderState = "payment" | "preparing" | "shipped" | "delivered";
 type IconName = "package" | "card" | "truck" | "check" | "clock" | "shield" | "pin" | "box" | "chevron" | "search" | "alert";
@@ -28,7 +29,7 @@ const money = (value: number) => new Intl.NumberFormat("tr-TR", { style: "curren
 
 const statusLabel: Record<OrderState, string> = { payment: "Ödeme bekliyor", preparing: "Hazırlanıyor", shipped: "Kargoda", delivered: "Teslim edildi" };
 
-const orders = [
+const demoOrders = [
   { id: "KK-24891", title: "Rolex Submariner Date 126610LN", seller: "Mert Saat & Koleksiyon", sellerSlug: "mert-saat-koleksiyon", amount: 125000, state: "shipped" as OrderState, date: "18 Temmuz 2026", image: "https://images.unsplash.com/photo-1523170335258-f5ed11844a49?auto=format&fit=crop&w=700&q=80", tracking: "KP048392019TR", carrier: "Yurtiçi Kargo", eta: "21 Temmuz Pazartesi" },
   { id: "KK-24672", title: "PlayStation 5 Slim + 2 DualSense", seller: "GamePort", sellerSlug: "gameport", amount: 18250, state: "delivered" as OrderState, date: "16 Temmuz 2026", image: "https://images.unsplash.com/photo-1606813907291-d86efa9b94db?auto=format&fit=crop&w=700&q=80", tracking: "YK284120994", carrier: "Yurtiçi Kargo", eta: "18 Temmuz 2026" },
   { id: "KK-24118", title: "Sony Alpha A7 IV Gövde", seller: "Foto Market", sellerSlug: "foto-market", amount: 62300, state: "payment" as OrderState, date: "19 Temmuz 2026", image: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&w=700&q=80", tracking: "", carrier: "KapışKapış Kargo", eta: "Ödeme sonrası hesaplanır" },
@@ -39,25 +40,73 @@ export default function OrdersCenterExperience() {
   const router = useRouter();
   const [tab, setTab] = useState<"all" | OrderState>("all");
   const [query, setQuery] = useState("");
-  const [selectedId, setSelectedId] = useState(orders[0].id);
+  const [orders, setOrders] = useState(demoOrders);
+  const [selectedId, setSelectedId] = useState(demoOrders[0].id);
+  const [dataMode, setDataMode] = useState<"loading" | "database" | "demo" | "signed-out" | "error">("loading");
   const [localStates, setLocalStates] = useState<Record<string, OrderState>>({});
   const [notice, setNotice] = useState("");
 
+  useEffect(() => {
+    let active = true;
+    loadBuyerOrders().then((result) => {
+      if (!active) return;
+      if (result.status === "ready") {
+        const databaseOrders = result.data.map((order) => ({
+          id: order.orderNo,
+          title: order.title,
+          seller: order.seller,
+          sellerSlug: order.sellerSlug,
+          amount: order.amount,
+          state: order.state as OrderState,
+          date: order.date,
+          image: order.image,
+          tracking: order.tracking,
+          carrier: order.carrier,
+          eta: order.eta,
+        }));
+        setOrders(databaseOrders);
+        setSelectedId(databaseOrders[0]?.id ?? "");
+        setDataMode("database");
+      } else if (result.status === "not-configured") {
+        setDataMode("demo");
+      } else if (result.status === "signed-out") {
+        setOrders([]);
+        setSelectedId("");
+        setDataMode("signed-out");
+      } else {
+        setOrders([]);
+        setSelectedId("");
+        setDataMode("error");
+        if (result.status === "error") setNotice(result.message);
+      }
+    });
+    return () => { active = false; };
+  }, []);
+
   const currentOrders = orders.map((order) => ({ ...order, state: localStates[order.id] ?? order.state }));
-  const selected = currentOrders.find((order) => order.id === selectedId) ?? currentOrders[0];
+  const selected = currentOrders.find((order) => order.id === selectedId) ?? currentOrders[0]!;
   const filtered = useMemo(() => currentOrders.filter((order) => (tab === "all" || order.state === tab) && (`${order.id} ${order.title} ${order.seller}`).toLocaleLowerCase("tr-TR").includes(query.toLocaleLowerCase("tr-TR"))), [currentOrders, query, tab]);
 
   function progress(state: OrderState) {
     return { payment: 1, preparing: 2, shipped: 3, delivered: 4 }[state];
   }
 
-  function nextAction() {
+  async function nextAction() {
     if (selected.state === "payment") {
-      setLocalStates((old) => ({ ...old, [selected.id]: "preparing" }));
-      setNotice("Demo ödeme başarıyla tamamlandı. Tutar güvenli ödeme havuzuna alındı.");
+      if (dataMode === "database") {
+        setNotice("Gerçek ödeme durumu ödeme kuruluşu webhook'u tarafından güncellenmelidir.");
+      } else {
+        setLocalStates((old) => ({ ...old, [selected.id]: "preparing" }));
+        setNotice("Demo ödeme başarıyla tamamlandı. Tutar güvenli ödeme havuzuna alındı.");
+      }
     } else if (selected.state === "shipped") {
-      setLocalStates((old) => ({ ...old, [selected.id]: "delivered" }));
-      setNotice("Teslimat onaylandı. Ödeme satıcının çekilebilir bakiyesine aktarılacak.");
+      try {
+        if (dataMode === "database") await confirmBuyerDelivery(selected.id);
+        setLocalStates((old) => ({ ...old, [selected.id]: "delivered" }));
+        setNotice(dataMode === "database" ? "Teslimat Supabase üzerinde onaylandı. Değerlendirme hakkın açıldı." : "Demo teslimat onaylandı.");
+      } catch (reason) {
+        setNotice(reason instanceof Error ? reason.message : "Teslimat onaylanamadı.");
+      }
     } else if (selected.state === "delivered") {
       router.push(`/degerlendirme?order=${selected.id}`);
     } else {
@@ -65,15 +114,23 @@ export default function OrdersCenterExperience() {
     }
   }
 
+  if (dataMode === "loading") {
+    return <div className="ordersEmptyV6 ordersDatabaseStateV16"><Icon name="shield" /><h3>Siparişlerin Supabase'den yükleniyor</h3><p>Oturum ve sipariş sahipliği kontrol ediliyor.</p></div>;
+  }
+
+  if (!currentOrders.length) {
+    return <div className="ordersEmptyV6 ordersDatabaseStateV16"><Icon name={dataMode === "signed-out" ? "shield" : "package"}/><h3>{dataMode === "signed-out" ? "Siparişlerini görmek için giriş yap" : "Henüz gerçek siparişin bulunmuyor"}</h3><p>{dataMode === "signed-out" ? "Değerlendirme hakkı yalnızca oturum açmış gerçek alıcıya verilir." : "Ödeme tamamlandığında sipariş kk_orders tablosunda burada görünecek."}</p><button type="button" onClick={() => router.push(dataMode === "signed-out" ? "/giris" : "/arama")}>{dataMode === "signed-out" ? "Giriş yap" : "Açık artırmaları keşfet"}</button></div>;
+  }
+
   return (
     <div className="ordersCenterV6">
       {notice && <button className="financeToastV6" type="button" onClick={() => setNotice("")}><Icon name="check" /><span>{notice}</span></button>}
 
       <section className="ordersSummaryV6">
-        <article><span><Icon name="card" /></span><div><small>Ödeme bekleyen</small><strong>1 sipariş</strong><em>{money(62300)}</em></div></article>
-        <article><span><Icon name="box" /></span><div><small>Hazırlanan</small><strong>1 sipariş</strong><em>Satıcı hazırlıyor</em></div></article>
-        <article><span><Icon name="truck" /></span><div><small>Kargodaki</small><strong>1 sipariş</strong><em>Takip aktif</em></div></article>
-        <article><span><Icon name="shield" /></span><div><small>Koruma altında</small><strong>{money(205300)}</strong><em>3 aktif işlem</em></div></article>
+        <article><span><Icon name="card" /></span><div><small>Ödeme bekleyen</small><strong>{currentOrders.filter((order) => order.state === "payment").length} sipariş</strong><em>{money(currentOrders.filter((order) => order.state === "payment").reduce((sum, order) => sum + order.amount, 0))}</em></div></article>
+        <article><span><Icon name="box" /></span><div><small>Hazırlanan</small><strong>{currentOrders.filter((order) => order.state === "preparing").length} sipariş</strong><em>Satıcı hazırlıyor</em></div></article>
+        <article><span><Icon name="truck" /></span><div><small>Kargodaki</small><strong>{currentOrders.filter((order) => order.state === "shipped").length} sipariş</strong><em>Takip aktif</em></div></article>
+        <article><span><Icon name="shield" /></span><div><small>Koruma altında</small><strong>{money(currentOrders.filter((order) => order.state !== "delivered").reduce((sum, order) => sum + order.amount, 0))}</strong><em>{currentOrders.filter((order) => order.state !== "delivered").length} aktif işlem</em></div></article>
       </section>
 
       <section className="ordersToolbarV6">
@@ -129,7 +186,7 @@ export default function OrdersCenterExperience() {
           </button>
           {(selected.state === "shipped" || selected.state === "delivered") && <button className="orderTrackingButtonV13" type="button" onClick={() => router.push(`/kargo?order=${selected.id}`)}><Icon name="truck" /> {selected.state === "shipped" ? "Kargoyu canlı takip et" : "Teslimat ve iade işlemleri"}</button>}
           <button className="orderProblemButtonV6" type="button" onClick={() => router.push(`/uyusmazlik?order=${selected.id}`)}><Icon name="alert" /> Siparişle ilgili sorun bildir</button>
-          <small className="financeDemoNoteV6">Ödeme ve durum değişiklikleri bu aşamada demo olarak çalışır.</small>
+          <small className="financeDemoNoteV6">{dataMode === "database" ? "Siparişler ve teslimat onayı Supabase veritabanından çalışır." : "Supabase yapılandırılmadığı için demo siparişler gösteriliyor."}</small>
         </aside>
       </section>
     </div>

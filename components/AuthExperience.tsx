@@ -66,7 +66,8 @@ export default function AuthExperience({ mode }: { mode: Mode }) {
       if (mode === "login") {
         const { error } = await client.auth.signInWithPassword({ email: email.trim(), password });
         if (error) throw error;
-        window.location.assign("/profil");
+        const returnTo = new URLSearchParams(window.location.search).get("returnTo");
+        window.location.assign(returnTo?.startsWith("/") ? returnTo : "/profil");
       } else {
         const { error } = await client.auth.signUp({ email: email.trim(), password, options: { data: { full_name: fullName.trim(), marketing_opt_in: marketingOptIn, terms_version: "2026.07" } } });
         if (error) throw error;

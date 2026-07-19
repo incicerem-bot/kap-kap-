@@ -10,6 +10,7 @@ export type SellerReview = {
   verifiedPurchase: boolean;
   tags: string[];
   sellerReply?: string;
+  photos?: string[];
 };
 
 export type SellerProfile = {
@@ -292,4 +293,3 @@ export function sellerSlugForName(name: string) {
     ?? name.toLocaleLowerCase("tr-TR").replaceAll("ı", "i").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 }
 
-export const REVIEW_STORAGE_KEY = "kk-seller-reviews-v1";

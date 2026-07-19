@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { demoProducts, parsePrice, timeToSeconds, type Product } from "@/components/productData";
-import { REVIEW_STORAGE_KEY, type SellerProfile, type SellerReview } from "@/components/sellerData";
+import { type SellerProfile } from "@/components/sellerData";
+import { loadSellerReviewBundle, type SellerReviewBundle } from "@/lib/reviews";
 import { FAVORITES_STORAGE_KEY, defaultFavoriteIds, useStoredIds } from "@/components/useMarketplaceCollections";
 
 type StoreTab = "listings" | "reviews" | "about";
@@ -60,25 +61,50 @@ function StoreProductCard({ product, favorite, onFavorite }: { product: Product;
   );
 }
 
-export default function SellerStoreExperience({ seller, initialTab = "listings" }: { seller: SellerProfile; initialTab?: string }) {
+export default function SellerStoreExperience({ seller: initialSeller, initialTab = "listings" }: { seller: SellerProfile; initialTab?: string }) {
   const normalizedTab: StoreTab = initialTab === "reviews" ? "reviews" : initialTab === "about" ? "about" : "listings";
   const [tab, setTab] = useState<StoreTab>(normalizedTab);
   const [followed, setFollowed] = useState(false);
   const [notice, setNotice] = useState("");
   const [sort, setSort] = useState<ListingSort>("ending");
   const [ratingFilter, setRatingFilter] = useState<number | "all">("all");
-  const [customReviews, setCustomReviews] = useState<SellerReview[]>([]);
+  const [databaseBundle, setDatabaseBundle] = useState<SellerReviewBundle | null>(null);
+  const [databaseResolved, setDatabaseResolved] = useState(false);
   const favorites = useStoredIds(FAVORITES_STORAGE_KEY, defaultFavoriteIds);
 
   useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem(REVIEW_STORAGE_KEY);
-      const values = raw ? JSON.parse(raw) as Array<SellerReview & { sellerSlug?: string }> : [];
-      setCustomReviews(values.filter((review) => review.sellerSlug === seller.slug));
-    } catch {
-      setCustomReviews([]);
-    }
-  }, [seller.slug]);
+    let active = true;
+    setDatabaseResolved(false);
+    loadSellerReviewBundle(initialSeller.slug)
+      .then((bundle) => { if (active) setDatabaseBundle(bundle); })
+      .finally(() => { if (active) setDatabaseResolved(true); });
+    return () => { active = false; };
+  }, [initialSeller.slug]);
+
+  const seller = useMemo<SellerProfile>(() => {
+    if (!databaseBundle) return initialSeller;
+    const responseMinutes = databaseBundle.seller.responseTimeMinutes;
+    return {
+      ...initialSeller,
+      name: databaseBundle.seller.name,
+      initials: databaseBundle.seller.initials,
+      tagline: databaseBundle.seller.tagline,
+      location: databaseBundle.seller.location,
+      verified: databaseBundle.seller.verified,
+      rating: databaseBundle.summary.averageRating,
+      sales: databaseBundle.seller.successfulSalesCount,
+      followers: databaseBundle.seller.followersCount,
+      responseRate: databaseBundle.seller.responseRate,
+      responseTime: responseMinutes < 60 ? `${responseMinutes} dakika` : `${Math.round(responseMinutes / 60)} saat`,
+      shipOnTime: databaseBundle.seller.shipOnTimeRate,
+      cancellationRate: databaseBundle.seller.cancellationRate,
+      categories: databaseBundle.seller.categories,
+      about: databaseBundle.seller.about,
+      badges: databaseBundle.seller.badges,
+      ratingDistribution: databaseBundle.summary.distribution,
+      reviews: databaseBundle.reviews,
+    };
+  }, [databaseBundle, initialSeller]);
 
   useEffect(() => {
     if (!notice) return;
@@ -96,9 +122,9 @@ export default function SellerStoreExperience({ seller, initialTab = "listings" 
     });
   }, [seller.productIds, sort]);
 
-  const allReviews = useMemo(() => [...customReviews, ...seller.reviews], [customReviews, seller.reviews]);
+  const allReviews = seller.reviews;
   const visibleReviews = ratingFilter === "all" ? allReviews : allReviews.filter((review) => review.rating === ratingFilter);
-  const totalRatings = Object.values(seller.ratingDistribution).reduce((sum, count) => sum + count, 0) + customReviews.length;
+  const totalRatings = Object.values(seller.ratingDistribution).reduce((sum, count) => sum + count, 0);
 
   async function shareStore() {
     try {
@@ -160,17 +186,18 @@ export default function SellerStoreExperience({ seller, initialTab = "listings" 
         <section className="storeReviewsLayoutV15">
           <aside className="storeRatingPanelV15">
             <div className="storeRatingBigV15"><strong>{seller.rating.toLocaleString("tr-TR")}</strong><span>{ratingStars(seller.rating)}</span><small>{totalRatings.toLocaleString("tr-TR")} doğrulanmış alışveriş</small></div>
-            <div className="storeRatingBarsV15">{([5, 4, 3, 2, 1] as const).map((rating) => { const count = seller.ratingDistribution[rating] + customReviews.filter((review) => review.rating === rating).length; const percent = totalRatings ? Math.round(count / totalRatings * 100) : 0; return <button type="button" key={rating} className={ratingFilter === rating ? "active" : ""} onClick={() => setRatingFilter(ratingFilter === rating ? "all" : rating)}><span>{rating} <Icon name="star" /></span><i><b style={{ width: `${percent}%` }} /></i><small>{count}</small></button>; })}</div>
+            <div className="storeRatingBarsV15">{([5, 4, 3, 2, 1] as const).map((rating) => { const count = seller.ratingDistribution[rating]; const percent = totalRatings ? Math.round(count / totalRatings * 100) : 0; return <button type="button" key={rating} className={ratingFilter === rating ? "active" : ""} onClick={() => setRatingFilter(ratingFilter === rating ? "all" : rating)}><span>{rating} <Icon name="star" /></span><i><b style={{ width: `${percent}%` }} /></i><small>{count}</small></button>; })}</div>
             {ratingFilter !== "all" && <button type="button" className="clearRatingV15" onClick={() => setRatingFilter("all")}>Tüm değerlendirmeleri göster</button>}
           </aside>
 
           <div className="storeReviewFeedV15">
-            <header><div><span>GERÇEK ALIŞVERİŞ DENEYİMLERİ</span><h2>{ratingFilter === "all" ? "Son değerlendirmeler" : `${ratingFilter} yıldızlı değerlendirmeler`}</h2></div><em><Icon name="shield" /> Yalnızca tamamlanmış siparişler</em></header>
+            <header><div><span>GERÇEK ALIŞVERİŞ DENEYİMLERİ</span><h2>{ratingFilter === "all" ? "Son değerlendirmeler" : `${ratingFilter} yıldızlı değerlendirmeler`}</h2></div><em><Icon name="shield" /> {databaseResolved && databaseBundle ? "Supabase doğrulamalı siparişler" : "Yalnızca tamamlanmış siparişler"}</em></header>
             {visibleReviews.length ? visibleReviews.map((review) => (
               <article className="storeReviewCardV15" key={review.id}>
                 <header><div className="reviewBuyerV15">{review.buyer.slice(0, 1)}</div><div><strong>{review.buyer}</strong><span>{ratingStars(review.rating)}</span></div><time>{review.date}</time></header>
                 <h3>{review.title}</h3>
                 <p>{review.comment}</p>
+                {review.photos?.length ? <div className="reviewPhotosV16">{review.photos.map((photo, index) => <img key={`${review.id}-${index}`} src={photo} alt={`${review.product} değerlendirme fotoğrafı ${index + 1}`} />)}</div> : null}
                 <div className="reviewTagsV15">{review.tags.map((tag) => <span key={tag}><Icon name="check" /> {tag}</span>)}</div>
                 <footer><div><Icon name="package" /><span>{review.product}</span>{review.verifiedPurchase && <em><Icon name="shield" /> Doğrulanmış alışveriş</em>}</div>{review.productId && <Link href={`/urun/${review.productId}`}>Ürünü gör <Icon name="chevron" /></Link>}</footer>
                 {review.sellerReply && <section className="sellerReplyV15"><div>{seller.initials}</div><p><strong>{seller.name} yanıtladı</strong><span>{review.sellerReply}</span></p></section>}

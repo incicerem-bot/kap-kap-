@@ -1,24 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState, type FormEvent, type ReactNode } from "react";
-import { REVIEW_STORAGE_KEY, findSellerBySlug, type SellerReview } from "@/components/sellerData";
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { createVerifiedReview, loadReviewableOrder, type ReviewableOrder } from "@/lib/reviews";
 
 type IconName = "star" | "check" | "shield" | "package" | "message" | "truck" | "image" | "arrow" | "lock";
-
-type ReviewOrder = {
-  id: string;
-  title: string;
-  image: string;
-  sellerSlug: string;
-  seller: string;
-  deliveredAt: string;
-};
-
-const reviewOrders: ReviewOrder[] = [
-  { id: "KK-24672", title: "PlayStation 5 Slim + 2 DualSense", image: "https://images.unsplash.com/photo-1606813907291-d86efa9b94db?auto=format&fit=crop&w=900&q=84", sellerSlug: "gameport", seller: "GamePort", deliveredAt: "18 Temmuz 2026" },
-  { id: "KK-24891", title: "Rolex Submariner Date 126610LN", image: "https://images.unsplash.com/photo-1523170335258-f5ed11844a49?auto=format&fit=crop&w=900&q=84", sellerSlug: "mert-saat-koleksiyon", seller: "Mert Saat & Koleksiyon", deliveredAt: "19 Temmuz 2026" },
-];
+type LoadState = "loading" | "ready" | "not-configured" | "signed-out" | "not-found" | "error";
 
 function Icon({ name }: { name: IconName }) {
   const common = { viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, "aria-hidden": true };
@@ -49,9 +36,27 @@ function RatingPicker({ value, onChange, compact = false }: { value: number; onC
   return <div className={compact ? "reviewStarsV15 compact" : "reviewStarsV15"}>{[1, 2, 3, 4, 5].map((rating) => <button type="button" key={rating} className={rating <= value ? "active" : ""} onClick={() => onChange(rating)} aria-label={`${rating} yıldız`}><Icon name="star" /></button>)}</div>;
 }
 
+function formatDate(value: string) {
+  if (!value) return "Teslimat tarihi";
+  return new Intl.DateTimeFormat("tr-TR", { day: "numeric", month: "long", year: "numeric" }).format(new Date(value));
+}
+
+function ReviewState({ icon = "shield", eyebrow, title, description, action }: { icon?: IconName; eyebrow: string; title: string; description: string; action?: ReactNode }) {
+  return (
+    <section className="reviewSystemStateV16">
+      <span><Icon name={icon} /></span>
+      <em>{eyebrow}</em>
+      <h1>{title}</h1>
+      <p>{description}</p>
+      {action}
+    </section>
+  );
+}
+
 export default function ReviewFlowExperience({ orderId }: { orderId: string }) {
-  const order = reviewOrders.find((item) => item.id === orderId) ?? reviewOrders[0];
-  const seller = findSellerBySlug(order.sellerSlug);
+  const [loadState, setLoadState] = useState<LoadState>("loading");
+  const [loadError, setLoadError] = useState("");
+  const [order, setOrder] = useState<ReviewableOrder | null>(null);
   const [overall, setOverall] = useState(0);
   const [scores, setScores] = useState<Record<string, number>>({ accuracy: 0, shipping: 0, communication: 0 });
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -59,59 +64,91 @@ export default function ReviewFlowExperience({ orderId }: { orderId: string }) {
   const [comment, setComment] = useState("");
   const [anonymous, setAnonymous] = useState(true);
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const [photoNames, setPhotoNames] = useState<string[]>([]);
+  const [successWarning, setSuccessWarning] = useState("");
+  const [photoFiles, setPhotoFiles] = useState<File[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    setLoadState("loading");
+    loadReviewableOrder(orderId).then((result) => {
+      if (!active) return;
+      if (result.status === "ready") {
+        setOrder(result.data);
+        setLoadState("ready");
+      } else if (result.status === "error") {
+        setLoadError(result.message);
+        setLoadState("error");
+      } else {
+        setLoadState(result.status);
+      }
+    }).catch((reason: unknown) => {
+      if (!active) return;
+      setLoadError(reason instanceof Error ? reason.message : "Sipariş bilgisi alınamadı.");
+      setLoadState("error");
+    });
+    return () => { active = false; };
+  }, [orderId]);
 
   const recommendedTags = useMemo(() => overall >= 4 ? positiveTags : overall > 0 ? negativeTags : positiveTags, [overall]);
   const completeCriteria = Object.values(scores).every((value) => value > 0);
-  const canSubmit = overall > 0 && completeCriteria && comment.trim().length >= 20;
+  const canSubmit = overall > 0 && completeCriteria && comment.trim().length >= 20 && !submitting;
 
   function toggleTag(tag: string) {
     setSelectedTags((current) => current.includes(tag) ? current.filter((item) => item !== tag) : current.length < 4 ? [...current, tag] : current);
   }
 
-  function submitReview(event: FormEvent<HTMLFormElement>) {
+  async function submitReview(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!canSubmit) {
+    if (!order || !canSubmit) {
       setError("Genel puanı, üç hizmet puanını ve en az 20 karakterlik yorumunu tamamla.");
       return;
     }
 
-    const review: SellerReview & { sellerSlug: string; criteria: Record<string, number>; photos: string[] } = {
-      id: `rv-${order.id}-${Date.now()}`,
-      sellerSlug: order.sellerSlug,
-      buyer: anonymous ? "K••• A•••" : "Kemal Akar",
-      rating: overall,
-      date: "19 Temmuz 2026",
-      title: title.trim() || (overall >= 4 ? "Güvenli ve başarılı alışveriş" : "Alışveriş deneyimim"),
-      comment: comment.trim(),
-      product: order.title,
-      verifiedPurchase: true,
-      tags: selectedTags,
-      criteria: scores,
-      photos: photoNames,
-    };
-
-    try {
-      const raw = window.localStorage.getItem(REVIEW_STORAGE_KEY);
-      const current = raw ? JSON.parse(raw) as unknown[] : [];
-      window.localStorage.setItem(REVIEW_STORAGE_KEY, JSON.stringify([review, ...current.filter((item) => typeof item === "object" && item !== null && (item as { id?: string }).id !== review.id)]));
-    } catch {
-      // Depolama kapalıysa başarı ekranı yine gösterilir.
-    }
+    setSubmitting(true);
     setError("");
-    setSubmitted(true);
+    try {
+      const result = await createVerifiedReview({
+        orderNo: order.orderNo,
+        rating: overall,
+        accuracyRating: scores.accuracy,
+        shippingRating: scores.shipping,
+        communicationRating: scores.communication,
+        title: title.trim() || (overall >= 4 ? "Güvenli ve başarılı alışveriş" : "Alışveriş deneyimim"),
+        comment: comment.trim(),
+        tags: selectedTags,
+        anonymous,
+        photos: photoFiles,
+      });
+      setSuccessWarning(result.photoWarning ?? "");
+      setSubmitted(true);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Değerlendirme kaydedilemedi.");
+    } finally {
+      setSubmitting(false);
+    }
   }
+
+  if (loadState === "loading") return <ReviewState eyebrow="SİPARİŞ DOĞRULANIYOR" title="Değerlendirme hakkın kontrol ediliyor." description="Teslimat, oturum ve daha önce yorum yapılıp yapılmadığı Supabase üzerinden doğrulanıyor." />;
+  if (loadState === "not-configured") return <ReviewState eyebrow="SUPABASE BAĞLANTISI EKSİK" title="Değerlendirme sistemi henüz veritabanına bağlanmamış." description="SQL kurulum dosyasını Supabase SQL Editor’da çalıştır ve Vercel ortam değişkenlerine Supabase URL ile anon anahtarını ekle." />;
+  if (loadState === "signed-out") return <ReviewState icon="lock" eyebrow="OTURUM GEREKLİ" title="Bu siparişi değerlendirmek için giriş yapmalısın." description="Sistem yalnızca siparişin gerçek alıcısına değerlendirme formunu açar." action={<Link href={`/giris?returnTo=${encodeURIComponent(`/degerlendirme?order=${orderId}`)}`}>Giriş yap <Icon name="arrow" /></Link>} />;
+  if (loadState === "not-found") return <ReviewState eyebrow="SİPARİŞ BULUNAMADI" title="Bu hesapta değerlendirilebilir sipariş bulunmuyor." description="Sipariş numarası sana ait değilse veya henüz gerçek sipariş tablosuna aktarılmadıysa form açılmaz." action={<Link href="/siparisler">Siparişlerime dön <Icon name="arrow" /></Link>} />;
+  if (loadState === "error") return <ReviewState eyebrow="BAĞLANTI HATASI" title="Sipariş doğrulanamadı." description={loadError || "Supabase bağlantısını ve SQL kurulumunu kontrol et."} />;
+  if (!order) return null;
+  if (order.status !== "delivered") return <ReviewState icon="truck" eyebrow="TESLİMAT BEKLENİYOR" title="Bu sipariş henüz değerlendirilemez." description="Değerlendirme yalnızca ürün teslim edilip alıcı tarafından onaylandıktan sonra açılır." action={<Link href={`/kargo?order=${order.orderNo}`}>Kargoyu takip et <Icon name="arrow" /></Link>} />;
+  if (order.alreadyReviewed && !submitted) return <ReviewState icon="check" eyebrow="DAHA ÖNCE DEĞERLENDİRİLDİ" title="Bu sipariş için değerlendirme hakkı kullanılmış." description="Her tamamlanmış sipariş yalnızca bir doğrulanmış değerlendirme oluşturabilir." action={<Link href={`/magaza/${order.sellerSlug}?tab=reviews`}>Mağaza yorumlarını gör <Icon name="arrow" /></Link>} />;
 
   if (submitted) {
     return (
       <section className="reviewSuccessV15">
         <span><Icon name="check" /></span>
-        <em>DEĞERLENDİRMEN ALINDI</em>
+        <em>DEĞERLENDİRMEN VERİTABANINA KAYDEDİLDİ</em>
         <h1>Teşekkürler, alışveriş deneyimin mağazaya eklendi.</h1>
-        <p>Yorumun yalnızca tamamlanmış siparişe bağlı olduğu için <strong>Doğrulanmış alışveriş</strong> etiketiyle gösterilecek.</p>
-        <div><article><Icon name="shield" /><strong>Manipülasyona kapalı</strong><small>Satıcı puanı düzenleyemez veya silemez.</small></article><article><Icon name="lock" /><strong>Gizlilik korunur</strong><small>{anonymous ? "Adın mağazada maskeli gösterilecek." : "Adın değerlendirmede açık gösterilecek."}</small></article></div>
-        <Link href={`/magaza/${order.sellerSlug}?tab=reviews&reviewed=1`}>{seller?.name ?? order.seller} mağazasındaki yorumunu gör <Icon name="arrow" /></Link>
+        <p>Yorumun gerçek siparişe bağlı olduğu için <strong>Doğrulanmış alışveriş</strong> etiketiyle gösterilecek.</p>
+        {successWarning && <div className="reviewPhotoWarningV16" role="status">{successWarning}</div>}
+        <div><article><Icon name="shield" /><strong>Tek sipariş, tek yorum</strong><small>Bu kural Supabase fonksiyonu ve benzersiz veritabanı kısıtıyla korunur.</small></article><article><Icon name="lock" /><strong>Gizlilik korunur</strong><small>{anonymous ? "Adın mağazada maskeli gösterilecek." : "Profilindeki ad değerlendirmede açık gösterilecek."}</small></article></div>
+        <Link href={`/magaza/${order.sellerSlug}?tab=reviews&reviewed=1`}>{order.sellerName} mağazasındaki yorumunu gör <Icon name="arrow" /></Link>
         <Link className="reviewSecondaryLinkV15" href="/siparisler">Siparişlerime dön</Link>
       </section>
     );
@@ -121,13 +158,13 @@ export default function ReviewFlowExperience({ orderId }: { orderId: string }) {
     <form className="reviewFlowV15" onSubmit={submitReview}>
       {error && <div className="reviewErrorV15" role="alert">{error}</div>}
       <section className="reviewOrderCardV15">
-        <img src={order.image} alt={order.title} />
-        <div><span>DOĞRULANMIŞ SİPARİŞ · #{order.id}</span><h2>{order.title}</h2><p>Satıcı: <Link href={`/magaza/${order.sellerSlug}`}>{order.seller}</Link></p><small><Icon name="check" /> {order.deliveredAt} tarihinde teslim edildi</small></div>
+        <img src={order.productImage} alt={order.productTitle} />
+        <div><span>DOĞRULANMIŞ SİPARİŞ · #{order.orderNo}</span><h2>{order.productTitle}</h2><p>Satıcı: <Link href={`/magaza/${order.sellerSlug}`}>{order.sellerName}</Link></p><small><Icon name="check" /> {formatDate(order.deliveredAt)} tarihinde teslim edildi</small></div>
       </section>
 
       <section className="reviewMainGridV15">
         <div className="reviewFormPanelV15">
-          <header><span>01</span><div><em>GENEL DENEYİM</em><h2>Bu alışverişi nasıl değerlendirirsin?</h2><p>Puanın satıcının herkese açık güven puanına yansır.</p></div></header>
+          <header><span>01</span><div><em>GENEL DENEYİM</em><h2>Bu alışverişi nasıl değerlendirirsin?</h2><p>Puanın satıcının Supabase üzerinden hesaplanan güven puanına yansır.</p></div></header>
           <RatingPicker value={overall} onChange={(value) => { setOverall(value); setSelectedTags([]); }} />
           <div className="reviewRatingWordsV15"><span>Çok kötü</span><strong>{overall === 0 ? "Puan seç" : overall === 1 ? "Çok kötü" : overall === 2 ? "Kötü" : overall === 3 ? "Orta" : overall === 4 ? "İyi" : "Mükemmel"}</strong><span>Mükemmel</span></div>
 
@@ -141,14 +178,14 @@ export default function ReviewFlowExperience({ orderId }: { orderId: string }) {
           <header><span>04</span><div><em>YORUMUN</em><h2>Diğer alıcılara yardımcı ol</h2></div></header>
           <label className="reviewTextFieldV15"><span>Yorum başlığı <small>İsteğe bağlı</small></span><input value={title} onChange={(event) => setTitle(event.target.value)} maxLength={70} placeholder="Örn. Ürün ilandaki gibi ve paketleme çok iyiydi" /></label>
           <label className="reviewTextFieldV15"><span>Alışveriş deneyimin <small>{comment.length}/500</small></span><textarea value={comment} onChange={(event) => setComment(event.target.value.slice(0, 500))} rows={6} placeholder="Ürün durumu, paketleme, kargo ve satıcı iletişimi hakkında deneyimini anlat..." /><em className={comment.length >= 20 ? "complete" : ""}>{comment.length >= 20 ? <><Icon name="check" /> Yeterli ayrıntı</> : `En az ${Math.max(0, 20 - comment.length)} karakter daha`}</em></label>
-          <label className="reviewPhotoUploadV15"><input type="file" accept="image/*" multiple onChange={(event) => setPhotoNames(Array.from(event.target.files ?? []).slice(0, 4).map((file) => file.name))} /><span><Icon name="image" /></span><div><strong>Fotoğraf ekle <small>İsteğe bağlı</small></strong><p>Ürünün gerçek durumunu göstermek için en fazla 4 fotoğraf.</p>{photoNames.length > 0 && <em>{photoNames.length} fotoğraf seçildi</em>}</div></label>
+          <label className="reviewPhotoUploadV15"><input type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={(event) => setPhotoFiles(Array.from(event.target.files ?? []).slice(0, 4))} /><span><Icon name="image" /></span><div><strong>Fotoğraf ekle <small>İsteğe bağlı</small></strong><p>JPG, PNG veya WEBP; fotoğraf başına en fazla 8 MB.</p>{photoFiles.length > 0 && <em>{photoFiles.length} fotoğraf Supabase Storage’a yüklenecek</em>}</div></label>
         </div>
 
         <aside className="reviewSidebarV15">
-          <section><header><Icon name="shield" /><div><span>DEĞERLENDİRME GÜVENLİĞİ</span><h3>Yorumun neden güvenilir?</h3></div></header><ul><li><Icon name="check" /> Yalnızca teslim edilmiş siparişe bağlı</li><li><Icon name="check" /> Satıcı yorumu değiştiremez</li><li><Icon name="check" /> Sahte ve hakaret içeren içerikler incelenir</li><li><Icon name="check" /> Puan satıcı performansına yansır</li></ul></section>
-          <section className="reviewPrivacyV15"><header><Icon name="lock" /><div><span>GÖRÜNÜRLÜK</span><h3>Adını nasıl gösterelim?</h3></div></header><label><input type="radio" name="visibility" checked={anonymous} onChange={() => setAnonymous(true)} /><span><strong>Maskeli göster</strong><small>K••• A••• biçiminde görünür.</small></span></label><label><input type="radio" name="visibility" checked={!anonymous} onChange={() => setAnonymous(false)} /><span><strong>Adımı göster</strong><small>Kemal Akar biçiminde görünür.</small></span></label></section>
-          <button type="submit" className="reviewSubmitV15" disabled={!canSubmit}>Değerlendirmeyi yayınla <Icon name="arrow" /></button>
-          <p className="reviewSubmitNoteV15"><Icon name="lock" /> Yayınlandıktan sonra puanı değiştirmek için destek talebi gerekir.</p>
+          <section><header><Icon name="shield" /><div><span>DEĞERLENDİRME GÜVENLİĞİ</span><h3>Yorumun neden güvenilir?</h3></div></header><ul><li><Icon name="check" /> Sipariş sahipliği veritabanında doğrulanır</li><li><Icon name="check" /> Yalnızca teslim edilmiş sipariş kabul edilir</li><li><Icon name="check" /> Aynı sipariş ikinci kez değerlendirilemez</li><li><Icon name="check" /> Satıcı kendi mağazasını değerlendiremez</li></ul></section>
+          <section className="reviewPrivacyV15"><header><Icon name="lock" /><div><span>GÖRÜNÜRLÜK</span><h3>Adını nasıl gösterelim?</h3></div></header><label><input type="radio" name="visibility" checked={anonymous} onChange={() => setAnonymous(true)} /><span><strong>Maskeli göster</strong><small>Adın veritabanında K••• A••• biçimine dönüştürülür.</small></span></label><label><input type="radio" name="visibility" checked={!anonymous} onChange={() => setAnonymous(false)} /><span><strong>Adımı göster</strong><small>Supabase profilindeki adın gösterilir.</small></span></label></section>
+          <button type="submit" className="reviewSubmitV15" disabled={!canSubmit}>{submitting ? "Veritabanına kaydediliyor..." : "Değerlendirmeyi yayınla"} {!submitting && <Icon name="arrow" />}</button>
+          <p className="reviewSubmitNoteV15"><Icon name="lock" /> Yayınlama işlemi RLS ve güvenli veritabanı fonksiyonuyla korunur.</p>
         </aside>
       </section>
     </form>
