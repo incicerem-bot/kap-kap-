@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
+import { marketplaceNotifications } from "@/components/notificationData";
+import { FAVORITES_STORAGE_KEY, READ_NOTIFICATIONS_STORAGE_KEY, defaultFavoriteIds, defaultReadNotificationIds, useStoredIds } from "@/components/useMarketplaceCollections";
 
 type IconName =
   | "home"
@@ -75,6 +77,7 @@ const account = [
   ["/ilanlarim", "Satış Merkezi"],
   ["/tekliflerim", "Tekliflerim"],
   ["/favoriler", "Favorilerim"],
+  ["/karsilastir", "Ürün Karşılaştırma"],
   ["/siparisler", "Siparişlerim"],
   ["/uyusmazlik", "Uyuşmazlıklar"],
   ["/mesajlar", "Mesajlar"],
@@ -99,6 +102,9 @@ export default function MarketplaceShell({
   compact?: boolean;
 }) {
   const pathname = usePathname();
+  const favorites = useStoredIds(FAVORITES_STORAGE_KEY, defaultFavoriteIds);
+  const readNotifications = useStoredIds(READ_NOTIFICATIONS_STORAGE_KEY, defaultReadNotificationIds);
+  const unreadNotificationCount = marketplaceNotifications.filter((item) => !readNotifications.ids.includes(item.id)).length;
 
   return (
     <main className="marketApp">
@@ -114,8 +120,8 @@ export default function MarketplaceShell({
         </form>
 
         <nav className="marketTopActions" aria-label="Kullanıcı işlemleri">
-          <Link href="/favoriler" aria-label="Favoriler"><Icon name="heart" /><small>11</small></Link>
-          <Link href="/bildirimler" aria-label="Bildirimler"><Icon name="bell" /><small>3</small></Link>
+          <Link href="/favoriler" aria-label="Favoriler"><Icon name="heart" />{favorites.ids.length > 0 && <small>{favorites.ids.length}</small>}</Link>
+          <Link href="/bildirimler" aria-label="Bildirimler"><Icon name="bell" />{unreadNotificationCount > 0 && <small>{unreadNotificationCount}</small>}</Link>
           <Link href="/mesajlar" aria-label="Mesajlar"><Icon name="message" /></Link>
           <Link href="/profil" className="marketAvatar" aria-label="Profil"><Icon name="user" /></Link>
           <Link href="/ilan-olustur" className="marketSell"><Icon name="plus" /> İlan Ver</Link>

@@ -9,6 +9,7 @@ import {
   timeToSeconds,
   type Product,
 } from "@/components/productData";
+import { COMPARE_STORAGE_KEY, FAVORITES_STORAGE_KEY, defaultCompareIds, defaultFavoriteIds, useStoredIds } from "@/components/useMarketplaceCollections";
 
 type IconName =
   | "arrow"
@@ -22,7 +23,8 @@ type IconName =
   | "clock"
   | "info"
   | "bolt"
-  | "card";
+  | "card"
+  | "compare";
 
 function Icon({ name }: { name: IconName }) {
   const common = {
@@ -48,6 +50,7 @@ function Icon({ name }: { name: IconName }) {
     info: <><circle cx="12" cy="12" r="9" /><path d="M12 11v5M12 8h.01" /></>,
     bolt: <path d="m13 2-8 12h6l-1 8 9-13h-6z" />,
     card: <><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 10h18M7 15h4" /></>,
+    compare: <><path d="M8 3 4 7l4 4" /><path d="M4 7h12a4 4 0 0 1 4 4v1" /><path d="m16 21 4-4-4-4" /><path d="M20 17H8a4 4 0 0 1-4-4v-1" /></>,
   };
 
   return <svg {...common}>{paths[name]}</svg>;
@@ -73,7 +76,10 @@ function createInitialHistory(product: Product): BidHistoryItem[] {
 
 export default function ProductDetailExperience({ product }: { product: Product }) {
   const [selectedImage, setSelectedImage] = useState(0);
-  const [favorite, setFavorite] = useState(false);
+  const favorites = useStoredIds(FAVORITES_STORAGE_KEY, defaultFavoriteIds);
+  const compare = useStoredIds(COMPARE_STORAGE_KEY, defaultCompareIds);
+  const favorite = favorites.ids.includes(product.id);
+  const compared = compare.ids.includes(product.id);
   const [currentPrice, setCurrentPrice] = useState(() => parsePrice(product.price));
   const [bidCount, setBidCount] = useState(product.bids);
   const [bidAmount, setBidAmount] = useState(() => String(parsePrice(product.price) + product.increment));
@@ -173,9 +179,10 @@ export default function ProductDetailExperience({ product }: { product: Product 
               <span>{product.condition}</span>
             </div>
             <div className="productImageActionsV5">
-              <button className={favorite ? "active" : ""} type="button" onClick={() => setFavorite((value) => !value)} aria-pressed={favorite}>
+              <button className={favorite ? "active" : ""} type="button" onClick={() => favorites.toggle(product.id)} aria-pressed={favorite}>
                 <Icon name="heart" /> {favorite ? "Favorilerde" : "Favoriye ekle"}
               </button>
+              <button className={compared ? "active" : ""} type="button" onClick={() => { const result = compare.toggle(product.id, 3); setNotice(result === "limit" ? "En fazla 3 ürünü karşılaştırabilirsin." : result === "added" ? "Ürün karşılaştırmaya eklendi." : "Ürün karşılaştırmadan çıkarıldı."); }} aria-pressed={compared}><Icon name="compare" /> {compared ? "Karşılaştırmada" : "Karşılaştır"}</button>
               <button type="button" onClick={shareProduct}><Icon name="share" /> Paylaş</button>
             </div>
           </div>

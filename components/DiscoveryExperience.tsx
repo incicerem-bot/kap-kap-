@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { demoProducts, parsePrice, timeToSeconds, type Product } from "@/components/productData";
+import { COMPARE_STORAGE_KEY, FAVORITES_STORAGE_KEY, defaultCompareIds, defaultFavoriteIds, useStoredIds } from "@/components/useMarketplaceCollections";
 
 type SortKey = "relevant" | "ending" | "price-low" | "price-high" | "bids" | "newest";
 type SaleMode = "all" | "live" | "scheduled";
@@ -25,7 +26,7 @@ function money(value: number) {
   return `${value.toLocaleString("tr-TR")} TL`;
 }
 
-function Icon({ name }: { name: "search" | "filter" | "grid" | "list" | "heart" | "clock" | "shield" | "close" | "bell" }) {
+function Icon({ name }: { name: "search" | "filter" | "grid" | "list" | "heart" | "clock" | "shield" | "close" | "bell" | "compare" | "check" }) {
   const common = { viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, "aria-hidden": true };
   const paths = {
     search: <><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></>,
@@ -37,11 +38,13 @@ function Icon({ name }: { name: "search" | "filter" | "grid" | "list" | "heart" 
     shield: <><path d="M12 3 5 6v5c0 4.6 2.8 8.2 7 10 4.2-1.8 7-5.4 7-10V6l-7-3Z"/><path d="m9 12 2 2 4-4"/></>,
     close: <><path d="m6 6 12 12M18 6 6 18"/></>,
     bell: <><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></>,
+    compare: <><path d="M8 3 4 7l4 4"/><path d="M4 7h12a4 4 0 0 1 4 4v1"/><path d="m16 21 4-4-4-4"/><path d="M20 17H8a4 4 0 0 1-4-4v-1"/></>,
+    check: <path d="m5 12 4 4L19 6"/>,
   };
   return <svg {...common}>{paths[name]}</svg>;
 }
 
-function DiscoveryCard({ product, view, favorite, onFavorite }: { product: Product; view: ViewMode; favorite: boolean; onFavorite: () => void }) {
+function DiscoveryCard({ product, view, favorite, compared, onFavorite, onCompare }: { product: Product; view: ViewMode; favorite: boolean; compared: boolean; onFavorite: () => void; onCompare: () => void }) {
   const urgent = timeToSeconds(product.time) < 3600;
   return (
     <article className={`discoveryCard ${view === "list" ? "discoveryCardList" : ""}`}>
@@ -51,7 +54,7 @@ function DiscoveryCard({ product, view, favorite, onFavorite }: { product: Produ
           {product.live ? <span className="discoveryLiveBadge"><i /> CANLI</span> : <span className="discoveryScheduledBadge">SÜRELİ</span>}
           {urgent && <span className="discoveryUrgentBadge">SON SAAT</span>}
         </div>
-        <button type="button" className={favorite ? "discoveryFavorite active" : "discoveryFavorite"} onClick={onFavorite} aria-label={favorite ? "Favorilerden çıkar" : "Favoriye ekle"} aria-pressed={favorite}><Icon name="heart" /></button>
+        <div className="discoveryCardQuickActionsV11"><button type="button" className={compared ? "active" : ""} onClick={onCompare} aria-label={compared ? "Karşılaştırmadan çıkar" : "Karşılaştırmaya ekle"} aria-pressed={compared}><Icon name={compared ? "check" : "compare"} /></button><button type="button" className={favorite ? "discoveryFavorite active" : "discoveryFavorite"} onClick={onFavorite} aria-label={favorite ? "Favorilerden çıkar" : "Favoriye ekle"} aria-pressed={favorite}><Icon name="heart" /></button></div>
       </div>
       <div className="discoveryCardContent">
         <div className="discoveryCardEyebrow"><span>{product.category}</span><small>{product.condition}</small></div>
@@ -83,8 +86,10 @@ export default function DiscoveryExperience({ initialQuery = "", lockedCategory,
   const [sort, setSort] = useState<SortKey>("relevant");
   const [view, setView] = useState<ViewMode>("grid");
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [favorites, setFavorites] = useState<string[]>([]);
+  const favorites = useStoredIds(FAVORITES_STORAGE_KEY, defaultFavoriteIds);
+  const compare = useStoredIds(COMPARE_STORAGE_KEY, defaultCompareIds);
   const [saved, setSaved] = useState(false);
+  const [collectionNotice, setCollectionNotice] = useState("");
 
   const products = useMemo(() => {
     const normalizedQuery = normalize(query.trim());
@@ -115,10 +120,14 @@ export default function DiscoveryExperience({ initialQuery = "", lockedCategory,
   const activeFilterCount = [category !== (lockedCategory || "Tümü"), saleMode !== "all", selectedConditions.length > 0, verifiedOnly, Boolean(minPrice), Boolean(maxPrice)].filter(Boolean).length;
   const clearFilters = () => { setCategory(lockedCategory || "Tümü"); setSaleMode("all"); setSelectedConditions([]); setVerifiedOnly(false); setMinPrice(""); setMaxPrice(""); };
   const toggleCondition = (condition: string) => setSelectedConditions((current) => current.includes(condition) ? current.filter((item) => item !== condition) : [...current, condition]);
-  const toggleFavorite = (id: string) => setFavorites((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
+  const toggleCompare = (id: string) => {
+    const result = compare.toggle(id, 3);
+    setCollectionNotice(result === "limit" ? "En fazla 3 ürünü karşılaştırabilirsin." : result === "added" ? "Ürün karşılaştırmaya eklendi." : "Ürün karşılaştırmadan çıkarıldı.");
+  };
 
   return (
     <div className="discoveryV10">
+      {collectionNotice && <div className="engagementToastV11" role="status"><Icon name="check" /> {collectionNotice}</div>}
       <section className="discoveryHero">
         <div><span>{categoryTitle ? "KATEGORİ KEŞFİ" : "AKILLI ARAMA"}</span><h2>{categoryTitle ? `${categoryTitle} açık artırmaları` : "Aradığın ürünü birkaç saniyede bul"}</h2><p>Başlık, marka, teknik özellik, satıcı ve konum bilgilerini birlikte tarayan gelişmiş keşif deneyimi.</p></div>
         <div className="discoveryHeroTrust"><Icon name="shield" /><div><strong>Güvenli sonuçlar</strong><small>Doğrulanmış hesap ve korumalı ödeme seçeneklerini öne çıkarır.</small></div></div>
@@ -157,7 +166,7 @@ export default function DiscoveryExperience({ initialQuery = "", lockedCategory,
 
         <section className="discoveryResults">
           {activeFilterCount > 0 && <div className="discoveryActiveFilters"><span>Aktif filtreler:</span>{saleMode !== "all" && <button type="button" onClick={() => setSaleMode("all")}>{saleMode === "live" ? "Canlı" : "Süreli"} <Icon name="close" /></button>}{selectedConditions.map((condition) => <button key={condition} type="button" onClick={() => toggleCondition(condition)}>{condition} <Icon name="close" /></button>)}{verifiedOnly && <button type="button" onClick={() => setVerifiedOnly(false)}>Doğrulanmış satıcı <Icon name="close" /></button>}{(minPrice || maxPrice) && <button type="button" onClick={() => { setMinPrice(""); setMaxPrice(""); }}>{minPrice ? `${money(Number(minPrice))} üzeri` : ""}{minPrice && maxPrice ? " · " : ""}{maxPrice ? `${money(Number(maxPrice))} altı` : ""} <Icon name="close" /></button>}</div>}
-          {products.length > 0 ? <div className={view === "grid" ? "discoveryProductGrid" : "discoveryProductList"}>{products.map((product) => <DiscoveryCard key={product.id} product={product} view={view} favorite={favorites.includes(product.id)} onFavorite={() => toggleFavorite(product.id)} />)}</div> : <div className="discoveryEmpty"><span><Icon name="search" /></span><h3>Bu filtrelerle ilan bulunamadı</h3><p>Arama kelimesini sadeleştir veya seçili filtrelerden bazılarını kaldır.</p><button type="button" onClick={() => { setQuery(""); clearFilters(); }}>Tüm ilanları göster</button></div>}
+          {products.length > 0 ? <div className={view === "grid" ? "discoveryProductGrid" : "discoveryProductList"}>{products.map((product) => <DiscoveryCard key={product.id} product={product} view={view} favorite={favorites.ids.includes(product.id)} compared={compare.ids.includes(product.id)} onFavorite={() => favorites.toggle(product.id)} onCompare={() => toggleCompare(product.id)} />)}</div> : <div className="discoveryEmpty"><span><Icon name="search" /></span><h3>Bu filtrelerle ilan bulunamadı</h3><p>Arama kelimesini sadeleştir veya seçili filtrelerden bazılarını kaldır.</p><button type="button" onClick={() => { setQuery(""); clearFilters(); }}>Tüm ilanları göster</button></div>}
           <div className="discoverySavedSearch"><div><Icon name="bell" /><div><strong>Yeni ilanları kaçırma</strong><span>Bu aramaya uygun yeni ürün geldiğinde bildirim al.</span></div></div><button type="button" className={saved ? "saved" : ""} onClick={() => setSaved((value) => !value)}>{saved ? "Arama kaydedildi" : "Aramayı kaydet"}</button></div>
         </section>
       </div>
