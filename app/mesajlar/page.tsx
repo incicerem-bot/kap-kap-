@@ -1,2 +1,14 @@
 import MarketplaceShell from "@/components/MarketplaceShell";
-export default function Page(){return <MarketplaceShell eyebrow="İLETİŞİM" title="Mesajlar" description="Alıcı ve satıcılarla güvenli biçimde iletişim kur."><div className="messagesPremium"><aside>{['Mert Teknoloji','Saat Dünyası','Retro Koleksiyon','Ayşe Yılmaz'].map((n,i)=><button className={i===0?'active':''} key={n}><span>{n[0]}</span><div><b>{n}</b><small>{i===0?'Ürün bugün kargoya verilecek.':'Son mesajı görüntüle'}</small></div><time>{12-i}:4{i}</time></button>)}</aside><section><div className="chatHeadPremium"><span>M</span><div><b>Mert Teknoloji</b><small>Çevrimiçi · Doğrulanmış satıcı</small></div></div><div className="chatBodyPremium"><p className="incoming">Merhaba, ürünün kutusu ve faturası mevcut.</p><p className="outgoing">Teşekkürler. Bugün kargoya verebilir misiniz?</p><p className="incoming">Elbette, ürün bugün kargoya verilecek.</p></div><form className="chatInputPremium"><button type="button">＋</button><input placeholder="Mesaj yaz..."/><button>Gönder</button></form></section></div></MarketplaceShell>}
+import MessagingCenterExperience from "@/components/MessagingCenterExperience";
+
+export default function Page() {
+  return (
+    <MarketplaceShell
+      eyebrow="GÜVENLİ İLETİŞİM"
+      title="Mesajlar"
+      description="Alıcı, satıcı ve destek ekibiyle işlem bağlamını kaybetmeden güvenli biçimde konuş."
+    >
+      <MessagingCenterExperience />
+    </MarketplaceShell>
+  );
+}
