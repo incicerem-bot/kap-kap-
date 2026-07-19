@@ -1,4 +1,5 @@
 import { getSupabaseBrowserClient, supabaseConfigured } from "@/lib/supabase";
+import { approveDeliveredOrder } from "@/lib/payments";
 
 export type ReviewableOrder = {
   id: string;
@@ -328,8 +329,5 @@ export async function loadBuyerOrders(): Promise<LoadResult<BuyerOrder[]>> {
 }
 
 export async function confirmBuyerDelivery(orderNo: string) {
-  const client = getSupabaseBrowserClient();
-  if (!client) throw new Error("Supabase bağlantısı yapılandırılmamış.");
-  const { error } = await client.rpc("kk_confirm_order_delivery", { p_order_no: orderNo });
-  if (error) throw new Error(error.message);
+  await approveDeliveredOrder(orderNo);
 }
