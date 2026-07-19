@@ -84,6 +84,7 @@ const account = [
   ["/bildirimler", "Bildirimler"],
   ["/cuzdan", "Cüzdanım"],
   ["/ayarlar", "Ayarlar ve Güvenlik"],
+  ["/yonetim", "Yönetim Merkezi"],
 ];
 
 export default function MarketplaceShell({
