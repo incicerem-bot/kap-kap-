@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { demoProducts, parsePrice, timeToSeconds, type Product } from "@/components/productData";
+import { parsePrice, timeToSeconds, type Product } from "@/components/productData";
+import { useAuctionProducts } from "@/components/useAuctionProducts";
 import { sellerSlugForName } from "@/components/sellerData";
 import { COMPARE_STORAGE_KEY, FAVORITES_STORAGE_KEY, defaultCompareIds, defaultFavoriteIds, useStoredIds } from "@/components/useMarketplaceCollections";
 
@@ -62,7 +63,7 @@ function DiscoveryCard({ product, view, favorite, compared, onFavorite, onCompar
         <Link href={`/urun/${product.id}`} className="discoveryCardTitle"><h3>{product.title}</h3></Link>
         <div className="discoverySellerLine">
           <span className={product.verified ? "verified" : ""}><Icon name="shield" /></span>
-          <div><Link href={`/magaza/${sellerSlugForName(product.seller)}`}>{product.seller}</Link><small>{product.verified ? "Doğrulanmış satıcı" : "Bireysel satıcı"} · {product.location}</small></div>
+          <div><Link href={`/magaza/${product.sellerSlug ?? sellerSlugForName(product.seller)}`}>{product.seller}</Link><small>{product.verified ? "Doğrulanmış satıcı" : "Bireysel satıcı"} · {product.location}</small></div>
         </div>
         {view === "list" && <p className="discoveryCardDescription">{product.description}</p>}
         <div className="discoveryCardMetrics">
@@ -91,12 +92,13 @@ export default function DiscoveryExperience({ initialQuery = "", lockedCategory,
   const compare = useStoredIds(COMPARE_STORAGE_KEY, defaultCompareIds);
   const [saved, setSaved] = useState(false);
   const [collectionNotice, setCollectionNotice] = useState("");
+  const { products: marketplaceProducts } = useAuctionProducts();
 
   const products = useMemo(() => {
     const normalizedQuery = normalize(query.trim());
     const min = minPrice ? Number(minPrice) : 0;
     const max = maxPrice ? Number(maxPrice) : Number.POSITIVE_INFINITY;
-    let result = demoProducts.filter((product) => {
+    let result = marketplaceProducts.filter((product) => {
       const searchable = normalize([product.title, product.category, product.condition, product.seller, product.location, product.description, ...product.specs.flatMap((spec) => [spec.label, spec.value])].join(" "));
       const price = parsePrice(product.price);
       return (!normalizedQuery || searchable.includes(normalizedQuery))
@@ -111,12 +113,12 @@ export default function DiscoveryExperience({ initialQuery = "", lockedCategory,
       if (sort === "price-low") return parsePrice(a.price) - parsePrice(b.price);
       if (sort === "price-high") return parsePrice(b.price) - parsePrice(a.price);
       if (sort === "bids") return b.bids - a.bids;
-      if (sort === "newest") return demoProducts.indexOf(b) - demoProducts.indexOf(a);
+      if (sort === "newest") return marketplaceProducts.indexOf(b) - marketplaceProducts.indexOf(a);
       const boost = (product: Product) => normalizedQuery && normalize(product.title).startsWith(normalizedQuery) ? 1 : 0;
       return boost(b) - boost(a) || b.watchers - a.watchers;
     });
     return result;
-  }, [category, maxPrice, minPrice, query, saleMode, selectedConditions, sort, verifiedOnly]);
+  }, [category, marketplaceProducts, maxPrice, minPrice, query, saleMode, selectedConditions, sort, verifiedOnly]);
 
   const activeFilterCount = [category !== (lockedCategory || "Tümü"), saleMode !== "all", selectedConditions.length > 0, verifiedOnly, Boolean(minPrice), Boolean(maxPrice)].filter(Boolean).length;
   const clearFilters = () => { setCategory(lockedCategory || "Tümü"); setSaleMode("all"); setSelectedConditions([]); setVerifiedOnly(false); setMinPrice(""); setMaxPrice(""); };
@@ -156,7 +158,7 @@ export default function DiscoveryExperience({ initialQuery = "", lockedCategory,
         <aside className={filtersOpen ? "discoveryFilters open" : "discoveryFilters"}>
           <div className="discoveryFilterMobileHead"><strong>Filtreler</strong><button type="button" onClick={() => setFiltersOpen(false)} aria-label="Filtreleri kapat"><Icon name="close" /></button></div>
           <div className="discoveryFilterHead"><div><Icon name="filter" /><strong>Sonuçları daralt</strong></div>{activeFilterCount > 0 && <button type="button" onClick={clearFilters}>Temizle</button>}</div>
-          {!lockedCategory && <div className="discoveryFilterGroup"><h3>Kategori</h3><div className="discoveryRadioList">{categories.map((option) => <label key={option}><input type="radio" name="category" checked={category === option} onChange={() => setCategory(option)} /><span>{option}</span><small>{option === "Tümü" ? demoProducts.length : demoProducts.filter((item) => item.category === option).length}</small></label>)}</div></div>}
+          {!lockedCategory && <div className="discoveryFilterGroup"><h3>Kategori</h3><div className="discoveryRadioList">{categories.map((option) => <label key={option}><input type="radio" name="category" checked={category === option} onChange={() => setCategory(option)} /><span>{option}</span><small>{option === "Tümü" ? marketplaceProducts.length : marketplaceProducts.filter((item) => item.category === option).length}</small></label>)}</div></div>}
           <div className="discoveryFilterGroup"><h3>Açık artırma türü</h3><div className="discoverySegmented"><button type="button" className={saleMode === "all" ? "active" : ""} onClick={() => setSaleMode("all")}>Tümü</button><button type="button" className={saleMode === "live" ? "active" : ""} onClick={() => setSaleMode("live")}>Canlı</button><button type="button" className={saleMode === "scheduled" ? "active" : ""} onClick={() => setSaleMode("scheduled")}>Süreli</button></div></div>
           <div className="discoveryFilterGroup"><h3>Fiyat aralığı</h3><div className="discoveryPriceFields"><label><span>En az</span><input type="number" min="0" value={minPrice} onChange={(event) => setMinPrice(event.target.value)} placeholder="0" /></label><i>—</i><label><span>En fazla</span><input type="number" min="0" value={maxPrice} onChange={(event) => setMaxPrice(event.target.value)} placeholder="Sınırsız" /></label></div><div className="discoveryPriceShortcuts">{[25000, 50000, 100000].map((value) => <button type="button" key={value} onClick={() => setMaxPrice(String(value))}>{money(value)} altı</button>)}</div></div>
           <div className="discoveryFilterGroup"><h3>Ürün durumu</h3><div className="discoveryCheckList">{conditions.map((condition) => <label key={condition}><input type="checkbox" checked={selectedConditions.includes(condition)} onChange={() => toggleCondition(condition)} /><span>{condition}</span></label>)}</div></div>

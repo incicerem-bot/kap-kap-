@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { publishListing, replaceListingImages, saveListingDraft, supabaseConfigured, type ListingDraftPayload } from "@/lib/auctions";
 import type { ChangeEvent, ReactNode } from "react";
 
 type IconName =
@@ -72,6 +73,7 @@ type PhotoItem = {
   src: string;
   name: string;
   local?: boolean;
+  file?: File;
 };
 
 type FormState = {
@@ -110,6 +112,23 @@ const initialPhotos: PhotoItem[] = [
   { id: "demo-3", src: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=900&q=85", name: "iPhone detay" },
 ];
 
+
+const emptyForm: FormState = {
+  title: "",
+  condition: "İkinci El - Çok İyi",
+  brand: "",
+  model: "",
+  storage: "",
+  description: "",
+  startPrice: "",
+  reservePrice: "",
+  buyNowPrice: "",
+  increment: "250",
+  duration: "7 Gün",
+  shipping: "KapışKapış Kargo",
+  shippingPayer: "Alıcı Öder",
+  delivery: "1-2 İş Günü",
+};
 const initialForm: FormState = {
   title: "iPhone 15 Pro Max 256 GB Titanyum Siyah",
   condition: "İkinci El - Çok İyi",
@@ -137,15 +156,20 @@ function formatPrice(value: string) {
 }
 
 export default function ListingWizard() {
+  const productionMode = supabaseConfigured;
   const [step, setStep] = useState(0);
   const [category, setCategory] = useState("Telefon");
-  const [form, setForm] = useState<FormState>(initialForm);
-  const [photos, setPhotos] = useState<PhotoItem[]>(initialPhotos);
-  const [coverId, setCoverId] = useState(initialPhotos[0].id);
+  const [form, setForm] = useState<FormState>(() => productionMode ? emptyForm : initialForm);
+  const [photos, setPhotos] = useState<PhotoItem[]>(() => productionMode ? [] : initialPhotos);
+  const [coverId, setCoverId] = useState(() => productionMode ? "" : initialPhotos[0].id);
   const [published, setPublished] = useState(false);
+  const [publishedSlug, setPublishedSlug] = useState("iphone-15-pro");
+  const [publishedNumber, setPublishedNumber] = useState("#985421");
+  const [draftListing, setDraftListing] = useState<{ id: string; slug: string } | null>(null);
   const [accepted, setAccepted] = useState(false);
   const [error, setError] = useState("");
   const [draftStatus, setDraftStatus] = useState("Taslak kaydedilmedi");
+  const [submitting, setSubmitting] = useState(false);
   const localUrls = useRef<string[]>([]);
 
   useEffect(() => () => {
@@ -180,7 +204,57 @@ export default function ListingWizard() {
     return "";
   };
 
-  const nextStep = () => {
+  const buildPayload = (): ListingDraftPayload => ({
+    title: form.title.trim(),
+    category,
+    condition: form.condition,
+    brand: form.brand.trim(),
+    model: form.model.trim(),
+    variant: form.storage.trim(),
+    description: form.description.trim(),
+    start_price: priceNumber(form.startPrice),
+    reserve_price: priceNumber(form.reservePrice) || null,
+    buy_now_price: priceNumber(form.buyNowPrice) || null,
+    bid_increment: priceNumber(form.increment),
+    duration_days: Math.max(1, Number(form.duration.match(/\d+/)?.[0] ?? 7)),
+    auction_type: form.duration === "1 Gün" ? "live" : "timed",
+    shipping_method: form.shipping,
+    shipping_payer: form.shippingPayer,
+    dispatch_days: form.delivery === "Aynı Gün" ? 0 : Number(form.delivery.match(/\d+/)?.[0] ?? 2),
+    specs: [
+      { label: "Marka", value: form.brand.trim() },
+      { label: "Model", value: form.model.trim() },
+      ...(form.storage.trim() ? [{ label: "Varyant", value: form.storage.trim() }] : []),
+    ],
+  });
+
+  const ensureDraftFields = () => {
+    if (form.title.trim().length < 10) return "Taslak kaydetmek için ilan başlığını yazmalısın.";
+    if (!form.brand.trim() || !form.model.trim()) return "Taslak kaydetmek için marka ve model bilgisi gerekli.";
+    if (form.description.trim().length < 30) return "Taslak kaydetmek için açıklama en az 30 karakter olmalı.";
+    if (priceNumber(form.startPrice) < 100) return "Taslak kaydetmek için başlangıç fiyatını belirlemelisin.";
+    return "";
+  };
+
+  const persistDraft = async () => {
+    const saved = await saveListingDraft(buildPayload(), draftListing?.id);
+    setDraftListing(saved);
+    return saved;
+  };
+
+  const publishRealListing = async () => {
+    const localFiles = photos.map((photo) => photo.file).filter((file): file is File => Boolean(file));
+    if (localFiles.length < 3) throw new Error("Gerçek ilan için cihazından en az 3 fotoğraf yüklemelisin.");
+
+    const saved = await persistDraft();
+    const coverIndex = Math.max(0, photos.findIndex((photo) => photo.id === coverId));
+    await replaceListingImages(saved.id, localFiles, coverIndex);
+    const slug = await publishListing(saved.id);
+    setPublishedSlug(slug || saved.slug);
+    setPublishedNumber(`#${saved.id.replaceAll("-", "").slice(0, 8).toUpperCase()}`);
+  };
+
+  const nextStep = async () => {
     const validationError = validateStep();
     if (validationError) {
       setError(validationError);
@@ -188,8 +262,17 @@ export default function ListingWizard() {
     }
     setError("");
     if (step === steps.length - 1) {
-      setPublished(true);
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      setSubmitting(true);
+      try {
+        if (productionMode) await publishRealListing();
+        setPublished(true);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      } catch (publishError) {
+        const message = publishError instanceof Error ? publishError.message : "İlan yayınlanamadı.";
+        setError(message.includes("JWT") || message.includes("Oturum") || message.includes("giriş") ? "İlan yayınlamak için hesabına giriş yapmalısın." : message);
+      } finally {
+        setSubmitting(false);
+      }
       return;
     }
     setStep((current) => current + 1);
@@ -202,18 +285,46 @@ export default function ListingWizard() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const saveDraft = () => {
-    setDraftStatus("Taslak şimdi kaydedildi");
+  const saveDraft = async () => {
+    if (!productionMode) {
+      setDraftStatus("Demo taslak şimdi kaydedildi");
+      return;
+    }
+    const fieldError = ensureDraftFields();
+    if (fieldError) {
+      setError(fieldError);
+      return;
+    }
+    setSubmitting(true);
+    setError("");
+    setDraftStatus("Taslak kaydediliyor...");
+    try {
+      const saved = await persistDraft();
+      setDraftStatus(`Taslak kaydedildi · ${saved.slug}`);
+    } catch (draftError) {
+      const message = draftError instanceof Error ? draftError.message : "Taslak kaydedilemedi.";
+      setError(message.includes("JWT") || message.includes("Oturum") || message.includes("giriş") ? "Taslak kaydetmek için hesabına giriş yapmalısın." : message);
+      setDraftStatus("Taslak kaydedilemedi");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handlePhotoUpload = (event: ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files ?? []).slice(0, Math.max(0, 10 - photos.length));
     if (!files.length) return;
 
+    const invalid = files.find((file) => file.size > 10 * 1024 * 1024 || !["image/jpeg", "image/png", "image/webp"].includes(file.type));
+    if (invalid) {
+      setError("Fotoğraflar JPG, PNG veya WEBP olmalı ve dosya başına 10 MB'ı geçmemeli.");
+      event.target.value = "";
+      return;
+    }
+
     const added = files.map((file, index) => {
       const src = URL.createObjectURL(file);
       localUrls.current.push(src);
-      return { id: `local-${Date.now()}-${index}`, src, name: file.name, local: true };
+      return { id: `local-${Date.now()}-${index}`, src, name: file.name, local: true, file };
     });
 
     setPhotos((current) => [...current, ...added]);
@@ -227,7 +338,7 @@ export default function ListingWizard() {
     if (photo.local) URL.revokeObjectURL(photo.src);
     const remaining = photos.filter((item) => item.id !== photo.id);
     setPhotos(remaining);
-    if (coverId === photo.id && remaining[0]) setCoverId(remaining[0].id);
+    if (coverId === photo.id) setCoverId(remaining[0]?.id ?? "");
     setDraftStatus("Kaydedilmemiş değişiklikler");
   };
 
@@ -239,12 +350,12 @@ export default function ListingWizard() {
         <span>İLAN YAYINDA</span>
         <h1>Açık artırman başladı</h1>
         <p>İlanın başarıyla yayınlandı. Teklifleri satış merkezinden anlık olarak takip edebilirsin.</p>
-        <div className="publishListingNumberV4"><span>İlan numarası</span><strong>#985421</strong></div>
+        <div className="publishListingNumberV4"><span>İlan numarası</span><strong>{publishedNumber}</strong></div>
         <div className="publishSuccessActionsV4">
-          <Link href="/urun/iphone-15-pro">İlanı görüntüle <Icon name="arrow" /></Link>
+          <Link href={`/urun/${publishedSlug}`}>İlanı görüntüle <Icon name="arrow" /></Link>
           <Link href="/ilanlarim">İlanlarıma git</Link>
         </div>
-        <button type="button" onClick={() => { setPublished(false); setStep(0); setAccepted(false); }}>Yeni ilan oluştur</button>
+        <button type="button" onClick={() => { setPublished(false); setStep(0); setAccepted(false); setDraftListing(null); setPublishedSlug("iphone-15-pro"); setForm(productionMode ? emptyForm : initialForm); setPhotos(productionMode ? [] : initialPhotos); setCoverId(productionMode ? "" : initialPhotos[0].id); }}>Yeni ilan oluştur</button>
       </section>
     );
   }
@@ -279,7 +390,7 @@ export default function ListingWizard() {
       <section className="listingWizardMainV4">
         <div className="listingWizardTopV4">
           <div><span>ADIM {step + 1} / {steps.length}</span><strong>{steps[step]}</strong></div>
-          <button type="button" onClick={saveDraft}><Icon name="save" /> Taslağı kaydet</button>
+          <button type="button" onClick={saveDraft} disabled={submitting}><Icon name="save" /> {submitting ? "Kaydediliyor..." : "Taslağı kaydet"}</button>
         </div>
         <div className="draftStatusV4" aria-live="polite">{draftStatus}</div>
 
@@ -412,7 +523,7 @@ export default function ListingWizard() {
           <div><span>{step + 1}. adım</span><small>{steps[step]}</small></div>
           <div>
             {step > 0 && <button type="button" className="listingBackV4" onClick={previousStep}>Geri</button>}
-            <button type="button" className="listingNextV4" onClick={nextStep}>{step === steps.length - 1 ? "İlanı yayınla" : "Devam et"}<Icon name="arrow" /></button>
+            <button type="button" className="listingNextV4" onClick={nextStep} disabled={submitting}>{submitting ? "İşlem yapılıyor..." : step === steps.length - 1 ? "İlanı yayınla" : "Devam et"}<Icon name="arrow" /></button>
           </div>
         </footer>
       </section>

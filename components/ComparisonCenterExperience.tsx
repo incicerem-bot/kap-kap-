@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useMemo, useState, type ReactNode } from "react";
-import { demoProducts, parsePrice, timeToSeconds, type Product } from "@/components/productData";
+import { parsePrice, timeToSeconds, type Product } from "@/components/productData";
+import { useAuctionProducts } from "@/components/useAuctionProducts";
 import {
   COMPARE_STORAGE_KEY,
   FAVORITES_STORAGE_KEY,
@@ -35,11 +36,12 @@ function specValue(product: Product, label: string) {
 export default function ComparisonCenterExperience() {
   const compare = useStoredIds(COMPARE_STORAGE_KEY, defaultCompareIds);
   const favorites = useStoredIds(FAVORITES_STORAGE_KEY, defaultFavoriteIds);
+  const { products: marketplaceProducts, loading } = useAuctionProducts();
   const [notice, setNotice] = useState("");
   const [selectorOpen, setSelectorOpen] = useState(false);
 
-  const products = useMemo(() => compare.ids.map((id) => demoProducts.find((product) => product.id === id)).filter((product): product is Product => Boolean(product)), [compare.ids]);
-  const available = demoProducts.filter((product) => !compare.ids.includes(product.id));
+  const products = useMemo(() => compare.ids.map((id) => marketplaceProducts.find((product) => product.id === id)).filter((product): product is Product => Boolean(product)), [compare.ids, marketplaceProducts]);
+  const available = marketplaceProducts.filter((product) => !compare.ids.includes(product.id));
   const specLabels = [...new Set(products.flatMap((product) => product.specs.map((spec) => spec.label)))].slice(0, 8);
   const lowestPrice = products.length ? Math.min(...products.map((product) => parsePrice(product.price))) : 0;
   const highestRating = products.length ? Math.max(...products.map((product) => product.sellerRating)) : 0;
@@ -49,6 +51,10 @@ export default function ComparisonCenterExperience() {
     const result = compare.toggle(id, 3);
     setNotice(result === "limit" ? "En fazla 3 ürünü karşılaştırabilirsin." : "Ürün karşılaştırmaya eklendi.");
     setSelectorOpen(false);
+  }
+
+  if (loading) {
+    return <section className="comparisonEmptyV11"><span><Icon name="compare" /></span><h2>Karşılaştırma yükleniyor</h2><p>Güncel ilanlar Supabase üzerinden getiriliyor.</p></section>;
   }
 
   if (products.length === 0) {

@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { demoProducts, timeToSeconds, type Product } from "@/components/productData";
+import { timeToSeconds, type Product } from "@/components/productData";
+import { useAuctionProducts } from "@/components/useAuctionProducts";
 
 export function ProductGrid({
   filter,
@@ -12,7 +13,8 @@ export function ProductGrid({
   variant?: "all" | "live" | "ending";
 }) {
   const normalized = filter?.trim().toLocaleLowerCase("tr");
-  let products = [...demoProducts];
+  const { products: auctionProducts } = useAuctionProducts();
+  let products = [...auctionProducts];
 
   if (variant === "live") products = products.filter((product) => product.live);
   if (variant === "ending") products = products.sort((a, b) => timeToSeconds(a.time) - timeToSeconds(b.time)).slice(0, 4);

@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useMemo, useState, type ReactNode } from "react";
-import { demoProducts, parsePrice, timeToSeconds, type Product } from "@/components/productData";
+import { parsePrice, timeToSeconds, type Product } from "@/components/productData";
+import { useAuctionProducts } from "@/components/useAuctionProducts";
 import {
   COMPARE_STORAGE_KEY,
   FAVORITES_STORAGE_KEY,
@@ -78,11 +79,12 @@ function FavoriteCard({
 export default function FavoritesCenterExperience() {
   const favorites = useStoredIds(FAVORITES_STORAGE_KEY, defaultFavoriteIds);
   const compare = useStoredIds(COMPARE_STORAGE_KEY, defaultCompareIds);
+  const { products: marketplaceProducts, loading } = useAuctionProducts();
   const [filter, setFilter] = useState<FilterKey>("all");
   const [alerts, setAlerts] = useState<string[]>(["iphone-15-pro"]);
   const [notice, setNotice] = useState("");
 
-  const products = useMemo(() => favorites.ids.map((id) => demoProducts.find((product) => product.id === id)).filter((product): product is Product => Boolean(product)), [favorites.ids]);
+  const products = useMemo(() => favorites.ids.map((id) => marketplaceProducts.find((product) => product.id === id)).filter((product): product is Product => Boolean(product)), [favorites.ids, marketplaceProducts]);
   const filtered = products.filter((product) => {
     if (filter === "ending") return timeToSeconds(product.time) < 7200;
     if (filter === "live") return product.live;
@@ -112,7 +114,9 @@ export default function FavoritesCenterExperience() {
         <Link href="/karsilastir" className={compare.ids.length > 0 ? "ready" : ""}><Icon name="compare" /> Karşılaştırmayı aç {compare.ids.length > 0 && <small>{compare.ids.length}</small>}</Link>
       </section>
 
-      {filtered.length > 0 ? (
+      {loading ? (
+        <section className="favoritesEmptyV11"><h2>Favorilerin yükleniyor</h2><p>Güncel açık artırmalar Supabase üzerinden getiriliyor.</p></section>
+      ) : filtered.length > 0 ? (
         <div className="favoritesGridV11">
           {filtered.map((product) => <FavoriteCard key={product.id} product={product} compared={compare.ids.includes(product.id)} alertEnabled={alerts.includes(product.id)} onRemove={() => favorites.remove(product.id)} onCompare={() => toggleCompare(product.id)} onAlert={() => setAlerts((current) => current.includes(product.id) ? current.filter((id) => id !== product.id) : [...current, product.id])} />)}
         </div>

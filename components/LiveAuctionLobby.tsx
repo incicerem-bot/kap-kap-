@@ -3,11 +3,11 @@
 import Link from "next/link";
 import { ReactNode, useEffect, useMemo, useState } from "react";
 import {
-  demoProducts,
   secondsToTime,
   timeToSeconds,
   type Product,
 } from "@/components/productData";
+import { useAuctionProducts } from "@/components/useAuctionProducts";
 
 type IconName = "live" | "users" | "clock" | "arrow" | "bell" | "shield" | "bolt" | "calendar";
 
@@ -64,12 +64,20 @@ function LiveRoomCard({ product, remaining }: { product: Product; remaining: num
 }
 
 export default function LiveAuctionLobby() {
-  const liveProducts = useMemo(() => demoProducts.filter((product) => product.live), []);
+  const { products: marketplaceProducts } = useAuctionProducts();
+  const liveProducts = useMemo(() => marketplaceProducts.filter((product) => product.live), [marketplaceProducts]);
   const [remainingTimes, setRemainingTimes] = useState<Record<string, number>>(() =>
     Object.fromEntries(liveProducts.map((product) => [product.id, timeToSeconds(product.time)]))
   );
   const [sort, setSort] = useState<"ending" | "popular" | "bids">("ending");
   const [reminders, setReminders] = useState<string[]>([]);
+
+  useEffect(() => {
+    setRemainingTimes((current) => ({
+      ...current,
+      ...Object.fromEntries(liveProducts.map((product) => [product.id, product.endsAt ? Math.max(0, Math.floor((new Date(product.endsAt).getTime() - Date.now()) / 1000)) : timeToSeconds(product.time)])),
+    }));
+  }, [liveProducts]);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -88,11 +96,15 @@ export default function LiveAuctionLobby() {
     });
   }, [liveProducts, remainingTimes, sort]);
 
-  const featured = sortedProducts[0];
-  const featuredRemaining = remainingTimes[featured.id] ?? timeToSeconds(featured.time);
+  const featured = sortedProducts[0] ?? marketplaceProducts[0];
+  const featuredRemaining = featured ? (remainingTimes[featured.id] ?? timeToSeconds(featured.time)) : 0;
 
   function toggleReminder(id: string) {
     setReminders((items) => items.includes(id) ? items.filter((item) => item !== id) : [...items, id]);
+  }
+
+  if (!featured) {
+    return <div className="premiumEmpty"><h3>Aktif canlı açık artırma bulunamadı</h3><p>Yeni canlı odalar yayınlandığında burada görünecek.</p></div>;
   }
 
   return (
@@ -157,7 +169,7 @@ export default function LiveAuctionLobby() {
       <section className="liveScheduleV5">
         <header><div><span>YAKLAŞAN YAYINLAR</span><h2>Sıradaki canlı açık artırmalar</h2></div><Link href="/bildirimler">Tüm hatırlatıcılar <Icon name="arrow" /></Link></header>
         <div>
-          {demoProducts.filter((product) => !product.live).slice(0, 3).map((product, index) => {
+          {marketplaceProducts.filter((product) => !product.live).slice(0, 3).map((product, index) => {
             const reminderActive = reminders.includes(product.id);
             return (
               <article key={product.id}>

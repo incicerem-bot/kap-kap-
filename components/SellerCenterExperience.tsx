@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { demoProducts } from "@/components/productData";
+import { fetchMyListings, setListingStatus, supabaseConfigured } from "@/lib/auctions";
 
 type IconName =
   | "plus"
@@ -72,6 +73,7 @@ type CenterTab = "ozet" | "ilanlar" | "siparisler" | "performans";
 
 type SellerListing = {
   id: string;
+  uuid?: string;
   title: string;
   image: string;
   status: ListingStatus;
@@ -102,6 +104,13 @@ const revenueBars = [42, 58, 48, 72, 67, 88, 76, 92, 86, 100, 91, 114];
 function money(value: number) {
   return new Intl.NumberFormat("tr-TR", { maximumFractionDigits: 0 }).format(value) + " TL";
 }
+function endingLabel(endsAt: string | null) {
+  if (!endsAt) return "—";
+  const minutes = Math.max(0, Math.floor((new Date(endsAt).getTime() - Date.now()) / 60000));
+  if (minutes < 60) return `${minutes} dk`;
+  if (minutes < 1440) return `${Math.floor(minutes / 60)} sa ${minutes % 60} dk`;
+  return `${Math.floor(minutes / 1440)} gün`;
+}
 
 function KpiCard({ icon, label, value, change, positive = true, helper }: { icon: IconName; label: string; value: string; change: string; positive?: boolean; helper: string }) {
   return (
@@ -124,6 +133,28 @@ export default function SellerCenterExperience() {
   const [notice, setNotice] = useState("");
   const [period, setPeriod] = useState("30");
 
+  useEffect(() => {
+    if (!supabaseConfigured) return;
+    let cancelled = false;
+    void fetchMyListings().then((rows) => {
+      if (cancelled) return;
+      setListings(rows.map((row) => ({
+        id: row.slug,
+        uuid: row.uuid,
+        title: row.title,
+        image: row.imageUrl,
+        status: row.status === "active" ? "Aktif" : row.status === "draft" ? "Taslak" : row.status === "paused" ? "Duraklatıldı" : "Tamamlandı",
+        price: money(row.currentPrice),
+        bids: row.bidCount,
+        views: row.viewCount,
+        watchers: row.watcherCount,
+        ending: row.status === "active" ? endingLabel(row.endsAt) : "—",
+        health: row.status === "draft" ? 68 : row.status === "active" ? 94 : 82,
+      })));
+    }).catch(() => undefined);
+    return () => { cancelled = true; };
+  }, []);
+
   const visibleListings = useMemo(() => {
     const normalized = query.trim().toLocaleLowerCase("tr-TR");
     return listings.filter((listing) => {
@@ -145,14 +176,22 @@ export default function SellerCenterExperience() {
     window.setTimeout(() => setNotice(""), 2600);
   };
 
-  const toggleListing = (id: string) => {
-    setListings((current) => current.map((listing) => {
-      if (listing.id !== id) return listing;
-      if (listing.status === "Aktif") return { ...listing, status: "Duraklatıldı", ending: "—" };
-      if (listing.status === "Duraklatıldı") return { ...listing, status: "Aktif", ending: "24 sa" };
-      return listing;
-    }));
-    showNotice("İlan durumu güncellendi.");
+  const toggleListing = async (id: string) => {
+    const listing = listings.find((item) => item.id === id);
+    if (!listing) return;
+    const nextStatus = listing.status === "Aktif" ? "Duraklatıldı" : "Aktif";
+
+    if (listing.uuid && supabaseConfigured) {
+      try {
+        await setListingStatus(listing.uuid, nextStatus === "Aktif" ? "active" : "paused");
+      } catch (error) {
+        showNotice(error instanceof Error ? error.message : "İlan durumu güncellenemedi.");
+        return;
+      }
+    }
+
+    setListings((current) => current.map((item) => item.id === id ? { ...item, status: nextStatus, ending: nextStatus === "Aktif" ? "24 sa" : "—" } : item));
+    showNotice(nextStatus === "Aktif" ? "İlan yeniden yayına alındı." : "İlan duraklatıldı.");
   };
 
   const tabs: Array<[CenterTab, string, IconName]> = [

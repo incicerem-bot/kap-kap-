@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, ReactNode, useEffect, useMemo, useState } from "react";
+import { FormEvent, ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import {
   formatPrice,
   parsePrice,
@@ -11,6 +11,16 @@ import {
 } from "@/components/productData";
 import { sellerSlugForName } from "@/components/sellerData";
 import { COMPARE_STORAGE_KEY, FAVORITES_STORAGE_KEY, defaultCompareIds, defaultFavoriteIds, useStoredIds } from "@/components/useMarketplaceCollections";
+import {
+  fetchPublicBidHistory,
+  fetchPublicListing,
+  finalizeExpiredAuctions,
+  placeAuctionBid,
+  secondsUntil,
+  subscribeToListingLive,
+  supabaseConfigured,
+} from "@/lib/auctions";
+import { getSupabaseBrowserClient } from "@/lib/supabase";
 
 type IconName =
   | "arrow"
@@ -58,7 +68,7 @@ function Icon({ name }: { name: IconName }) {
 }
 
 type BidHistoryItem = {
-  id: number;
+  id: string | number;
   bidder: string;
   amount: number;
   time: string;
@@ -75,28 +85,125 @@ function createInitialHistory(product: Product): BidHistoryItem[] {
   ];
 }
 
-export default function ProductDetailExperience({ product }: { product: Product }) {
+function placeholderProduct(slug: string): Product {
+  return {
+    id: slug,
+    title: "Açık artırma yükleniyor",
+    category: "Diğer",
+    price: "0 TL",
+    next: "0 TL",
+    bids: 0,
+    time: "00:00:00",
+    image: "/kapiskapis-promo.jpg",
+    gallery: ["/kapiskapis-promo.jpg"],
+    live: false,
+    verified: false,
+    condition: "Bilgi bekleniyor",
+    increment: 100,
+    seller: "KapışKapış satıcısı",
+    sellerInitials: "KK",
+    sellerRating: 0,
+    sellerSales: 0,
+    location: "Türkiye",
+    watchers: 0,
+    views: 0,
+    description: "İlan bilgileri yükleniyor.",
+    shipping: "KapışKapış Güvenli Kargo",
+    specs: [],
+  };
+}
+
+function relativeTime(value: string) {
+  const seconds = Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 1000));
+  if (seconds < 60) return "Şimdi";
+  if (seconds < 3600) return `${Math.floor(seconds / 60)} dk önce`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)} sa önce`;
+  return `${Math.floor(seconds / 86400)} gün önce`;
+}
+
+type Props = { productSlug: string; fallbackProduct?: Product | null };
+
+export default function ProductDetailExperience({ productSlug, fallbackProduct }: Props) {
+  const initialProduct = fallbackProduct ?? placeholderProduct(productSlug);
+  const [product, setProduct] = useState<Product>(initialProduct);
   const [selectedImage, setSelectedImage] = useState(0);
   const favorites = useStoredIds(FAVORITES_STORAGE_KEY, defaultFavoriteIds);
   const compare = useStoredIds(COMPARE_STORAGE_KEY, defaultCompareIds);
   const favorite = favorites.ids.includes(product.id);
   const compared = compare.ids.includes(product.id);
-  const [currentPrice, setCurrentPrice] = useState(() => parsePrice(product.price));
-  const [bidCount, setBidCount] = useState(product.bids);
-  const [bidAmount, setBidAmount] = useState(() => String(parsePrice(product.price) + product.increment));
+  const [currentPrice, setCurrentPrice] = useState(() => parsePrice(initialProduct.price));
+  const [bidCount, setBidCount] = useState(initialProduct.bids);
+  const [bidAmount, setBidAmount] = useState(() => String(parsePrice(initialProduct.price) + initialProduct.increment));
   const [autoBid, setAutoBid] = useState(false);
   const [autoBidMax, setAutoBidMax] = useState("");
-  const [remaining, setRemaining] = useState(() => timeToSeconds(product.time));
-  const [history, setHistory] = useState<BidHistoryItem[]>(() => createInitialHistory(product));
+  const [remaining, setRemaining] = useState(() => initialProduct.endsAt ? secondsUntil(initialProduct.endsAt) : timeToSeconds(initialProduct.time));
+  const [history, setHistory] = useState<BidHistoryItem[]>(() => createInitialHistory(initialProduct));
   const [activeTab, setActiveTab] = useState<"description" | "specs" | "shipping">("description");
   const [notice, setNotice] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const finalizingRef = useRef(false);
 
-  const minimumBid = currentPrice + product.increment;
-  const ended = remaining <= 0;
+  const minimumBid = bidCount === 0 ? currentPrice : currentPrice + product.increment;
+  const ended = remaining <= 0 || product.status === "ended" || product.status === "sold";
   const quickBidValues = useMemo(
     () => [minimumBid, minimumBid + product.increment, minimumBid + product.increment * 4],
     [minimumBid, product.increment]
   );
+
+  useEffect(() => {
+    if (!supabaseConfigured) return;
+    let cancelled = false;
+
+    const syncHistory = async () => {
+      try {
+        const rows = await fetchPublicBidHistory(productSlug);
+        if (!cancelled) {
+          setHistory(rows.map((item) => ({
+            id: item.id,
+            bidder: item.bidder,
+            amount: item.amount,
+            time: relativeTime(item.createdAt),
+            mine: item.mine,
+          })));
+        }
+      } catch {
+        // İlan görünmeye devam eder; yalnızca teklif geçmişi yenilenemez.
+      }
+    };
+
+    const load = async () => {
+      try {
+        const liveProduct = await fetchPublicListing(productSlug);
+        if (!cancelled && liveProduct) {
+          setProduct(liveProduct);
+          setSelectedImage(0);
+          setCurrentPrice(parsePrice(liveProduct.price));
+          setBidCount(liveProduct.bids);
+          setRemaining(liveProduct.endsAt ? secondsUntil(liveProduct.endsAt) : timeToSeconds(liveProduct.time));
+          await syncHistory();
+        } else if (!cancelled && !fallbackProduct) {
+          setNotice("Bu ilan bulunamadı veya yayından kaldırılmış olabilir.");
+        }
+      } catch {
+        if (!cancelled && !fallbackProduct) setNotice("İlan verileri yüklenemedi.");
+      }
+    };
+
+    void load();
+    const channel = subscribeToListingLive(productSlug, (payload) => {
+      setCurrentPrice(payload.currentPrice);
+      setBidCount(payload.bidCount);
+      setRemaining(payload.endsAt ? secondsUntil(payload.endsAt) : 0);
+      setProduct((current) => ({ ...current, endsAt: payload.endsAt, status: payload.status, price: formatPrice(payload.currentPrice), bids: payload.bidCount }));
+      void syncHistory();
+    });
+    const client = getSupabaseBrowserClient();
+
+    return () => {
+      cancelled = true;
+      if (channel && client) void client.removeChannel(channel);
+    };
+  }, [fallbackProduct, productSlug]);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -110,12 +217,28 @@ export default function ProductDetailExperience({ product }: { product: Product 
   }, [minimumBid]);
 
   useEffect(() => {
+    if (remaining > 0 || product.source !== "supabase" || product.status !== "active" || finalizingRef.current) return;
+    finalizingRef.current = true;
+    void finalizeExpiredAuctions()
+      .then(() => fetchPublicListing(productSlug))
+      .then((latest) => {
+        if (!latest) return;
+        setProduct(latest);
+        setCurrentPrice(parsePrice(latest.price));
+        setBidCount(latest.bids);
+        setRemaining(latest.endsAt ? secondsUntil(latest.endsAt) : 0);
+      })
+      .catch(() => undefined)
+      .finally(() => { finalizingRef.current = false; });
+  }, [product.source, product.status, productSlug, remaining]);
+
+  useEffect(() => {
     if (!notice) return;
-    const timer = window.setTimeout(() => setNotice(""), 4200);
+    const timer = window.setTimeout(() => setNotice(""), 5200);
     return () => window.clearTimeout(timer);
   }, [notice]);
 
-  function submitBid(event: FormEvent<HTMLFormElement>) {
+  async function submitBid(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const value = Number(bidAmount);
 
@@ -123,24 +246,41 @@ export default function ProductDetailExperience({ product }: { product: Product 
       setNotice("Bu açık artırma sona erdi.");
       return;
     }
-
     if (!Number.isFinite(value) || value < minimumBid) {
       setNotice(`Teklif en az ${formatPrice(minimumBid)} olmalı.`);
       return;
     }
-
     if (autoBid && Number(autoBidMax) < value) {
       setNotice("Otomatik teklif üst sınırı, vereceğin tekliften düşük olamaz.");
       return;
     }
 
-    setCurrentPrice(value);
-    setBidCount((count) => count + 1);
-    setHistory((items) => [
-      { id: Date.now(), bidder: "Sen", amount: value, time: "Şimdi", mine: true },
-      ...items.map((item) => ({ ...item, mine: false })),
-    ].slice(0, 8));
-    setNotice(autoBid ? "Teklifin ve gizli otomatik teklif sınırın kaydedildi." : "Teklifin başarıyla kaydedildi. Şu anda lider sensin.");
+    if (product.source !== "supabase" || !supabaseConfigured) {
+      setCurrentPrice(value);
+      setBidCount((count) => count + 1);
+      setHistory((items) => [
+        { id: Date.now(), bidder: "Sen", amount: value, time: "Şimdi", mine: true },
+        ...items.map((item) => ({ ...item, mine: false })),
+      ].slice(0, 8));
+      setNotice("Demo teklifin ekranda güncellendi. Supabase SQL'i çalıştırıldığında gerçek teklif olarak kaydedilir.");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const result = await placeAuctionBid(product.id, value, autoBid ? Number(autoBidMax) : null);
+      setCurrentPrice(result.currentPrice);
+      setBidCount(result.bidCount);
+      setRemaining(result.endsAt ? secondsUntil(result.endsAt) : remaining);
+      const rows = await fetchPublicBidHistory(product.id);
+      setHistory(rows.map((item) => ({ id: item.id, bidder: item.bidder, amount: item.amount, time: relativeTime(item.createdAt), mine: item.mine })));
+      setNotice(result.isLeading ? "Teklifin kaydedildi. Şu anda lider sensin." : "Teklifin kaydedildi; otomatik teklif nedeniyle lider değişmedi.");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Teklif kaydedilemedi.";
+      setNotice(message.includes("JWT") || message.includes("Oturum") || message.includes("giriş") ? "Teklif vermek için hesabına giriş yapmalısın." : message);
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   async function shareProduct() {
@@ -273,8 +413,8 @@ export default function ProductDetailExperience({ product }: { product: Product 
               )}
             </section>
 
-            <button className="productBidSubmitV5" type="submit" disabled={ended || Number(bidAmount) < minimumBid}>
-              {ended ? "Açık artırma sona erdi" : product.live ? "KAPIŞ! — Canlı teklif ver" : "KAPIŞ! — Teklifini gönder"}
+            <button className="productBidSubmitV5" type="submit" disabled={submitting || ended || Number(bidAmount) < minimumBid}>
+              {submitting ? "Teklif doğrulanıyor..." : ended ? "Açık artırma sona erdi" : product.live ? "KAPIŞ! — Canlı teklif ver" : "KAPIŞ! — Teklifini gönder"}
             </button>
           </form>
 
@@ -290,7 +430,7 @@ export default function ProductDetailExperience({ product }: { product: Product 
               <b>{product.seller} {product.verified && <i><Icon name="check" /></i>}</b>
               <small>{product.sellerRating.toLocaleString("tr-TR")} puan · {product.sellerSales} başarılı satış</small>
             </div>
-            <Link href={`/magaza/${sellerSlugForName(product.seller)}`}><Icon name="store" /> Mağaza</Link>
+            <Link href={`/magaza/${product.sellerSlug ?? sellerSlugForName(product.seller)}`}><Icon name="store" /> Mağaza</Link>
           </section>
         </aside>
       </section>

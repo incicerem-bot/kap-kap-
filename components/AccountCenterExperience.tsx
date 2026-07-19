@@ -1,6 +1,8 @@
 "use client";
 
-import { useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { fetchMyBidAccess, type BidAccess, supabaseConfigured } from "@/lib/auctions";
+import { getSupabaseBrowserClient } from "@/lib/supabase";
 
 type TabId = "profile" | "verification" | "security" | "payment" | "address" | "notifications" | "privacy";
 type IconName = "user" | "shield" | "check" | "card" | "pin" | "bell" | "eye" | "lock" | "phone" | "mail" | "id" | "key" | "device" | "trash" | "plus" | "arrow" | "alert";
@@ -56,6 +58,41 @@ export default function AccountCenterExperience() {
   const [activityVisible, setActivityVisible] = useState(false);
   const [phoneVisible, setPhoneVisible] = useState(false);
   const [passwordOpen, setPasswordOpen] = useState(false);
+  const [fullName, setFullName] = useState("KapışKapış kullanıcısı");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [emailVerified, setEmailVerified] = useState(false);
+  const [phoneVerified, setPhoneVerified] = useState(false);
+  const [bidAccess, setBidAccess] = useState<BidAccess>({ paymentVerified: false, identityVerified: false, bidLimit: 0, activeExposure: 0, availableLimit: 0 });
+
+  useEffect(() => {
+    if (!supabaseConfigured) return;
+    let cancelled = false;
+    const load = async () => {
+      const client = getSupabaseBrowserClient();
+      if (!client) return;
+      const { data } = await client.auth.getUser();
+      if (!data.user || cancelled) return;
+      setFullName(String(data.user.user_metadata?.full_name || data.user.email?.split("@")[0] || "KapışKapış kullanıcısı"));
+      setEmail(data.user.email ?? "");
+      setPhone(data.user.phone ?? "");
+      setEmailVerified(Boolean(data.user.email_confirmed_at));
+      setPhoneVerified(Boolean(data.user.phone_confirmed_at));
+      try {
+        const access = await fetchMyBidAccess();
+        if (!cancelled) setBidAccess(access);
+      } catch {
+        // Doğrulama verisi yüklenemese de hesap ayarları kullanılabilir.
+      }
+    };
+    void load();
+    return () => { cancelled = true; };
+  }, []);
+
+  const initials = fullName.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toLocaleUpperCase("tr-TR") || "KK";
+  const verifiedCount = [emailVerified, phoneVerified, bidAccess.identityVerified, bidAccess.paymentVerified].filter(Boolean).length;
+  const completion = Math.round((verifiedCount / 4) * 100);
+  const money = (value: number) => new Intl.NumberFormat("tr-TR", { maximumFractionDigits: 0 }).format(value) + " TL";
 
   const currentTab = useMemo(() => tabs.find((tab) => tab.id === activeTab) ?? tabs[0], [activeTab]);
 
@@ -74,20 +111,21 @@ export default function AccountCenterExperience() {
       {toast && <div className="accountToastV8"><Icon name="check" />{toast}</div>}
 
       <section className="accountStatusV8">
-        <div className="accountStatusAvatarV8">KA</div>
+        <div className="accountStatusAvatarV8">{initials}</div>
         <div className="accountStatusIdentityV8">
           <span>HESAP MERKEZİ</span>
-          <h2>Kemal Akar</h2>
-          <p>@kemalakar · Satıcı hesabı</p>
+          <h2>{fullName}</h2>
+          <p>{email || "Giriş yaparak hesap bilgilerini görüntüle"}</p>
         </div>
         <div className="accountStatusScoreV8">
-          <div><span style={{ width: "92%" }} /></div>
-          <p><strong>%92</strong><small>Hesap tamamlanma</small></p>
+          <div><span style={{ width: `${completion}%` }} /></div>
+          <p><strong>%{completion}</strong><small>Hesap doğrulama</small></p>
         </div>
         <div className="accountStatusBadgesV8">
-          <span><Icon name="mail" /> E-posta</span>
-          <span><Icon name="phone" /> Telefon</span>
-          <span><Icon name="id" /> Kimlik</span>
+          {emailVerified && <span><Icon name="mail" /> E-posta</span>}
+          {phoneVerified && <span><Icon name="phone" /> Telefon</span>}
+          {bidAccess.identityVerified && <span><Icon name="id" /> Kimlik</span>}
+          {bidAccess.paymentVerified && <span><Icon name="card" /> Ödeme</span>}
         </div>
       </section>
 
@@ -111,14 +149,14 @@ export default function AccountCenterExperience() {
             <form onSubmit={(event) => save(event, "Profil bilgilerin kaydedildi.")}>
               <header className="accountSectionHeadV8"><div><span>PROFİL</span><h3>Herkese açık profil bilgileri</h3><p>Alıcıların ve satıcıların profilinde görebileceği bilgileri düzenle.</p></div><button type="submit">Değişiklikleri kaydet</button></header>
               <div className="accountProfileMediaV8">
-                <div className="accountAvatarLargeV8">KA</div>
+                <div className="accountAvatarLargeV8">{initials}</div>
                 <div><b>Profil fotoğrafı</b><p>JPG, PNG veya WEBP · En fazla 5 MB</p><div><label>Yeni fotoğraf seç<input type="file" accept="image/jpeg,image/png,image/webp" /></label><button type="button">Kaldır</button></div></div>
               </div>
               <div className="accountFormGridV8">
-                <label>Ad soyad<input defaultValue="Kemal Akar" required /></label>
-                <label>Kullanıcı adı<div className="accountPrefixInputV8"><span>kapiskapis.com/</span><input defaultValue="kemalakar" required /></div></label>
-                <label>E-posta adresi<div className="accountVerifiedInputV8"><input type="email" defaultValue="kemal@example.com" required /><span><Icon name="check" /> Doğrulandı</span></div></label>
-                <label>Telefon numarası<div className="accountVerifiedInputV8"><input defaultValue="+90 532 000 00 00" required /><span><Icon name="check" /> Doğrulandı</span></div></label>
+                <label>Ad soyad<input key={fullName} defaultValue={fullName} required /></label>
+                <label>Kullanıcı adı<div className="accountPrefixInputV8"><span>kapiskapis.com/</span><input defaultValue={email.split("@")[0] || "kullanici"} required /></div></label>
+                <label>E-posta adresi<div className="accountVerifiedInputV8"><input type="email" key={email} defaultValue={email} required />{emailVerified && <span><Icon name="check" /> Doğrulandı</span>}</div></label>
+                <label>Telefon numarası<div className="accountVerifiedInputV8"><input key={phone} defaultValue={phone} placeholder="Telefon numarası ekle" />{phoneVerified && <span><Icon name="check" /> Doğrulandı</span>}</div></label>
                 <label>Şehir<select defaultValue="İzmir"><option>İzmir</option><option>İstanbul</option><option>Ankara</option><option>Bursa</option></select></label>
                 <label>Hesap türü<select defaultValue="seller"><option value="user">Standart kullanıcı</option><option value="seller">Satıcı hesabı</option></select></label>
               </div>
@@ -129,19 +167,19 @@ export default function AccountCenterExperience() {
 
           {activeTab === "verification" && (
             <div>
-              <header className="accountSectionHeadV8"><div><span>DOĞRULAMA</span><h3>Hesabını güvenilir hale getir</h3><p>Doğrulamalar teklif limitini artırır ve satıcı rozetini güçlendirir.</p></div><div className="accountLevelBadgeV8">Seviye 3 · Tam doğrulama</div></header>
-              <div className="verificationProgressV8"><div><span style={{ width: "100%" }} /></div><p><b>4/4 doğrulama tamamlandı</b><small>Hesabın açık artırmalarda tam teklif limitine sahip.</small></p></div>
+              <header className="accountSectionHeadV8"><div><span>DOĞRULAMA</span><h3>Hesabını güvenilir hale getir</h3><p>Teklif yetkisi ve limit bilgileri artık doğrudan Supabase güvenlik kaydından okunuyor.</p></div><div className="accountLevelBadgeV8">{verifiedCount === 4 ? "Tam doğrulama" : `${verifiedCount}/4 tamamlandı`}</div></header>
+              <div className="verificationProgressV8"><div><span style={{ width: `${completion}%` }} /></div><p><b>{verifiedCount}/4 doğrulama tamamlandı</b><small>{bidAccess.paymentVerified ? `${money(bidAccess.availableLimit)} kullanılabilir teklif limitin var.` : "Teklif vermek için ödeme yöntemi doğrulaması gerekiyor."}</small></p></div>
               <div className="verificationCardsV8">
                 {[
-                  ["mail", "E-posta doğrulaması", "kemal@example.com", "Tamamlandı"],
-                  ["phone", "Telefon doğrulaması", "+90 532 *** ** 00", "Tamamlandı"],
-                  ["id", "Kimlik doğrulaması", "T.C. kimlik ve canlılık kontrolü", "Onaylandı"],
-                  ["card", "Ödeme yöntemi", "3D Secure destekli kart", "Doğrulandı"],
-                ].map(([icon, title, helper, status]) => (
-                  <article key={title}><span><Icon name={icon as IconName} /></span><div><h4>{title}</h4><p>{helper}</p></div><em><Icon name="check" />{status}</em></article>
+                  ["mail", "E-posta doğrulaması", email || "E-posta bulunamadı", emailVerified],
+                  ["phone", "Telefon doğrulaması", phone ? phone.replace(/(\d{3})\d+(\d{2})$/, "$1 *** ** $2") : "Telefon eklenmedi", phoneVerified],
+                  ["id", "Kimlik doğrulaması", "T.C. kimlik ve canlılık kontrolü", bidAccess.identityVerified],
+                  ["card", "Ödeme yöntemi", "Lisanslı ödeme kuruluşu üzerinden doğrulama", bidAccess.paymentVerified],
+                ].map(([icon, title, helper, complete]) => (
+                  <article key={String(title)}><span><Icon name={icon as IconName} /></span><div><h4>{String(title)}</h4><p>{String(helper)}</p></div><em className={complete ? "" : "pending"}>{complete ? <><Icon name="check" />Tamamlandı</> : "Bekliyor"}</em></article>
                 ))}
               </div>
-              <div className="verificationBenefitsV8"><div><Icon name="shield" /></div><div><span>TAM DOĞRULANMIŞ HESAP</span><h4>30.000 TL’ye kadar teklif limiti aktif</h4><p>Teklif limiti, doğrulanmış ödeme yönteminin kullanılabilir limiti ve risk kontrollerine göre güncellenir.</p></div><button type="button" onClick={() => notify("Limit inceleme talebin oluşturuldu.")}>Limit artışı iste</button></div>
+              <div className="verificationBenefitsV8"><div><Icon name="shield" /></div><div><span>TEKLİF GÜVENLİĞİ</span><h4>{money(bidAccess.bidLimit)} toplam teklif limiti</h4><p>{money(bidAccess.activeExposure)} aktif açık artırmalarda ayrıldı · {money(bidAccess.availableLimit)} kullanılabilir.</p></div><button type="button" onClick={() => notify("Limit artışı talebi, ödeme ve risk entegrasyonu tamamlandığında değerlendirilecek.")}>Limit artışı iste</button></div>
             </div>
           )}
 
@@ -160,13 +198,12 @@ export default function AccountCenterExperience() {
 
           {activeTab === "payment" && (
             <div>
-              <header className="accountSectionHeadV8"><div><span>ÖDEME</span><h3>Kartlar ve banka hesapları</h3><p>Teklif, satın alma ve satış ödemelerinde kullanılacak yöntemleri yönet.</p></div><button type="button" onClick={() => notify("Yeni ödeme yöntemi formu açılmaya hazır.")}><Icon name="plus" /> Yeni ekle</button></header>
+              <header className="accountSectionHeadV8"><div><span>ÖDEME</span><h3>Ödeme doğrulaması ve teklif limiti</h3><p>Kart verileri KapışKapış veritabanında tutulmaz; ödeme kuruluşundan gelen doğrulama sonucu kullanılır.</p></div></header>
               <div className="paymentMethodGridV8">
-                <article className="paymentCardVisualV8"><div><span>VISA</span><em>VARSAYILAN</em></div><strong>•••• •••• •••• 4242</strong><p><span>KEMAL AKAR</span><span>08/29</span></p></article>
-                <article className="paymentMethodDetailV8"><div><span><Icon name="card" /></span><div><h4>Akbank kredi kartı</h4><p>3D Secure doğrulandı · Teklif limiti için aktif</p></div></div><div><button type="button">Varsayılan</button><button type="button" onClick={() => notify("Kart kaldırma işlemi için doğrulama istendi.")}>Kaldır</button></div></article>
+                <article className="paymentMethodDetailV8"><div><span><Icon name="card" /></span><div><h4>{bidAccess.paymentVerified ? "Ödeme yöntemi doğrulandı" : "Doğrulanmış ödeme yöntemi yok"}</h4><p>{bidAccess.paymentVerified ? `${money(bidAccess.availableLimit)} kullanılabilir teklif limiti` : "Gerçek ödeme kuruluşu entegrasyonu doğrulama kaydını güncelleyecek."}</p></div></div><div>{bidAccess.paymentVerified ? <button type="button">Aktif</button> : <button type="button" onClick={() => notify("Ödeme yöntemi ekleme, ödeme kuruluşu entegrasyonunda açılacak.")}>Doğrulama başlat</button>}</div></article>
               </div>
-              <div className="bankAccountV8"><div className="accountSubheadV8"><div><span>SATIŞ ÖDEMELERİ</span><h4>Kayıtlı banka hesabı</h4></div><button type="button">Hesabı düzenle</button></div><article><span>TR</span><div><b>Akbank · Kemal Akar</b><small>TR12 0004 6000 1234 5678 9012 34</small></div><em><Icon name="check" /> Doğrulandı</em></article></div>
-              <div className="paymentNoticeV8"><Icon name="shield" /><div><b>Kart bilgilerin KapışKapış tarafından saklanmaz</b><p>Ödeme bilgileri lisanslı ödeme kuruluşunun güvenli altyapısında token olarak tutulur.</p></div></div>
+              <div className="bankAccountV8"><div className="accountSubheadV8"><div><span>SATIŞ ÖDEMELERİ</span><h4>Banka hesabı</h4></div></div><article><span>TR</span><div><b>Henüz doğrulanmış banka hesabı gösterilmiyor</b><small>Banka hesabı sahipliği ödeme kuruluşu üzerinden doğrulanmalıdır.</small></div></article></div>
+              <div className="paymentNoticeV8"><Icon name="shield" /><div><b>Kart bilgilerin KapışKapış tarafından saklanmaz</b><p>Uygulama yalnızca ödeme kuruluşunun ürettiği doğrulama sonucu ve güvenli token bilgisiyle çalışmalıdır.</p></div></div>
             </div>
           )}
 

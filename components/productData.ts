@@ -5,6 +5,11 @@ export type ProductSpec = {
 
 export type Product = {
   id: string;
+  listingUuid?: string;
+  source?: "demo" | "supabase";
+  endsAt?: string | null;
+  status?: string;
+  sellerSlug?: string;
   title: string;
   category: string;
   price: string;

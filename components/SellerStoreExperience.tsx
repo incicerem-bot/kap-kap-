@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { demoProducts, parsePrice, timeToSeconds, type Product } from "@/components/productData";
+import { parsePrice, timeToSeconds, type Product } from "@/components/productData";
+import { useAuctionProducts } from "@/components/useAuctionProducts";
 import { type SellerProfile } from "@/components/sellerData";
 import { loadSellerReviewBundle, type SellerReviewBundle } from "@/lib/reviews";
 import { FAVORITES_STORAGE_KEY, defaultFavoriteIds, useStoredIds } from "@/components/useMarketplaceCollections";
@@ -71,6 +72,7 @@ export default function SellerStoreExperience({ seller: initialSeller, initialTa
   const [databaseBundle, setDatabaseBundle] = useState<SellerReviewBundle | null>(null);
   const [databaseResolved, setDatabaseResolved] = useState(false);
   const favorites = useStoredIds(FAVORITES_STORAGE_KEY, defaultFavoriteIds);
+  const { products: marketplaceProducts } = useAuctionProducts();
 
   useEffect(() => {
     let active = true;
@@ -113,14 +115,14 @@ export default function SellerStoreExperience({ seller: initialSeller, initialTa
   }, [notice]);
 
   const products = useMemo(() => {
-    const matches = demoProducts.filter((product) => seller.productIds.includes(product.id));
+    const matches = marketplaceProducts.filter((product) => product.sellerSlug === seller.slug || product.seller === seller.name || seller.productIds.includes(product.id));
     return [...matches].sort((a, b) => {
       if (sort === "popular") return b.watchers - a.watchers;
       if (sort === "price-low") return parsePrice(a.price) - parsePrice(b.price);
       if (sort === "price-high") return parsePrice(b.price) - parsePrice(a.price);
       return timeToSeconds(a.time) - timeToSeconds(b.time);
     });
-  }, [seller.productIds, sort]);
+  }, [marketplaceProducts, seller.name, seller.productIds, seller.slug, sort]);
 
   const allReviews = seller.reviews;
   const visibleReviews = ratingFilter === "all" ? allReviews : allReviews.filter((review) => review.rating === ratingFilter);
