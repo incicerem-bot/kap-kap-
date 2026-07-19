@@ -1,6 +1,7 @@
 "use client";
 
 import { ReactNode, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 
 type OrderState = "payment" | "preparing" | "shipped" | "delivered";
 type IconName = "package" | "card" | "truck" | "check" | "clock" | "shield" | "pin" | "box" | "chevron" | "search" | "alert";
@@ -35,6 +36,7 @@ const orders = [
 ];
 
 export default function OrdersCenterExperience() {
+  const router = useRouter();
   const [tab, setTab] = useState<"all" | OrderState>("all");
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState(orders[0].id);
@@ -125,7 +127,7 @@ export default function OrdersCenterExperience() {
           <button className="orderPrimaryActionV6" type="button" onClick={nextAction}>
             {selected.state === "payment" ? "Güvenli ödemeyi tamamla" : selected.state === "shipped" ? "Ürünü teslim aldım" : selected.state === "delivered" ? "Satıcıyı değerlendir" : "Sipariş durumunu kontrol et"}
           </button>
-          <button className="orderProblemButtonV6" type="button"><Icon name="alert" /> Siparişle ilgili sorun bildir</button>
+          <button className="orderProblemButtonV6" type="button" onClick={() => router.push(`/uyusmazlik?order=${selected.id}`)}><Icon name="alert" /> Siparişle ilgili sorun bildir</button>
           <small className="financeDemoNoteV6">Ödeme ve durum değişiklikleri bu aşamada demo olarak çalışır.</small>
         </aside>
       </section>
