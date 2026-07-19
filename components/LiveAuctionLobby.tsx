@@ -141,7 +141,7 @@ export default function LiveAuctionLobby() {
       </section>
 
       <section className="liveSafetyStripV5">
-        <article><Icon name="shield" /><div><b>Doğrulanmış teklif</b><span>Yalnızca teklif limiti doğrulanmış hesaplar katılır.</span></div></article>
+        <article><Icon name="shield" /><div><b>Doğrulanmış teklif</b><span>Yalnızca kartı doğrulanmış ve gereken güvenceyi sağlayan hesaplar katılır.</span></div></article>
         <article><Icon name="clock" /><div><b>Anti-sniping kuralı</b><span>Son 2 dakikadaki teklif süreyi otomatik uzatır.</span></div></article>
         <article><Icon name="live" /><div><b>Anlık senkronizasyon</b><span>Fiyat ve teklif sırası odadaki herkese aynı anda yansır.</span></div></article>
       </section>
@@ -187,7 +187,7 @@ export default function LiveAuctionLobby() {
         <div><span>CANLI ODA REHBERİ</span><h2>Katılmadan önce bilmen gerekenler</h2></div>
         <div>
           <article><b>01</b><Icon name="calendar" /><h3>Odaya katıl</h3><p>Aktif veya planlanan yayını aç, ürün bilgilerini incele.</p></article>
-          <article><b>02</b><Icon name="shield" /><h3>Limitini doğrula</h3><p>Ödeme yöntemin ve teklif limitin teklif öncesinde kontrol edilir.</p></article>
+          <article><b>02</b><Icon name="shield" /><h3>Güvenceni doğrula</h3><p>Teklifin için gereken güvence teklif tutarına göre otomatik hesaplanır.</p></article>
           <article><b>03</b><Icon name="bolt" /><h3>Teklifini ver</h3><p>Manuel ya da gizli üst sınırlı otomatik teklif kullan.</p></article>
           <article><b>04</b><Icon name="clock" /><h3>Son ana kadar izle</h3><p>Süre bittiğinde en yüksek geçerli teklif açık artırmayı kazanır.</p></article>
         </div>

@@ -63,7 +63,7 @@ export const marketplaceNotifications: MarketplaceNotification[] = [
     id: "account-verified",
     kind: "account",
     title: "Telefon doğrulaması tamamlandı",
-    description: "Hesap güvenlik seviyen yükseldi. Teklif limitini artırmak için kimlik doğrulamasını tamamlayabilirsin.",
+    description: "Hesap güvenlik seviyen yükseldi. Yüksek tutarlı tekliflerde daha hızlı güvence için kimlik doğrulamasını tamamlayabilirsin.",
     time: "2 gün önce",
     href: "/ayarlar",
     action: "Güvenliği tamamla",

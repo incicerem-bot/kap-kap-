@@ -21,6 +21,7 @@ import {
   supabaseConfigured,
 } from "@/lib/auctions";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
+import { estimateSmartBidSecurity, quoteBidSecurity } from "@/lib/bid-security";
 
 type IconName =
   | "arrow"
@@ -268,7 +269,19 @@ export default function ProductDetailExperience({ productSlug, fallbackProduct }
 
     setSubmitting(true);
     try {
-      const result = await placeAuctionBid(product.id, value, autoBid ? Number(autoBidMax) : null);
+      const maxValue = autoBid ? Number(autoBidMax) : value;
+      const quoteResult = await quoteBidSecurity(product.id, value, maxValue);
+      if (quoteResult.quote.requiresPayment) {
+        const params = new URLSearchParams({
+          listing: product.id,
+          bid: String(value),
+          max: String(maxValue),
+          return: `/urun/${product.id}`,
+        });
+        window.location.assign(`/teklif-guvencesi?${params.toString()}`);
+        return;
+      }
+      const result = await placeAuctionBid(product.id, value, maxValue);
       setCurrentPrice(result.currentPrice);
       setBidCount(result.bidCount);
       setRemaining(result.endsAt ? secondsUntil(result.endsAt) : remaining);
@@ -420,7 +433,7 @@ export default function ProductDetailExperience({ productSlug, fallbackProduct }
 
           <div className="productPaymentNoteV5">
             <Icon name="card" />
-            <div><b>Teklif öncesi ödeme doğrulaması</b><span>Yalnızca doğrulanmış ödeme yöntemi ve yeterli teklif limiti olan hesaplar teklif verebilir.</span></div>
+            <div><b>Akıllı Teklif Güvencesi</b><span>{estimateSmartBidSecurity(autoBid ? Number(autoBidMax || bidAmount) : Number(bidAmount)) > 0 ? `Bu teklif seviyesi için yaklaşık ${formatPrice(estimateSmartBidSecurity(autoBid ? Number(autoBidMax || bidAmount) : Number(bidAmount)))} güvence gerekir. Mevcut güvencen varsa yalnızca fark alınır.` : "5.000 TL'ye kadar doğrulanmış kart yeterlidir; önceden limit yüklemezsin."}</span></div>
           </div>
 
           <section className="productSellerV5">

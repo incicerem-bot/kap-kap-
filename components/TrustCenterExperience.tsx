@@ -59,7 +59,7 @@ const initialDisputes: Dispute[] = [
 const guideTopics = [
   { title: "Güvenli ödeme nasıl çalışır?", category: "Ödeme", text: "Ödeme teslimat onayına kadar güvenli havuzda tutulur." },
   { title: "Uyuşmazlık ne zaman açılmalı?", category: "İade", text: "Hasar, eksik ürün, yanlış ürün veya teslimat sorunu olduğunda kayıt açabilirsin." },
-  { title: "Teklif limitimi nasıl artırırım?", category: "Açık artırma", text: "Kart doğrulaması ve hesap güvenlik seviyesi teklif limitini belirler." },
+  { title: "Teklif güvencesi nasıl hesaplanır?", category: "Açık artırma", text: "Teklif tutarına göre kart doğrulaması, sabit güvence veya yüzdesel güvence otomatik uygulanır." },
   { title: "Satıcı ürünü göndermezse ne olur?", category: "Kargo", text: "Gönderim süresi aşılırsa ödeme satıcıya aktarılmaz ve işlem incelemeye alınır." },
   { title: "İade kargo ücretini kim öder?", category: "İade", text: "Karar, uyuşmazlığın nedenine ve güven ekibi incelemesine göre verilir." },
   { title: "Hesabımı nasıl doğrularım?", category: "Hesap", text: "Telefon, e-posta, kimlik ve ödeme yöntemi doğrulamalarını ayarlardan tamamlayabilirsin." },

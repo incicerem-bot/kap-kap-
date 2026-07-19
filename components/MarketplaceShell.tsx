@@ -76,6 +76,7 @@ const account = [
   ["/profil", "Profilim"],
   ["/ilanlarim", "Satış Merkezi"],
   ["/satici-dogrulama", "Satıcı Doğrulama"],
+  ["/teklif-guvencesi", "Teklif Güvencesi"],
   ["/tekliflerim", "Tekliflerim"],
   ["/favoriler", "Favorilerim"],
   ["/karsilastir", "Ürün Karşılaştırma"],

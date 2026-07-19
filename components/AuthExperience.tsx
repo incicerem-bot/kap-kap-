@@ -102,11 +102,11 @@ export default function AuthExperience({ mode }: { mode: Mode }) {
           <div className="authTrustGlowV8" />
           <span className="authTrustLabelV8"><Icon name="gavel" /> GÜVENLİ AÇIK ARTIRMA</span>
           <h1>{mode === "login" ? "Tekliflerine kaldığın yerden devam et." : "Güvenli alım ve satış dünyasına katıl."}</h1>
-          <p>Teklif limiti, güvenli ödeme ve doğrulanmış kullanıcı sistemiyle teknoloji ve oyun ürünlerinde kontrollü alışveriş.</p>
+          <p>Akıllı teklif güvencesi, güvenli ödeme ve doğrulanmış kullanıcı sistemiyle teknoloji ve oyun ürünlerinde kontrollü alışveriş.</p>
           <div className="authBenefitsV8">
             <article><span><Icon name="shield" /></span><div><b>Güvenli ödeme koruması</b><small>Ödeme, teslimat onayına kadar güvenli hesapta tutulur.</small></div></article>
             <article><span><Icon name="check" /></span><div><b>Doğrulanmış kullanıcılar</b><small>Telefon, e-posta, kimlik ve kart doğrulama katmanları.</small></div></article>
-            <article><span><Icon name="gavel" /></span><div><b>Kontrollü teklif limiti</b><small>Kart limiti ve risk kontrolüne göre teklif hakkı.</small></div></article>
+            <article><span><Icon name="gavel" /></span><div><b>Akıllı teklif güvencesi</b><small>Önceden limit yüklemeden, teklif riskine göre güvence.</small></div></article>
           </div>
           <div className="authTrustFooterV8"><strong>KapışKapış Koruması</strong><span>3D Secure · Kimlik doğrulama · Uyuşmazlık desteği</span></div>
         </aside>

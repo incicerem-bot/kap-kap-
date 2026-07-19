@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { FormEvent, ReactNode, useMemo, useState } from "react";
 
 type IconName =
@@ -129,7 +130,7 @@ export default function WalletCenterExperience() {
       <section className="walletMetricGridV6">
         <article><span><Icon name="arrowDown" /></span><div><small>Bu ay satış</small><strong>{money(38700)}</strong><em>Geçen aya göre +%18</em></div></article>
         <article><span><Icon name="shield" /></span><div><small>Koruma altındaki bakiye</small><strong>{money(118750)}</strong><em>1 aktif sipariş</em></div></article>
-        <article><span><Icon name="card" /></span><div><small>Teklif limiti</small><strong>{money(30000)}</strong><em>Kart doğrulaması aktif</em></div></article>
+        <article><span><Icon name="card" /></span><div><small>Teklif güvencesi</small><strong>Akıllı</strong><em>Teklif tutarına göre hesaplanır</em></div></article>
         <article><span><Icon name="bank" /></span><div><small>Bu ay çekilen</small><strong>{money(20000)}</strong><em>Son çekim 17 Temmuz</em></div></article>
       </section>
 
@@ -162,18 +163,18 @@ export default function WalletCenterExperience() {
 
         <aside className="walletAsideV6">
           <section className="financePanelV6 bidLimitCardV6">
-            <div className="financePanelHeadV6"><div><span>TEKLİF GÜVENCESİ</span><h2>Kart ile limit</h2></div><i className="verifiedDotV6"><Icon name="check" /></i></div>
+            <div className="financePanelHeadV6"><div><span>AKILLI TEKLİF GÜVENCESİ</span><h2>Önceden limit yükleme yok</h2></div><i className="verifiedDotV6"><Icon name="check" /></i></div>
             <div className="limitCardVisualV6">
               <span>KAPIŞKAPIŞ</span>
               <strong>•••• 4821</strong>
               <small>Doğrulanmış kart</small>
             </div>
             <div className="limitRowsV6">
-              <div><span>Tanımlı teklif limiti</span><strong>{money(30000)}</strong></div>
-              <div><span>Kullanılan limit</span><strong>{money(12500)}</strong></div>
+              <div><span>Düşük tutarlı teklifler</span><strong>Kart doğrulaması</strong></div>
+              <div><span>Yüksek tutarlı teklifler</span><strong>Dinamik güvence</strong></div>
             </div>
-            <div className="limitBarV6"><i style={{ width: "41.6%" }} /></div>
-            <button type="button" className="financeOutlineButtonV6">Limit ayarlarını yönet</button>
+            <div className="limitBarV6"><i style={{ width: "72%" }} /></div>
+            <Link href="/teklif-guvencesi" className="financeOutlineButtonV6">Güvence hareketlerini yönet</Link>
           </section>
 
           <section className="financePanelV6 securityFinanceV6">
