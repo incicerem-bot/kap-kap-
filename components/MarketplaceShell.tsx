@@ -75,6 +75,7 @@ const menu: Array<[string, IconName, string]> = [
 const account = [
   ["/profil", "Profilim"],
   ["/ilanlarim", "Satış Merkezi"],
+  ["/satici-dogrulama", "Satıcı Doğrulama"],
   ["/tekliflerim", "Tekliflerim"],
   ["/favoriler", "Favorilerim"],
   ["/karsilastir", "Ürün Karşılaştırma"],

@@ -518,6 +518,9 @@ export default function ListingWizard() {
         )}
 
         {error && <div className="listingErrorV4" role="alert"><Icon name="info" />{error}</div>}
+        {error && (error.includes("Satıcı Doğrulama") || error.toLocaleLowerCase("tr-TR").includes("iyzico satıcı")) && (
+          <div className="listingPayoutErrorV17"><span>İlan taslağın korunur. Önce ödeme hesabını tamamlayıp sonra bu ekrana dönebilirsin.</span><Link href="/satici-dogrulama">Satıcı doğrulamaya git</Link></div>
+        )}
 
         <footer className="listingWizardFooterV4">
           <div><span>{step + 1}. adım</span><small>{steps[step]}</small></div>

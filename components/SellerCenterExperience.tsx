@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { demoProducts } from "@/components/productData";
 import { fetchMyListings, setListingStatus, supabaseConfigured } from "@/lib/auctions";
+import { getSupabaseBrowserClient } from "@/lib/supabase";
 
 type IconName =
   | "plus"
@@ -132,6 +133,21 @@ export default function SellerCenterExperience() {
   const [query, setQuery] = useState("");
   const [notice, setNotice] = useState("");
   const [period, setPeriod] = useState("30");
+  const [payoutReady, setPayoutReady] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (!supabaseConfigured) return;
+    let cancelled = false;
+    const client = getSupabaseBrowserClient();
+    void client?.auth.getSession().then(async ({ data }) => {
+      const token = data.session?.access_token;
+      if (!token || cancelled) return;
+      const response = await fetch("/api/seller/onboarding", { headers: { Authorization: `Bearer ${token}` } });
+      const body = await response.json().catch(() => ({}));
+      if (!cancelled && response.ok && body.ok) setPayoutReady(body.status?.onboardingStatus === "active");
+    }).catch(() => undefined);
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     if (!supabaseConfigured) return;
@@ -216,6 +232,13 @@ export default function SellerCenterExperience() {
           <Link href="/ilan-olustur"><Icon name="plus" /> Yeni ilan oluştur</Link>
         </div>
       </section>
+
+      {payoutReady === false && (
+        <section className="sellerPayoutBannerV17">
+          <div><span><Icon name="wallet" /></span><div><strong>Satıcı ödeme hesabını tamamla</strong><p>İlan yayınlamak ve satış gelirini alabilmek için iyzico alt üye doğrulaması gerekiyor.</p></div></div>
+          <Link href="/satici-dogrulama">Doğrulamayı başlat <Icon name="arrow" /></Link>
+        </section>
+      )}
 
       <nav className="sellerTabsV9" aria-label="Satıcı merkezi bölümleri">
         {tabs.map(([value, label, icon]) => (
