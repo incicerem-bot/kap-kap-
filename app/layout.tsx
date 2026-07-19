@@ -8,6 +8,7 @@ import "./account-v8.css";
 import "./seller-v9.css";
 import "./discovery-v10.css";
 import "./engagement-v11.css";
+import "./admin-v12.css";
 
 export const metadata: Metadata = {
   title: "KapışKapış — Açık Artırma Platformu",
