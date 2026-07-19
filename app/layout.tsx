@@ -11,6 +11,7 @@ import "./engagement-v11.css";
 import "./admin-v12.css";
 import "./logistics-v13.css";
 import "./legal-v14.css";
+import "./reputation-v15.css";
 
 export const metadata: Metadata = {
   title: "KapışKapış — Açık Artırma Platformu",
