@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import "./design-v3.css";
 import "./experience-v5.css";
+import "./finance-v6.css";
 
 export const metadata: Metadata = {
   title: "KapışKapış — Açık Artırma Platformu",
