@@ -24,6 +24,7 @@ export default function PaymentCheckoutExperience({ orderNo }: { orderNo: string
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [accepted, setAccepted] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
   const [form, setForm] = useState({
     name: "",
     surname: "",
@@ -57,6 +58,12 @@ export default function PaymentCheckoutExperience({ orderNo }: { orderNo: string
         setLoading(false);
         return;
       }
+      if (selected.state === "expired") {
+        setOrder(selected);
+        setError("Bu ödeme teklifinin süresi doldu. Ürün sıradaki uygun teklif sahibine sunulmuş olabilir.");
+        setLoading(false);
+        return;
+      }
       if (selected.state !== "payment") {
         router.replace(`/odeme-sonucu?order=${encodeURIComponent(orderNo)}&status=success`);
         return;
@@ -79,8 +86,18 @@ export default function PaymentCheckoutExperience({ orderNo }: { orderNo: string
     return () => { active = false; };
   }, [orderNo, router]);
 
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+
   const fee = useMemo(() => order ? Math.round(order.amount * buyerFeeRate * 100) / 100 : 0, [order]);
   const total = order ? order.amount + fee : 0;
+  const paymentSecondsLeft = order?.paymentDueAt ? Math.max(0, Math.floor((new Date(order.paymentDueAt).getTime() - now) / 1000)) : null;
+  const paymentTimeText = paymentSecondsLeft === null
+    ? ""
+    : `${String(Math.floor(paymentSecondsLeft / 60)).padStart(2, "0")}:${String(paymentSecondsLeft % 60).padStart(2, "0")}`;
+  const paymentExpired = order?.state === "expired" || paymentSecondsLeft === 0;
 
   function change(name: keyof typeof form, value: string) {
     setForm((old) => ({ ...old, [name]: value }));
@@ -90,6 +107,10 @@ export default function PaymentCheckoutExperience({ orderNo }: { orderNo: string
     event.preventDefault();
     if (!order || submitting) return;
     setError("");
+    if (paymentExpired) {
+      setError("Ödeme süren doldu. Sipariş artık ödeme almıyor.");
+      return;
+    }
     if (!accepted) {
       setError("Ön bilgilendirme ve mesafeli satış koşullarını kabul etmelisin.");
       return;
@@ -108,6 +129,7 @@ export default function PaymentCheckoutExperience({ orderNo }: { orderNo: string
 
   if (loading) return <div className="paymentStateV16"><span className="paymentSpinnerV16"/><h2>Güvenli ödeme hazırlanıyor</h2><p>Sipariş sahipliği ve oturum bilgisi kontrol ediliyor.</p></div>;
   if (!order) return <div className="paymentStateV16 paymentStateErrorV16"><strong>!</strong><h2>Ödeme açılamadı</h2><p>{error}</p><Link href="/siparisler">Siparişlerime dön</Link></div>;
+  if (paymentExpired) return <div className="paymentStateV16 paymentStateErrorV16"><strong>!</strong><h2>Ödeme süresi doldu</h2><p>{error || "Kazanan ödeme süresi tamamlandı. Sistem sıradaki uygun teklif sahibini kontrol ediyor."}</p><Link href="/siparisler">Siparişlerime dön</Link></div>;
 
   return (
     <div className="paymentCheckoutV16">
@@ -118,6 +140,7 @@ export default function PaymentCheckoutExperience({ orderNo }: { orderNo: string
         </header>
 
         {error && <div className="paymentAlertV16" role="alert">{error}</div>}
+        {paymentSecondsLeft !== null && <div className="paymentDeadlineV19"><span>ÖDEME İÇİN KALAN SÜRE</span><strong>{paymentTimeText}</strong><p>Süre içinde iyzico ödeme oturumunu başlat. Başlatılmış ödeme için kısa tamamlanma süresi tanınır.</p></div>}
 
         <div className="paymentFieldGridV16">
           <label><span>Ad</span><input value={form.name} onChange={(event) => change("name", event.target.value)} autoComplete="given-name" required /></label>
@@ -142,7 +165,7 @@ export default function PaymentCheckoutExperience({ orderNo }: { orderNo: string
       </form>
 
       <aside className="paymentSummaryV16">
-        <div className="paymentOrderProductV16"><img src={order.image} alt={order.title}/><div><small>SİPARİŞ #{order.orderNo}</small><h3>{order.title}</h3><p>{order.seller}</p></div></div>
+        <div className="paymentOrderProductV16"><img src={order.image} alt={order.title}/><div><small>{order.offerType === "second_chance" ? `${order.winnerRank}. SIRA İKİNCİ ŞANS TEKLİFİ` : `SİPARİŞ #${order.orderNo}`}</small><h3>{order.title}</h3><p>{order.seller}</p></div></div>
         <div className="paymentPriceRowsV16"><p><span>Ürün bedeli</span><strong>{money(order.amount)}</strong></p><p><span>Alıcı koruma hizmeti</span><strong>{money(fee)}</strong></p><p className="total"><span>Toplam</span><strong>{money(total)}</strong></p></div>
         <section className="paymentProtectionV16"><b>KapışKapış Güvenli Ödeme</b><p>Ödeme başarılı olduğunda tutar satıcıya hemen aktarılmaz. Teslimat onayı veya uyuşmazlık sonucu beklenir.</p><ul><li>3D Secure ödeme</li><li>Webhook ve tutar doğrulaması</li><li>Teslimat sonrası satıcı aktarımı</li></ul></section>
         <Link className="paymentBackV16" href="/siparisler">← Siparişe geri dön</Link>
