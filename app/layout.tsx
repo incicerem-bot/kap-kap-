@@ -9,6 +9,7 @@ import "./seller-v9.css";
 import "./discovery-v10.css";
 import "./engagement-v11.css";
 import "./admin-v12.css";
+import "./logistics-v13.css";
 
 export const metadata: Metadata = {
   title: "KapışKapış — Açık Artırma Platformu",
