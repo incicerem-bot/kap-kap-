@@ -408,3 +408,16 @@
   .comparisonIntroActionsV11 { flex-direction: column; }
   .comparisonEmptyV11 > div { flex-direction: column; width: 100%; }
 }
+
+/* Supabase-backed notification state */
+.notificationSourceV11 { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border: 1px solid rgba(246,163,19,.25); border-radius: 14px; background: rgba(246,163,19,.065); }
+.notificationSourceV11 > svg { width: 20px; flex: 0 0 auto; color: var(--kk-gold-bright); }
+.notificationSourceV11 > div { min-width: 0; display: grid; gap: 3px; }
+.notificationSourceV11 strong { font-size: 11px; }
+.notificationSourceV11 span { color: var(--kk-muted); font-size: 9px; line-height: 1.45; }
+.notificationSourceV11 > a { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; color: var(--kk-gold-bright); font-size: 9px; font-weight: 850; }
+.notificationSourceV11 > a svg { width: 13px; }
+.notificationSourceV11.signed-out { border-color: rgba(100,160,255,.24); background: rgba(100,160,255,.06); }
+.notificationSourceV11.signed-out > svg { color: #83b4ff; }
+.notificationSettingsV11 > footer em { color: var(--kk-success); font-size: 8px; font-style: normal; }
+@media (max-width: 600px) { .notificationSourceV11 { align-items: flex-start; flex-wrap: wrap; } .notificationSourceV11 > a { width: 100%; margin-left: 32px; } }
