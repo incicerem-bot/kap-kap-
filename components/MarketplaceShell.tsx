@@ -80,6 +80,7 @@ const account = [
   ["/mesajlar", "Mesajlar"],
   ["/bildirimler", "Bildirimler"],
   ["/cuzdan", "Cüzdanım"],
+  ["/ayarlar", "Ayarlar ve Güvenlik"],
 ];
 
 export default function MarketplaceShell({
@@ -167,6 +168,7 @@ export default function MarketplaceShell({
               <Link href="/yardim">Yardım merkezi</Link>
               <Link href="/ilan-olustur">İlan ver</Link>
               <Link href="/canli">Canlı açık artırmalar</Link>
+              <Link href="/giris">Giriş yap</Link>
             </nav>
             <small>© 2026 KapışKapış. Tüm hakları saklıdır.</small>
           </footer>
