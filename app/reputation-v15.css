@@ -406,3 +406,17 @@
   .reviewSuccessV15 { min-height: 560px; padding: 34px 18px; }
   .reviewSuccessV15 > div { grid-template-columns: 1fr; }
 }
+
+/* Supabase değerlendirme bağlantısı */
+.reviewSystemStateV16{max-width:760px;margin:30px auto;padding:56px 42px;border:1px solid #e5e7eb;border-radius:28px;background:#fff;text-align:center;box-shadow:0 20px 70px rgba(15,23,42,.08)}
+.reviewSystemStateV16>span{display:grid;width:64px;height:64px;margin:0 auto 20px;place-items:center;border-radius:20px;background:#fff3eb;color:#f15a24}
+.reviewSystemStateV16>span svg{width:31px;height:31px}
+.reviewSystemStateV16>em{display:block;margin-bottom:10px;color:#f15a24;font-size:12px;font-style:normal;font-weight:800;letter-spacing:.12em}
+.reviewSystemStateV16 h1{margin:0;color:#111827;font-size:30px;line-height:1.15}
+.reviewSystemStateV16 p{max-width:610px;margin:16px auto 0;color:#64748b;line-height:1.7}
+.reviewSystemStateV16>a{display:inline-flex;align-items:center;gap:9px;margin-top:24px;padding:13px 18px;border-radius:12px;background:#111827;color:#fff;font-weight:800;text-decoration:none}
+.reviewSystemStateV16>a svg{width:18px;height:18px}
+.reviewPhotoWarningV16{margin:18px auto 0;padding:12px 16px;border:1px solid #f6c79e;border-radius:12px;background:#fff8f1;color:#9a4c16;font-size:14px;line-height:1.5}
+.reviewPhotosV16{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin:16px 0}
+.reviewPhotosV16 img{width:100%;aspect-ratio:1/1;object-fit:cover;border:1px solid #e5e7eb;border-radius:13px}
+@media(max-width:640px){.reviewSystemStateV16{margin:12px 0;padding:38px 20px;border-radius:20px}.reviewSystemStateV16 h1{font-size:24px}.reviewPhotosV16{grid-template-columns:repeat(2,minmax(0,1fr))}}
