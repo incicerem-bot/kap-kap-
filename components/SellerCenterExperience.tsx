@@ -311,7 +311,7 @@ export default function SellerCenterExperience() {
                 <div className="sellerOrderAmountV9"><small>Satış tutarı</small><strong>{order.amount}</strong></div>
                 <div className="sellerOrderStateV9"><span className={order.status === "Kargolanacak" ? "urgent" : order.status === "Kargoda" ? "shipping" : "done"}>{order.status}</span><small>{order.deadline}</small></div>
                 <div className="sellerOrderActionsV9">
-                  {order.status === "Kargolanacak" ? <button type="button" onClick={() => showNotice("KapışKapış Kargo kodu oluşturuldu.")}><Icon name="truck" /> Kargo kodu oluştur</button> : <button type="button" onClick={() => showNotice("Sipariş detayları açıldı.")}>Detayı görüntüle</button>}
+                  {order.status === "Kargolanacak" ? <Link className="sellerLogisticsLinkV13" href={`/kargo?order=${order.id}&mode=shipping`}><Icon name="truck" /> Kargo kodu oluştur</Link> : <Link href={`/kargo?order=${order.id}`}>{order.status === "Kargoda" ? "Kargoyu takip et" : "Teslimat detayı"}</Link>}
                   <Link href={`/mesajlar?order=${order.id}`}><Icon name="message" /> Alıcıya yaz</Link>
                 </div>
               </article>

@@ -79,6 +79,7 @@ const account = [
   ["/favoriler", "Favorilerim"],
   ["/karsilastir", "Ürün Karşılaştırma"],
   ["/siparisler", "Siparişlerim"],
+  ["/kargo", "Kargo ve İadeler"],
   ["/uyusmazlik", "Uyuşmazlıklar"],
   ["/mesajlar", "Mesajlar"],
   ["/bildirimler", "Bildirimler"],

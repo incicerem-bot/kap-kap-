@@ -127,6 +127,7 @@ export default function OrdersCenterExperience() {
           <button className="orderPrimaryActionV6" type="button" onClick={nextAction}>
             {selected.state === "payment" ? "Güvenli ödemeyi tamamla" : selected.state === "shipped" ? "Ürünü teslim aldım" : selected.state === "delivered" ? "Satıcıyı değerlendir" : "Sipariş durumunu kontrol et"}
           </button>
+          {(selected.state === "shipped" || selected.state === "delivered") && <button className="orderTrackingButtonV13" type="button" onClick={() => router.push(`/kargo?order=${selected.id}`)}><Icon name="truck" /> {selected.state === "shipped" ? "Kargoyu canlı takip et" : "Teslimat ve iade işlemleri"}</button>}
           <button className="orderProblemButtonV6" type="button" onClick={() => router.push(`/uyusmazlik?order=${selected.id}`)}><Icon name="alert" /> Siparişle ilgili sorun bildir</button>
           <small className="financeDemoNoteV6">Ödeme ve durum değişiklikleri bu aşamada demo olarak çalışır.</small>
         </aside>
