@@ -194,23 +194,25 @@ export async function fetchPublicBidHistory(slug: string): Promise<AuctionBidHis
 export type BidAccess = {
   paymentVerified: boolean;
   identityVerified: boolean;
-  bidLimit: number;
-  activeExposure: number;
-  availableLimit: number;
+  cardVerified: boolean;
+  heldSecurity: number;
+  securityRequired: number;
+  refundableSecurity: number;
 };
 
 export async function fetchMyBidAccess(): Promise<BidAccess> {
   const client = getSupabaseBrowserClient();
-  if (!client) return { paymentVerified: false, identityVerified: false, bidLimit: 0, activeExposure: 0, availableLimit: 0 };
+  if (!client) return { paymentVerified: false, identityVerified: false, cardVerified: false, heldSecurity: 0, securityRequired: 0, refundableSecurity: 0 };
   const { data, error } = await client.rpc("kk_get_my_bid_access");
   if (error) throw error;
   const row = (Array.isArray(data) ? data[0] : data) as Record<string, unknown> | undefined;
   return {
     paymentVerified: Boolean(row?.payment_verified),
     identityVerified: Boolean(row?.identity_verified),
-    bidLimit: numberValue(row?.bid_limit as number | string),
-    activeExposure: numberValue(row?.active_exposure as number | string),
-    availableLimit: numberValue(row?.available_limit as number | string),
+    cardVerified: Boolean(row?.card_verified),
+    heldSecurity: numberValue(row?.deposit_balance as number | string),
+    securityRequired: numberValue(row?.security_required as number | string),
+    refundableSecurity: numberValue(row?.refundable_security as number | string),
   };
 }
 
