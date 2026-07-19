@@ -246,6 +246,43 @@ export const demoProducts: Product[] = [
       { label: "Seri", value: "Technic" },
     ],
   },
+  {
+    id: "dyson-v15",
+    title: "Dyson V15 Detect Absolute",
+    category: "Ev & Yaşam",
+    price: "19.600 TL",
+    next: "19.850 TL",
+    bids: 17,
+    time: "06:44:20",
+    image: "https://images.unsplash.com/photo-1558317374-067fb5f30001?auto=format&fit=crop&w=1200&q=88",
+    gallery: [
+      "https://images.unsplash.com/photo-1558317374-067fb5f30001?auto=format&fit=crop&w=1200&q=88",
+      "https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&w=1200&q=88",
+      "https://images.unsplash.com/photo-1527515637462-cff94eecc1ac?auto=format&fit=crop&w=1200&q=88",
+    ],
+    live: false,
+    verified: true,
+    condition: "Garantili",
+    increment: 250,
+    seller: "Ev Teknoloji",
+    sellerInitials: "ET",
+    sellerRating: 4.8,
+    sellerSales: 403,
+    location: "İstanbul, Ataşehir",
+    watchers: 24,
+    views: 487,
+    description: "Dyson V15 Detect Absolute kablosuz süpürge. Tüm başlıkları, duvar askısı, şarj adaptörü ve faturası mevcuttur. Filtreleri temizlenmiş ve çalışma testi yapılmıştır.",
+    shipping: "KapışKapış Güvenli Kargo",
+    specs: [
+      { label: "Model", value: "V15 Detect Absolute" },
+      { label: "Pil", value: "60 dakika" },
+      { label: "Garanti", value: "10 ay" },
+      { label: "Başlık", value: "5 adet" },
+      { label: "Kutu", value: "Var" },
+      { label: "Renk", value: "Sarı / Nikel" },
+    ],
+  },
+
 ];
 
 export function timeToSeconds(time: string) {
