@@ -10,7 +10,6 @@
   "dependencies": {
     "@sentry/nextjs": "^10.66.0",
     "@supabase/supabase-js": "^2.57.4",
-    "iyzipay": "^2.0.69",
     "next": "15.5.20",
     "posthog-js": "^1.404.1",
     "react": "19.1.1",
@@ -21,5 +20,10 @@
     "@types/react": "^19.1.12",
     "@types/react-dom": "^19.1.9",
     "typescript": "^5.9.2"
-  }
+  },
+  "engines": {
+    "node": "20.x",
+    "npm": "10.x"
+  },
+  "packageManager": "npm@10.8.0"
 }
