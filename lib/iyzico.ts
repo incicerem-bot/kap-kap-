@@ -51,6 +51,10 @@ export function retrieveCheckoutForm(payload: Record<string, unknown>) {
   return callIyzico(getIyzicoClient().checkoutForm, "retrieve", payload);
 }
 
+export function refundPayment(payload: Record<string, unknown>) {
+  return callIyzico(getIyzicoClient().refund, "create", payload);
+}
+
 export function approveMarketplaceItem(payload: Record<string, unknown>) {
   return callIyzico(getIyzicoClient().approval, "create", payload);
 }
