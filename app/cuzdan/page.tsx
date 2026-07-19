@@ -6,7 +6,7 @@ export default function WalletPage() {
     <MarketplaceShell
       eyebrow="FİNANS MERKEZİ"
       title="KapışKapış Cüzdan"
-      description="Bakiyeni, güvenli ödemelerini, teklif limitini ve banka hareketlerini tek yerden yönet."
+      description="Bakiyeni, güvenli ödemelerini, teklif güvenceni ve banka hareketlerini tek yerden yönet."
     >
       <WalletCenterExperience />
     </MarketplaceShell>
