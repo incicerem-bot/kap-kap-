@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useMemo, useState, type ReactNode } from "react";
-import { marketplaceNotifications, type NotificationKind } from "@/components/notificationData";
-import { READ_NOTIFICATIONS_STORAGE_KEY, defaultReadNotificationIds, useStoredIds } from "@/components/useMarketplaceCollections";
+import type { NotificationKind } from "@/components/notificationData";
+import { useNotifications } from "@/components/useNotifications";
+import type { NotificationPreferences } from "@/lib/notifications";
 
 type FilterKey = "all" | "unread" | NotificationKind;
 type IconName = "gavel" | "box" | "message" | "user" | "campaign" | "check" | "settings" | "trash" | "arrow" | "bell";
@@ -29,21 +30,54 @@ const iconByKind: Record<NotificationKind, IconName> = { auction: "gavel", order
 const labelByKind: Record<NotificationKind, string> = { auction: "Açık artırma", order: "Sipariş", message: "Mesaj", account: "Hesap", campaign: "Fırsatlar" };
 
 export default function NotificationCenterExperience() {
-  const read = useStoredIds(READ_NOTIFICATIONS_STORAGE_KEY, defaultReadNotificationIds);
-  const [dismissed, setDismissed] = useState<string[]>([]);
+  const {
+    items,
+    unreadCount,
+    preferences,
+    source,
+    loading,
+    error,
+    markRead,
+    markAllRead,
+    dismiss,
+    updatePreferences,
+  } = useNotifications();
   const [filter, setFilter] = useState<FilterKey>("all");
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [preferences, setPreferences] = useState({ bid: true, ending: true, order: true, message: true, campaign: false, email: true, push: true });
+  const [preferenceNotice, setPreferenceNotice] = useState<string | null>(null);
 
-  const visible = useMemo(() => marketplaceNotifications.filter((item) => !dismissed.includes(item.id)).filter((item) => filter === "all" || (filter === "unread" ? !read.ids.includes(item.id) : item.kind === filter)), [dismissed, filter, read.ids]);
-  const unreadCount = marketplaceNotifications.filter((item) => !dismissed.includes(item.id) && !read.ids.includes(item.id)).length;
+  const visible = useMemo(
+    () => items.filter((item) => filter === "all" || (filter === "unread" ? !item.readAt : item.kind === filter)),
+    [filter, items],
+  );
+
+  const setPreference = async (key: keyof NotificationPreferences, checked: boolean) => {
+    setPreferenceNotice(null);
+    try {
+      await updatePreferences({ ...preferences, [key]: checked });
+      setPreferenceNotice(source === "supabase" ? "Tercihin kaydedildi." : "Tercih demo görünümünde güncellendi.");
+    } catch {
+      setPreferenceNotice("Tercih kaydedilemedi. Lütfen yeniden dene.");
+    }
+  };
 
   return (
     <div className="notificationsV11">
+      {(source !== "supabase" || error) && (
+        <section className={`notificationSourceV11 ${source}`} role="status">
+          <Icon name={source === "signed-out" ? "user" : "bell"} />
+          <div>
+            <strong>{source === "signed-out" ? "Gerçek bildirimleri görmek için giriş yap" : "Demo bildirim görünümü"}</strong>
+            <span>{error ?? (source === "signed-out" ? "Hesabına bağlı teklif ve sipariş hareketleri girişten sonra burada görünür." : "Supabase bağlantısı olmadığı için örnek bildirimler gösteriliyor.")}</span>
+          </div>
+          {source === "signed-out" && <Link href="/giris?next=/bildirimler">Giriş yap <Icon name="arrow" /></Link>}
+        </section>
+      )}
+
       <section className="notificationStatsV11">
-        <article><span><Icon name="bell" /></span><div><strong>{unreadCount}</strong><small>Okunmamış bildirim</small></div></article>
-        <article><span><Icon name="gavel" /></span><div><strong>{marketplaceNotifications.filter((item) => item.kind === "auction").length}</strong><small>Açık artırma hareketi</small></div></article>
-        <article><span><Icon name="box" /></span><div><strong>{marketplaceNotifications.filter((item) => item.kind === "order").length}</strong><small>Sipariş güncellemesi</small></div></article>
+        <article><span><Icon name="bell" /></span><div><strong>{loading ? "…" : unreadCount}</strong><small>Okunmamış bildirim</small></div></article>
+        <article><span><Icon name="gavel" /></span><div><strong>{items.filter((item) => item.kind === "auction").length}</strong><small>Açık artırma hareketi</small></div></article>
+        <article><span><Icon name="box" /></span><div><strong>{items.filter((item) => item.kind === "order").length}</strong><small>Sipariş güncellemesi</small></div></article>
         <button type="button" onClick={() => setSettingsOpen((value) => !value)}><Icon name="settings" /><span>Bildirim tercihleri</span></button>
       </section>
 
@@ -52,33 +86,33 @@ export default function NotificationCenterExperience() {
         <div className="notificationPreferenceGridV11">
           {([
             ["bid", "Teklif hareketleri", "Teklifin geçildiğinde veya lider olduğunda"],
-            ["ending", "Süre uyarıları", "Takip ettiğin ürün bitmeye yaklaştığında"],
+            ["ending", "Süre uyarıları", "Katıldığın ürün bitmeye yaklaştığında"],
             ["order", "Sipariş ve kargo", "Ödeme, kargo ve teslimat hareketlerinde"],
             ["message", "Mesajlar", "Satıcı veya alıcı yeni mesaj gönderdiğinde"],
             ["campaign", "Fırsatlar", "Kaydedilmiş aramalar ve kampanyalarda"],
-          ] as Array<[keyof typeof preferences, string, string]>).map(([key, title, text]) => <label key={key}><div><strong>{title}</strong><small>{text}</small></div><input type="checkbox" checked={preferences[key]} onChange={(event) => setPreferences((current) => ({ ...current, [key]: event.target.checked }))} /><span /></label>)}
+          ] as Array<[keyof NotificationPreferences, string, string]>).map(([key, title, text]) => <label key={key}><div><strong>{title}</strong><small>{text}</small></div><input type="checkbox" checked={preferences[key]} onChange={(event) => void setPreference(key, event.target.checked)} /><span /></label>)}
         </div>
-        <footer><div><strong>Teslimat kanalları</strong><span>Kritik güvenlik bildirimleri her zaman uygulama içinde gösterilir.</span></div><label><input type="checkbox" checked={preferences.push} onChange={(event) => setPreferences((current) => ({ ...current, push: event.target.checked }))} /><span /> Anlık bildirim</label><label><input type="checkbox" checked={preferences.email} onChange={(event) => setPreferences((current) => ({ ...current, email: event.target.checked }))} /><span /> E-posta</label></footer>
+        <footer><div><strong>Teslimat kanalları</strong><span>Kritik güvenlik ve ödeme bildirimleri uygulama içinde her zaman gösterilir.</span>{preferenceNotice && <em>{preferenceNotice}</em>}</div><label><input type="checkbox" checked={preferences.push} onChange={(event) => void setPreference("push", event.target.checked)} /><span /> Anlık bildirim</label><label><input type="checkbox" checked={preferences.email} onChange={(event) => void setPreference("email", event.target.checked)} /><span /> E-posta</label></footer>
       </section>}
 
       <section className="notificationToolbarV11">
         <div>{([['all', 'Tümü'], ['unread', `Okunmamış (${unreadCount})`], ['auction', 'Açık artırma'], ['order', 'Sipariş'], ['message', 'Mesaj'], ['account', 'Hesap']] as Array<[FilterKey, string]>).map(([key, label]) => <button type="button" key={key} className={filter === key ? "active" : ""} onClick={() => setFilter(key)}>{label}</button>)}</div>
-        {unreadCount > 0 && <button type="button" onClick={() => read.setIds(marketplaceNotifications.map((item) => item.id))}><Icon name="check" /> Tümünü okundu işaretle</button>}
+        {unreadCount > 0 && <button type="button" onClick={() => void markAllRead()}><Icon name="check" /> Tümünü okundu işaretle</button>}
       </section>
 
-      <div className="notificationListV11">
+      <div className="notificationListV11" aria-live="polite">
         {visible.map((item) => {
-          const unread = !read.ids.includes(item.id);
+          const unread = !item.readAt;
           return <article key={item.id} className={`${unread ? "unread" : ""} ${item.important ? "important" : ""}`}>
-            <button type="button" className="notificationMainV11" onClick={() => read.setIds((current) => current.includes(item.id) ? current : [...current, item.id])}>
+            <button type="button" className="notificationMainV11" onClick={() => void markRead(item.id)}>
               <span className={`notificationIconV11 ${item.kind}`}><Icon name={iconByKind[item.kind]} /></span>
               <div><span>{labelByKind[item.kind]} · {item.time}</span><h3>{item.title}</h3><p>{item.description}</p></div>
               {unread && <i aria-label="Okunmamış" />}
             </button>
-            <div className="notificationActionsV11"><Link href={item.href} onClick={() => read.setIds((current) => current.includes(item.id) ? current : [...current, item.id])}>{item.action} <Icon name="arrow" /></Link><button type="button" onClick={() => setDismissed((current) => [...current, item.id])} aria-label="Bildirimi sil"><Icon name="trash" /></button></div>
+            <div className="notificationActionsV11"><Link href={item.href} onClick={() => void markRead(item.id)}>{item.action} <Icon name="arrow" /></Link><button type="button" onClick={() => void dismiss(item.id)} aria-label="Bildirimi kaldır"><Icon name="trash" /></button></div>
           </article>;
         })}
-        {visible.length === 0 && <section className="notificationEmptyV11"><span><Icon name="check" /></span><h2>Burada yeni bildirim yok</h2><p>Seçtiğin filtredeki tüm hareketleri kontrol ettin.</p><button type="button" onClick={() => setFilter("all")}>Tüm bildirimleri göster</button></section>}
+        {!loading && visible.length === 0 && <section className="notificationEmptyV11"><span><Icon name="check" /></span><h2>Burada yeni bildirim yok</h2><p>{source === "signed-out" ? "Giriş yaptıktan sonra hesabına bağlı hareketler burada görünür." : "Seçtiğin filtredeki tüm hareketleri kontrol ettin."}</p><button type="button" onClick={() => setFilter("all")}>Tüm bildirimleri göster</button></section>}
       </div>
     </div>
   );

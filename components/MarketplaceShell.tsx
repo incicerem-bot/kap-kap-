@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
-import { marketplaceNotifications } from "@/components/notificationData";
-import { FAVORITES_STORAGE_KEY, READ_NOTIFICATIONS_STORAGE_KEY, defaultFavoriteIds, defaultReadNotificationIds, useStoredIds } from "@/components/useMarketplaceCollections";
+import { FAVORITES_STORAGE_KEY, defaultFavoriteIds, useStoredIds } from "@/components/useMarketplaceCollections";
+import { useNotifications } from "@/components/useNotifications";
 
 type IconName =
   | "home"
@@ -108,8 +108,7 @@ export default function MarketplaceShell({
 }) {
   const pathname = usePathname();
   const favorites = useStoredIds(FAVORITES_STORAGE_KEY, defaultFavoriteIds);
-  const readNotifications = useStoredIds(READ_NOTIFICATIONS_STORAGE_KEY, defaultReadNotificationIds);
-  const unreadNotificationCount = marketplaceNotifications.filter((item) => !readNotifications.ids.includes(item.id)).length;
+  const { unreadCount: unreadNotificationCount } = useNotifications();
 
   return (
     <main className="marketApp">

@@ -9,6 +9,9 @@ export type MarketplaceNotification = {
   href: string;
   action: string;
   important?: boolean;
+  readAt?: string | null;
+  createdAt?: string;
+  metadata?: Record<string, unknown>;
 };
 
 export const marketplaceNotifications: MarketplaceNotification[] = [
