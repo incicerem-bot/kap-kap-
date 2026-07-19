@@ -19,30 +19,28 @@ export default function HomePage() {
 
       <StatsRow />
 
-      <section id="live-auctions">
+      <section id="live-auctions" className="homeAuctionSection">
         <div className="sectionTitlePremium">
           <div>
             <span>ŞİMDİ YAYINDA</span>
             <h2>Canlı açık artırmalar</h2>
+            <p>Tekliflerin anlık değiştiği açık artırmalara katıl.</p>
           </div>
-          <button type="button" onClick={() => router.push("/canli")}>
-            Tümünü Gör
-          </button>
+          <button type="button" onClick={() => router.push("/canli")}>Tümünü gör <b>→</b></button>
         </div>
-        <ProductGrid />
+        <ProductGrid variant="live" />
       </section>
 
-      <section>
+      <section className="homeAuctionSection">
         <div className="sectionTitlePremium">
           <div>
             <span>SON ŞANS</span>
             <h2>Bitmesine az kalanlar</h2>
+            <p>Süre dolmadan son teklifini ver.</p>
           </div>
-          <button type="button" onClick={() => router.push("/son-dakika")}>
-            Tümünü Gör
-          </button>
+          <button type="button" onClick={() => router.push("/son-dakika")}>Tümünü gör <b>→</b></button>
         </div>
-        <ProductGrid />
+        <ProductGrid variant="ending" />
       </section>
     </MarketplaceShell>
   );
