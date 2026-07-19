@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { demoProducts, parsePrice, timeToSeconds, type Product } from "@/components/productData";
+import { sellerSlugForName } from "@/components/sellerData";
 import { COMPARE_STORAGE_KEY, FAVORITES_STORAGE_KEY, defaultCompareIds, defaultFavoriteIds, useStoredIds } from "@/components/useMarketplaceCollections";
 
 type SortKey = "relevant" | "ending" | "price-low" | "price-high" | "bids" | "newest";
@@ -61,7 +62,7 @@ function DiscoveryCard({ product, view, favorite, compared, onFavorite, onCompar
         <Link href={`/urun/${product.id}`} className="discoveryCardTitle"><h3>{product.title}</h3></Link>
         <div className="discoverySellerLine">
           <span className={product.verified ? "verified" : ""}><Icon name="shield" /></span>
-          <div><strong>{product.seller}</strong><small>{product.verified ? "Doğrulanmış satıcı" : "Bireysel satıcı"} · {product.location}</small></div>
+          <div><Link href={`/magaza/${sellerSlugForName(product.seller)}`}>{product.seller}</Link><small>{product.verified ? "Doğrulanmış satıcı" : "Bireysel satıcı"} · {product.location}</small></div>
         </div>
         {view === "list" && <p className="discoveryCardDescription">{product.description}</p>}
         <div className="discoveryCardMetrics">

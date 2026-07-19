@@ -29,10 +29,10 @@ const money = (value: number) => new Intl.NumberFormat("tr-TR", { style: "curren
 const statusLabel: Record<OrderState, string> = { payment: "Ödeme bekliyor", preparing: "Hazırlanıyor", shipped: "Kargoda", delivered: "Teslim edildi" };
 
 const orders = [
-  { id: "KK-24891", title: "Rolex Submariner Date 126610LN", seller: "Prestige Saat", amount: 125000, state: "shipped" as OrderState, date: "18 Temmuz 2026", image: "https://images.unsplash.com/photo-1523170335258-f5ed11844a49?auto=format&fit=crop&w=700&q=80", tracking: "KP048392019TR", carrier: "Yurtiçi Kargo", eta: "21 Temmuz Pazartesi" },
-  { id: "KK-24672", title: "PlayStation 5 Slim + 2 DualSense", seller: "GamePoint", amount: 18250, state: "delivered" as OrderState, date: "16 Temmuz 2026", image: "https://images.unsplash.com/photo-1606813907291-d86efa9b94db?auto=format&fit=crop&w=700&q=80", tracking: "YK284120994", carrier: "Yurtiçi Kargo", eta: "18 Temmuz 2026" },
-  { id: "KK-24118", title: "Sony Alpha A7 IV Gövde", seller: "FotoMarket", amount: 62300, state: "payment" as OrderState, date: "19 Temmuz 2026", image: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&w=700&q=80", tracking: "", carrier: "KapışKapış Kargo", eta: "Ödeme sonrası hesaplanır" },
-  { id: "KK-23991", title: "ASUS RTX 4070 Super OC", seller: "PC Dünyası", amount: 32000, state: "preparing" as OrderState, date: "15 Temmuz 2026", image: "https://images.unsplash.com/photo-1591488320449-011701bb6704?auto=format&fit=crop&w=700&q=80", tracking: "", carrier: "Aras Kargo", eta: "22 Temmuz Salı" },
+  { id: "KK-24891", title: "Rolex Submariner Date 126610LN", seller: "Mert Saat & Koleksiyon", sellerSlug: "mert-saat-koleksiyon", amount: 125000, state: "shipped" as OrderState, date: "18 Temmuz 2026", image: "https://images.unsplash.com/photo-1523170335258-f5ed11844a49?auto=format&fit=crop&w=700&q=80", tracking: "KP048392019TR", carrier: "Yurtiçi Kargo", eta: "21 Temmuz Pazartesi" },
+  { id: "KK-24672", title: "PlayStation 5 Slim + 2 DualSense", seller: "GamePort", sellerSlug: "gameport", amount: 18250, state: "delivered" as OrderState, date: "16 Temmuz 2026", image: "https://images.unsplash.com/photo-1606813907291-d86efa9b94db?auto=format&fit=crop&w=700&q=80", tracking: "YK284120994", carrier: "Yurtiçi Kargo", eta: "18 Temmuz 2026" },
+  { id: "KK-24118", title: "Sony Alpha A7 IV Gövde", seller: "Foto Market", sellerSlug: "foto-market", amount: 62300, state: "payment" as OrderState, date: "19 Temmuz 2026", image: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&w=700&q=80", tracking: "", carrier: "KapışKapış Kargo", eta: "Ödeme sonrası hesaplanır" },
+  { id: "KK-23991", title: "ASUS RTX 4070 Super OC", seller: "Pro Bilgisayar", sellerSlug: "pro-bilgisayar", amount: 32000, state: "preparing" as OrderState, date: "15 Temmuz 2026", image: "https://images.unsplash.com/photo-1591488320449-011701bb6704?auto=format&fit=crop&w=700&q=80", tracking: "", carrier: "Aras Kargo", eta: "22 Temmuz Salı" },
 ];
 
 export default function OrdersCenterExperience() {
@@ -59,7 +59,7 @@ export default function OrdersCenterExperience() {
       setLocalStates((old) => ({ ...old, [selected.id]: "delivered" }));
       setNotice("Teslimat onaylandı. Ödeme satıcının çekilebilir bakiyesine aktarılacak.");
     } else if (selected.state === "delivered") {
-      setNotice("Değerlendirme ekranı sonraki geliştirme turunda bağlanacak.");
+      router.push(`/degerlendirme?order=${selected.id}`);
     } else {
       setNotice("Satıcı ürünü hazırlıyor. Kargoya verildiğinde bildirim alacaksın.");
     }

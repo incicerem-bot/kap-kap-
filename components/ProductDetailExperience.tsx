@@ -9,6 +9,7 @@ import {
   timeToSeconds,
   type Product,
 } from "@/components/productData";
+import { sellerSlugForName } from "@/components/sellerData";
 import { COMPARE_STORAGE_KEY, FAVORITES_STORAGE_KEY, defaultCompareIds, defaultFavoriteIds, useStoredIds } from "@/components/useMarketplaceCollections";
 
 type IconName =
@@ -289,7 +290,7 @@ export default function ProductDetailExperience({ product }: { product: Product 
               <b>{product.seller} {product.verified && <i><Icon name="check" /></i>}</b>
               <small>{product.sellerRating.toLocaleString("tr-TR")} puan · {product.sellerSales} başarılı satış</small>
             </div>
-            <Link href="/profil"><Icon name="store" /> Mağaza</Link>
+            <Link href={`/magaza/${sellerSlugForName(product.seller)}`}><Icon name="store" /> Mağaza</Link>
           </section>
         </aside>
       </section>
