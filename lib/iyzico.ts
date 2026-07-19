@@ -55,6 +55,18 @@ export function approveMarketplaceItem(payload: Record<string, unknown>) {
   return callIyzico(getIyzicoClient().approval, "create", payload);
 }
 
+export function createSubMerchant(payload: Record<string, unknown>) {
+  return callIyzico(getIyzicoClient().subMerchant, "create", payload);
+}
+
+export function updateSubMerchant(payload: Record<string, unknown>) {
+  return callIyzico(getIyzicoClient().subMerchant, "update", payload);
+}
+
+export function retrieveSubMerchant(payload: Record<string, unknown>) {
+  return callIyzico(getIyzicoClient().subMerchant, "retrieve", payload);
+}
+
 function hexHmac(parts: unknown[]) {
   const { secretKey } = getIyzicoConfiguration();
   const normalized = parts.map((part) => String(part ?? "")).join(":");
