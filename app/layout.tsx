@@ -14,6 +14,9 @@ import "./legal-v14.css";
 import "./reputation-v15.css";
 import "./payment-v16.css";
 import "./onboarding-v17.css";
+import "./bid-security-v18.css";
+import "./authz-v19.css";
+import { AuthProvider } from "@/components/AuthProvider";
 
 export const metadata: Metadata = {
   title: "KapışKapış — Açık Artırma Platformu",
@@ -36,7 +39,7 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="tr">
-      <body>{children}</body>
+      <body><AuthProvider>{children}</AuthProvider></body>
     </html>
   );
 }
