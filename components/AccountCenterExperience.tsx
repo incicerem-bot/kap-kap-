@@ -1,8 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { fetchMyBidAccess, type BidAccess, supabaseConfigured } from "@/lib/auctions";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
+import { useAuth } from "@/components/AuthProvider";
 
 type TabId = "profile" | "verification" | "security" | "payment" | "address" | "notifications" | "privacy";
 type IconName = "user" | "shield" | "check" | "card" | "pin" | "bell" | "eye" | "lock" | "phone" | "mail" | "id" | "key" | "device" | "trash" | "plus" | "arrow" | "alert";
@@ -46,6 +48,7 @@ function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (val
 }
 
 export default function AccountCenterExperience() {
+  const { profile } = useAuth();
   const [activeTab, setActiveTab] = useState<TabId>("profile");
   const [toast, setToast] = useState("");
   const [twoFactor, setTwoFactor] = useState(true);
@@ -158,7 +161,7 @@ export default function AccountCenterExperience() {
                 <label>E-posta adresi<div className="accountVerifiedInputV8"><input type="email" key={email} defaultValue={email} required />{emailVerified && <span><Icon name="check" /> Doğrulandı</span>}</div></label>
                 <label>Telefon numarası<div className="accountVerifiedInputV8"><input key={phone} defaultValue={phone} placeholder="Telefon numarası ekle" />{phoneVerified && <span><Icon name="check" /> Doğrulandı</span>}</div></label>
                 <label>Şehir<select defaultValue="İzmir"><option>İzmir</option><option>İstanbul</option><option>Ankara</option><option>Bursa</option></select></label>
-                <label>Hesap türü<select defaultValue="seller"><option value="user">Standart kullanıcı</option><option value="seller">Satıcı hesabı</option></select></label>
+                <label>Hesap türü<div className="accountRoleFieldV19"><span>{profile?.role === "admin" ? "Yönetici hesabı" : profile?.role === "seller" ? "Satıcı hesabı" : "Alıcı hesabı"}</span>{profile?.role === "buyer" && <Link href="/satici-dogrulama">Satıcı ol</Link>}</div></label>
               </div>
               <label className="accountFullFieldV8">Hakkımda<textarea rows={5} maxLength={500} defaultValue="Teknoloji ürünleri, oyun ekipmanları ve koleksiyon parçaları satıyorum."/><small>En fazla 500 karakter</small></label>
               <footer className="accountFormFooterV8"><span>Son güncelleme: 19 Temmuz 2026, 10:42</span><button type="submit">Değişiklikleri kaydet</button></footer>

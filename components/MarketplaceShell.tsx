@@ -5,37 +5,15 @@ import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { FAVORITES_STORAGE_KEY, defaultFavoriteIds, useStoredIds } from "@/components/useMarketplaceCollections";
 import { useNotifications } from "@/components/useNotifications";
+import { useAuth } from "@/components/AuthProvider";
 
 type IconName =
-  | "home"
-  | "live"
-  | "bolt"
-  | "phone"
-  | "computer"
-  | "game"
-  | "watch"
-  | "collection"
-  | "electronics"
-  | "house"
-  | "heart"
-  | "bell"
-  | "message"
-  | "user"
-  | "bid"
-  | "search"
-  | "plus";
+  | "home" | "live" | "bolt" | "phone" | "computer" | "game" | "watch"
+  | "collection" | "electronics" | "house" | "heart" | "bell" | "message"
+  | "user" | "bid" | "search" | "plus" | "logout" | "store";
 
 function Icon({ name }: { name: IconName }) {
-  const common = {
-    viewBox: "0 0 24 24",
-    fill: "none",
-    stroke: "currentColor",
-    strokeWidth: 1.8,
-    strokeLinecap: "round" as const,
-    strokeLinejoin: "round" as const,
-    "aria-hidden": true,
-  };
-
+  const common = { viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, "aria-hidden": true };
   const paths: Record<IconName, ReactNode> = {
     home: <><path d="m3 11 9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></>,
     live: <><circle cx="12" cy="12" r="2.5"/><path d="M7.8 7.8a6 6 0 0 0 0 8.4M16.2 7.8a6 6 0 0 1 0 8.4"/><path d="M4.8 4.8a10.2 10.2 0 0 0 0 14.4M19.2 4.8a10.2 10.2 0 0 1 0 14.4"/></>,
@@ -54,145 +32,91 @@ function Icon({ name }: { name: IconName }) {
     bid: <><path d="m4 15 7-7 5 5-7 7z"/><path d="m13 6 2-2 5 5-2 2M14 18h7"/></>,
     search: <><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></>,
     plus: <><path d="M12 5v14M5 12h14"/></>,
+    logout: <><path d="M10 17l5-5-5-5M15 12H3"/><path d="M14 3h5a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-5"/></>,
+    store: <><path d="M4 10v10h16V10"/><path d="M3 10 5 4h14l2 6"/><path d="M8 20v-6h8v6"/></>,
   };
-
   return <svg {...common}>{paths[name]}</svg>;
 }
 
 const menu: Array<[string, IconName, string]> = [
-  ["/", "home", "Ana Sayfa"],
-  ["/canli", "live", "Canlı Açık Artırmalar"],
-  ["/son-dakika", "bolt", "Son Dakika"],
-  ["/kategori/telefon", "phone", "Telefon"],
-  ["/kategori/bilgisayar", "computer", "Bilgisayar"],
-  ["/kategori/oyun", "game", "Oyun & Konsol"],
-  ["/kategori/saat", "watch", "Saat"],
-  ["/kategori/koleksiyon", "collection", "Koleksiyon"],
-  ["/kategori/elektronik", "electronics", "Elektronik"],
-  ["/kategori/ev-yasam", "house", "Ev & Yaşam"],
+  ["/", "home", "Ana Sayfa"], ["/canli", "live", "Canlı Açık Artırmalar"], ["/son-dakika", "bolt", "Son Dakika"],
+  ["/kategori/telefon", "phone", "Telefon"], ["/kategori/bilgisayar", "computer", "Bilgisayar"], ["/kategori/oyun", "game", "Oyun & Konsol"],
+  ["/kategori/saat", "watch", "Saat"], ["/kategori/koleksiyon", "collection", "Koleksiyon"], ["/kategori/elektronik", "electronics", "Elektronik"], ["/kategori/ev-yasam", "house", "Ev & Yaşam"],
 ];
 
-const account = [
-  ["/profil", "Profilim"],
-  ["/ilanlarim", "Satış Merkezi"],
-  ["/satici-dogrulama", "Satıcı Doğrulama"],
-  ["/teklif-guvencesi", "Teklif Güvencesi"],
-  ["/tekliflerim", "Tekliflerim"],
-  ["/favoriler", "Favorilerim"],
-  ["/karsilastir", "Ürün Karşılaştırma"],
-  ["/siparisler", "Siparişlerim"],
-  ["/kargo", "Kargo ve İadeler"],
-  ["/uyusmazlik", "Uyuşmazlıklar"],
-  ["/mesajlar", "Mesajlar"],
-  ["/bildirimler", "Bildirimler"],
-  ["/cuzdan", "Cüzdanım"],
-  ["/ayarlar", "Ayarlar ve Güvenlik"],
-  ["/yonetim", "Yönetim Merkezi"],
-  ["/hukuk", "Hukuk ve Güven"],
+const commonAccount = [
+  ["/profil", "Profilim"], ["/teklif-guvencesi", "Teklif Güvencesi"], ["/tekliflerim", "Tekliflerim"],
+  ["/favoriler", "Favorilerim"], ["/karsilastir", "Ürün Karşılaştırma"], ["/siparisler", "Siparişlerim"],
+  ["/kargo", "Kargo ve İadeler"], ["/uyusmazlik", "Uyuşmazlıklar"], ["/mesajlar", "Mesajlar"],
+  ["/bildirimler", "Bildirimler"], ["/cuzdan", "Cüzdanım"], ["/ayarlar", "Ayarlar ve Güvenlik"], ["/hukuk", "Hukuk ve Güven"],
 ];
 
-export default function MarketplaceShell({
-  title,
-  eyebrow,
-  description,
-  children,
-  action,
-  compact = false,
-}: {
-  title: string;
-  eyebrow?: string;
-  description?: string;
-  children: ReactNode;
-  action?: ReactNode;
-  compact?: boolean;
+export default function MarketplaceShell({ title, eyebrow, description, children, action, compact = false }: {
+  title: string; eyebrow?: string; description?: string; children: ReactNode; action?: ReactNode; compact?: boolean;
 }) {
   const pathname = usePathname();
   const favorites = useStoredIds(FAVORITES_STORAGE_KEY, defaultFavoriteIds);
   const { unreadCount: unreadNotificationCount } = useNotifications();
+  const { user, profile, loading: authLoading, signOut } = useAuth();
+  const role = profile?.role ?? "buyer";
+  const isSeller = role === "seller" || role === "admin";
+  const isAdmin = role === "admin";
+  const sellHref = isSeller ? "/ilan-olustur" : "/satici-dogrulama?required=seller";
+  const accountItems = user
+    ? [
+        ...commonAccount.slice(0, 1),
+        ...(isSeller ? [["/ilanlarim", "Satış Merkezi"], ["/satici-dogrulama", "Satıcı Doğrulama"]] : [["/satici-dogrulama", "Satıcı Ol"]]),
+        ...commonAccount.slice(1),
+        ...(isAdmin ? [["/yonetim", "Yönetim Merkezi"]] : []),
+      ]
+    : [["/giris", "Giriş yap"], ["/kayit", "Ücretsiz kayıt ol"], ["/hukuk", "Hukuk ve Güven"]];
+
+  const displayName = profile?.fullName || user?.email?.split("@")[0] || "Hesabım";
+  const initials = displayName.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toLocaleUpperCase("tr-TR") || "KK";
 
   return (
     <main className="marketApp">
       <header className="marketHeader">
-        <Link href="/" className="marketBrand" aria-label="KapışKapış ana sayfa">
-          <img src="/kapiskapis-logo.png" alt="KapışKapış" />
-        </Link>
-
-        <form className="marketHeaderSearch" action="/arama" method="get" role="search">
-          <Icon name="search" />
-          <input name="q" type="search" placeholder="Ürün, marka veya kategori ara" aria-label="Açık artırmalarda ara" />
-          <button type="submit">Ara</button>
-        </form>
+        <Link href="/" className="marketBrand" aria-label="KapışKapış ana sayfa"><img src="/kapiskapis-logo.png" alt="KapışKapış" /></Link>
+        <form className="marketHeaderSearch" action="/arama" method="get" role="search"><Icon name="search" /><input name="q" type="search" placeholder="Ürün, marka veya kategori ara" aria-label="Açık artırmalarda ara" /><button type="submit">Ara</button></form>
 
         <nav className="marketTopActions" aria-label="Kullanıcı işlemleri">
-          <Link href="/favoriler" aria-label="Favoriler"><Icon name="heart" />{favorites.ids.length > 0 && <small>{favorites.ids.length}</small>}</Link>
-          <Link href="/bildirimler" aria-label="Bildirimler"><Icon name="bell" />{unreadNotificationCount > 0 && <small>{unreadNotificationCount}</small>}</Link>
-          <Link href="/mesajlar" aria-label="Mesajlar"><Icon name="message" /></Link>
-          <Link href="/profil" className="marketAvatar" aria-label="Profil"><Icon name="user" /></Link>
-          <Link href="/ilan-olustur" className="marketSell"><Icon name="plus" /> İlan Ver</Link>
+          {user ? <>
+            <Link href="/favoriler" aria-label="Favoriler"><Icon name="heart" />{favorites.ids.length > 0 && <small>{favorites.ids.length}</small>}</Link>
+            <Link href="/bildirimler" aria-label="Bildirimler"><Icon name="bell" />{unreadNotificationCount > 0 && <small>{unreadNotificationCount}</small>}</Link>
+            <Link href="/mesajlar" aria-label="Mesajlar"><Icon name="message" /></Link>
+            <Link href="/profil" className="marketIdentityV19" aria-label="Profil"><span>{initials}</span><div><b>{displayName}</b><small>{isAdmin ? "Yönetici" : isSeller ? "Satıcı" : "Alıcı"}</small></div></Link>
+          </> : !authLoading && <div className="marketGuestActionsV19"><Link href="/giris">Giriş yap</Link><Link href="/kayit">Kayıt ol</Link></div>}
+          <Link href={sellHref} className="marketSell"><Icon name="plus" /> İlan Ver</Link>
         </nav>
       </header>
 
       <div className="marketLayout">
         <aside className="marketSidebar">
           <div className="sidebarSectionLabel">KEŞFET</div>
-          <nav aria-label="Kategoriler">
-            {menu.map(([href, icon, label]) => (
-              <Link key={href} href={href} className={pathname === href ? "active" : ""}>
-                <span><Icon name={icon} /></span>{label}
-              </Link>
-            ))}
-          </nav>
+          <nav aria-label="Kategoriler">{menu.map(([href, icon, label]) => <Link key={href} href={href} className={pathname === href ? "active" : ""}><span><Icon name={icon} /></span>{label}</Link>)}</nav>
           <div className="sidebarDivider" />
-          <div className="sidebarSectionLabel">HESABIM</div>
+          <div className="sidebarSectionLabel">{user ? "HESABIM" : "ÜYELİK"}</div>
           <nav className="accountMenu" aria-label="Hesabım">
-            {account.map(([href, label]) => (
-              <Link key={href} href={href} className={pathname === href ? "active" : ""}>{label}</Link>
-            ))}
+            {accountItems.map(([href, label]) => <Link key={href} href={href} className={pathname === href ? "active" : ""}>{label}</Link>)}
+            {user && <button type="button" className="accountLogoutV19" onClick={() => void signOut()}><Icon name="logout" /> Güvenli çıkış</button>}
           </nav>
-          <div className="sidebarPromo">
-            <span>ÜCRETSİZ İLAN</span>
-            <strong>Satmaya başla</strong>
-            <p>Ürününü birkaç adımda açık artırmaya çıkar.</p>
-            <Link href="/ilan-olustur">İlan oluştur</Link>
-          </div>
+          <div className="sidebarPromo"><span>{isSeller ? "SATICI MERKEZİ" : "SATICI OL"}</span><strong>{isSeller ? "Yeni ilan oluştur" : "Mağazanı aç"}</strong><p>{isSeller ? "Ürününü birkaç adımda açık artırmaya çıkar." : "Satıcı doğrulamasını tamamla ve satışa başla."}</p><Link href={sellHref}>{isSeller ? "İlan oluştur" : "Satıcı başvurusu"}</Link></div>
         </aside>
 
         <section className={`marketContent ${compact ? "marketContentCompact" : ""}`}>
-          {!compact && <div className="marketPageHead">
-            <div>
-              {eyebrow && <span className="marketEyebrow">{eyebrow}</span>}
-              <h1>{title}</h1>
-              {description && <p>{description}</p>}
-            </div>
-            {action && <div>{action}</div>}
-          </div>}
+          {!compact && <div className="marketPageHead"><div>{eyebrow && <span className="marketEyebrow">{eyebrow}</span>}<h1>{title}</h1>{description && <p>{description}</p>}</div>{action && <div>{action}</div>}</div>}
           {children}
-
-          <footer className="marketFooter">
-            <div>
-              <img src="/kapiskapis-logo.png" alt="KapışKapış" />
-              <p>Teknoloji ve oyun ürünlerinde güvenli açık artırma deneyimi.</p>
-            </div>
-            <nav aria-label="Alt menü">
-              <Link href="/nasil-calisir">Nasıl çalışır?</Link>
-              <Link href="/yardim">Yardım merkezi</Link>
-              <Link href="/hukuk">Hukuk ve güven</Link>
-              <Link href="/hukuk?doc=gizlilik">KVKK & Gizlilik</Link>
-              <Link href="/ilan-olustur">İlan ver</Link>
-              <Link href="/canli">Canlı açık artırmalar</Link>
-              <Link href="/giris">Giriş yap</Link>
-            </nav>
-            <small>© 2026 KapışKapış. Tüm hakları saklıdır.</small>
-          </footer>
+          <footer className="marketFooter"><div><img src="/kapiskapis-logo.png" alt="KapışKapış" /><p>Teknoloji ve oyun ürünlerinde güvenli açık artırma deneyimi.</p></div><nav aria-label="Alt menü"><Link href="/nasil-calisir">Nasıl çalışır?</Link><Link href="/yardim">Yardım merkezi</Link><Link href="/hukuk">Hukuk ve güven</Link><Link href="/hukuk?doc=gizlilik">KVKK & Gizlilik</Link><Link href={sellHref}>İlan ver</Link><Link href="/canli">Canlı açık artırmalar</Link>{!user && <Link href="/giris">Giriş yap</Link>}</nav><small>© 2026 KapışKapış. Tüm hakları saklıdır.</small></footer>
         </section>
       </div>
 
       <nav className="marketMobileNav" aria-label="Mobil menü">
         <Link href="/" className={pathname === "/" ? "active" : ""}><Icon name="home" /><span>Ana Sayfa</span></Link>
         <Link href="/canli" className={pathname === "/canli" ? "active" : ""}><Icon name="live" /><span>Canlı</span></Link>
-        <Link href="/ilan-olustur" className="mobileSell" aria-label="İlan ver"><Icon name="plus" /></Link>
-        <Link href="/tekliflerim" className={pathname === "/tekliflerim" ? "active" : ""}><Icon name="bid" /><span>Teklifler</span></Link>
-        <Link href="/profil" className={pathname === "/profil" ? "active" : ""}><Icon name="user" /><span>Profil</span></Link>
+        <Link href={sellHref} className="mobileSell" aria-label="İlan ver"><Icon name="plus" /></Link>
+        <Link href={user ? "/tekliflerim" : "/giris?returnTo=/tekliflerim"} className={pathname === "/tekliflerim" ? "active" : ""}><Icon name="bid" /><span>Teklifler</span></Link>
+        <Link href={user ? "/profil" : "/giris"} className={pathname === "/profil" ? "active" : ""}><Icon name="user" /><span>{user ? "Profil" : "Giriş"}</span></Link>
       </nav>
     </main>
   );

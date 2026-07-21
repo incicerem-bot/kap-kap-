@@ -3,13 +3,14 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { getSupabaseBrowserClient, supabaseConfigured } from "@/lib/supabase";
+import { useAuth } from "@/components/AuthProvider";
 
 type MerchantType = "PERSONAL" | "PRIVATE_COMPANY" | "LIMITED_OR_JOINT_STOCK_COMPANY";
 type OnboardingStatus = "not_started" | "pending" | "active" | "rejected" | "suspended";
 
 type StatusPayload = {
-  sellerId: string;
-  sellerSlug: string;
+  sellerId: string | null;
+  sellerSlug: string | null;
   sellerName: string;
   onboardingStatus: OnboardingStatus;
   merchantType: MerchantType | null;
@@ -91,6 +92,7 @@ function normalizeIbanInput(value: string) {
 }
 
 export default function SellerOnboardingExperience() {
+  const { refreshProfile } = useAuth();
   const [form, setForm] = useState<FormState>(initialForm);
   const [status, setStatus] = useState<StatusPayload | null>(null);
   const [loading, setLoading] = useState(true);
@@ -164,7 +166,8 @@ export default function SellerOnboardingExperience() {
       const payload = { ...form, iban: form.iban.replace(/\s+/g, "") };
       const body = await apiCall("/api/seller/onboarding", { method: "POST", body: JSON.stringify(payload) });
       setStatus(body.status);
-      setMessage("Satıcı ödeme hesabın başarıyla oluşturuldu.");
+      await refreshProfile();
+      setMessage("Satıcı hesabın ve ödeme yetkin başarıyla oluşturuldu.");
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "Başvuru gönderilemedi.");
     } finally {
@@ -179,7 +182,8 @@ export default function SellerOnboardingExperience() {
     try {
       const body = await apiCall("/api/seller/onboarding/sync", { method: "POST", body: "{}" });
       setStatus(body.status);
-      setMessage("iyzico başvuru durumu yenilendi.");
+      await refreshProfile();
+      setMessage("iyzico başvuru durumu ve satıcı yetkin yenilendi.");
     } catch (syncError) {
       setError(syncError instanceof Error ? syncError.message : "Başvuru durumu yenilenemedi.");
     } finally {
@@ -196,7 +200,7 @@ export default function SellerOnboardingExperience() {
   }
 
   if (signedIn === false) {
-    return <section className="sellerOnboardingStateV17"><Icon name="lock"/><h2>Önce hesabına giriş yap</h2><p>Satıcı ödeme hesabı yalnızca giriş yapan kullanıcı adına oluşturulabilir.</p><Link href="/giris?redirect=/satici-dogrulama">Giriş yap <Icon name="arrow"/></Link></section>;
+    return <section className="sellerOnboardingStateV17"><Icon name="lock"/><h2>Önce hesabına giriş yap</h2><p>Satıcı ödeme hesabı yalnızca giriş yapan kullanıcı adına oluşturulabilir.</p><Link href="/giris?returnTo=/satici-dogrulama">Giriş yap <Icon name="arrow"/></Link></section>;
   }
 
   return (
