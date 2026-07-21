@@ -1,4 +1,5 @@
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { createBrowserClient } from "@supabase/ssr";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 const rawSupabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 const rawSupabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
@@ -11,13 +12,8 @@ function validateSupabaseConfiguration() {
     return { valid: false, error: null as string | null };
   }
 
-  if (!supabaseUrl) {
-    return { valid: false, error: "NEXT_PUBLIC_SUPABASE_URL eksik." };
-  }
-
-  if (!supabaseAnonKey) {
-    return { valid: false, error: "NEXT_PUBLIC_SUPABASE_ANON_KEY eksik." };
-  }
+  if (!supabaseUrl) return { valid: false, error: "NEXT_PUBLIC_SUPABASE_URL eksik." };
+  if (!supabaseAnonKey) return { valid: false, error: "NEXT_PUBLIC_SUPABASE_ANON_KEY eksik." };
 
   try {
     const parsedUrl = new URL(supabaseUrl);
@@ -51,11 +47,10 @@ export function getSupabaseBrowserClient(): SupabaseClient | null {
     if (supabaseConfigurationError) reportConfigurationProblem(supabaseConfigurationError);
     return null;
   }
-
   if (browserClient) return browserClient;
 
   try {
-    browserClient = createClient(supabaseUrl, supabaseAnonKey, {
+    browserClient = createBrowserClient(supabaseUrl, supabaseAnonKey, {
       auth: {
         persistSession: true,
         autoRefreshToken: true,
@@ -65,8 +60,7 @@ export function getSupabaseBrowserClient(): SupabaseClient | null {
     return browserClient;
   } catch (error) {
     clientCreationFailed = true;
-    const message = error instanceof Error ? error.message : "Supabase istemcisi oluşturulamadı.";
-    reportConfigurationProblem(message);
+    reportConfigurationProblem(error instanceof Error ? error.message : "Supabase istemcisi oluşturulamadı.");
     return null;
   }
 }

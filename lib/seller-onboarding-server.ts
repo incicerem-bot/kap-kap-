@@ -24,8 +24,8 @@ export type SellerOnboardingInput = {
 };
 
 export type SafePayoutStatus = {
-  sellerId: string;
-  sellerSlug: string;
+  sellerId: string | null;
+  sellerSlug: string | null;
   sellerName: string;
   onboardingStatus: "not_started" | "pending" | "active" | "rejected" | "suspended";
   merchantType: SellerMerchantType | null;
@@ -162,6 +162,8 @@ function slugify(value: string) {
 }
 
 export async function ensureSellerForUser(admin: SupabaseClient, user: User, preferredName?: string) {
+  await admin.from("kk_profiles").update({ role: "seller", seller_status: "pending" }).eq("id", user.id).neq("role", "admin");
+
   const { data: existing, error: existingError } = await admin
     .from("kk_sellers")
     .select("id,slug,name,user_id")
@@ -181,6 +183,7 @@ export async function ensureSellerForUser(admin: SupabaseClient, user: User, pre
     tagline: "KapışKapış satıcısı",
     about: "Bu mağaza KapışKapış üzerinden oluşturuldu.",
     verified: false,
+    is_active: false,
   }).select("id,slug,name,user_id").single();
   if (error) {
     const { data: raced } = await admin.from("kk_sellers").select("id,slug,name,user_id").eq("user_id", user.id).maybeSingle();
@@ -191,7 +194,29 @@ export async function ensureSellerForUser(admin: SupabaseClient, user: User, pre
 }
 
 export async function getSafePayoutStatus(admin: SupabaseClient, user: User): Promise<SafePayoutStatus> {
-  const seller = await ensureSellerForUser(admin, user);
+  const { data: seller, error: sellerError } = await admin
+    .from("kk_sellers")
+    .select("id,slug,name,user_id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (sellerError) throw new PaymentHttpError(500, "Satıcı hesabı okunamadı.", sellerError.code);
+
+  if (!seller) {
+    return {
+      sellerId: null,
+      sellerSlug: null,
+      sellerName: String(user.user_metadata?.full_name || user.email?.split("@")[0] || "KapışKapış mağazan"),
+      onboardingStatus: "not_started",
+      merchantType: null,
+      maskedIban: null,
+      providerExternalId: null,
+      submittedAt: null,
+      activatedAt: null,
+      lastError: null,
+      updatedAt: null,
+    };
+  }
+
   const { data, error } = await admin
     .from("kk_seller_payout_accounts")
     .select("onboarding_status,merchant_type,iban_masked,provider_external_id,submitted_at,activated_at,last_error,updated_at")
@@ -274,6 +299,7 @@ export async function submitSellerOnboarding(admin: SupabaseClient, user: User, 
   } catch (error) {
     const message = error instanceof Error ? error.message : "iyzico bağlantısı kurulamadı.";
     await admin.from("kk_seller_payout_accounts").update({ onboarding_status: "rejected", last_error: message.slice(0, 500) }).eq("seller_id", seller.id);
+    await admin.from("kk_profiles").update({ role: "seller", seller_status: "rejected" }).eq("id", user.id).neq("role", "admin");
     await audit(admin, seller.id, "create", false, { message });
     throw new PaymentHttpError(502, message);
   }
@@ -287,6 +313,7 @@ export async function submitSellerOnboarding(admin: SupabaseClient, user: User, 
       provider_summary: summary,
       provider_checked_at: new Date().toISOString(),
     }).eq("seller_id", seller.id);
+    await admin.from("kk_profiles").update({ role: "seller", seller_status: "rejected" }).eq("id", user.id).neq("role", "admin");
     await audit(admin, seller.id, "create", false, summary);
     throw new PaymentHttpError(422, message, String(result.errorCode ?? "IYZICO_ONBOARDING_FAILED"));
   }
@@ -302,7 +329,8 @@ export async function submitSellerOnboarding(admin: SupabaseClient, user: User, 
   }).eq("seller_id", seller.id);
   if (activateError) throw new PaymentHttpError(500, "Alt üye anahtarı güvenli şekilde kaydedilemedi.", activateError.code);
 
-  await admin.from("kk_sellers").update({ name: validated.storeName }).eq("id", seller.id);
+  await admin.from("kk_sellers").update({ name: validated.storeName, is_active: true, verified: true }).eq("id", seller.id);
+  await admin.from("kk_profiles").update({ role: "seller", seller_status: "active" }).eq("id", user.id).neq("role", "admin");
   await audit(admin, seller.id, "create", true, summary);
   return getSafePayoutStatus(admin, user);
 }
@@ -334,6 +362,8 @@ export async function syncSellerOnboarding(admin: SupabaseClient, user: User) {
       provider_summary: summary,
       last_error: null,
     }).eq("seller_id", seller.id);
+    await admin.from("kk_sellers").update({ is_active: true, verified: true }).eq("id", seller.id);
+    await admin.from("kk_profiles").update({ role: "seller", seller_status: "active" }).eq("id", user.id).neq("role", "admin");
     await audit(admin, seller.id, "retrieve", true, summary);
   } else {
     const message = providerError(result);
