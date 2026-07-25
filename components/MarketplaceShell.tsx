@@ -45,7 +45,7 @@ const menu: Array<[string, IconName, string]> = [
 ];
 
 const commonAccount = [
-  ["/profil", "Profilim"], ["/teklif-guvencesi", "Teklif Güvencesi"], ["/tekliflerim", "Tekliflerim"],
+  ["/profil", "Profilim"], ["/hesap-dogrulama", "Hesap Doğrulama"], ["/teklif-guvencesi", "Teklif Güvencesi"], ["/tekliflerim", "Tekliflerim"],
   ["/favoriler", "Favorilerim"], ["/karsilastir", "Ürün Karşılaştırma"], ["/siparisler", "Siparişlerim"],
   ["/kargo", "Kargo ve İadeler"], ["/uyusmazlik", "Uyuşmazlıklar"], ["/mesajlar", "Mesajlar"],
   ["/bildirimler", "Bildirimler"], ["/cuzdan", "Cüzdanım"], ["/ayarlar", "Ayarlar ve Güvenlik"], ["/hukuk", "Hukuk ve Güven"],

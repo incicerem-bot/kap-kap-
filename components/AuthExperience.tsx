@@ -106,16 +106,20 @@ export default function AuthExperience({ mode }: { mode: Mode }) {
           return;
         }
 
-        setMessage({
-          type: "success",
-          text: accountType === "seller"
-            ? "Satıcı hesabın oluşturuldu. E-postanı doğruladıktan sonra mağaza ve ödeme hesabı kurulumuna geçeceksin."
-            : "Alıcı hesabın oluşturuldu. E-posta adresine gönderilen doğrulama bağlantısını aç.",
-        });
+        const pending = new URL("/kayit-bekleniyor", window.location.origin);
+        pending.searchParams.set("email", email.trim());
+        pending.searchParams.set("account", accountType);
+        window.location.assign(pending.toString());
+        return;
       }
     } catch (error) {
       const raw = error instanceof Error ? error.message : "İşlem tamamlanamadı. Bilgilerini kontrol edip tekrar dene.";
-      const translated = raw.toLowerCase().includes("invalid login credentials") ? "E-posta veya şifre hatalı." : raw;
+      const lower = raw.toLowerCase();
+      const translated = lower.includes("invalid login credentials")
+        ? "E-posta veya şifre hatalı."
+        : lower.includes("email not confirmed")
+          ? "E-posta adresin henüz doğrulanmamış. Doğrulama e-postasını yeniden gönderebilirsin."
+          : raw;
       setMessage({ type: "error", text: translated });
     } finally {
       setLoading(false);
@@ -132,7 +136,7 @@ export default function AuthExperience({ mode }: { mode: Mode }) {
       setMessage({ type: "success", text: "Demo modunda şifre yenileme talebi oluşturuldu." });
       return;
     }
-    const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent("/ayarlar?reset=1")}`;
+    const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent("/sifre-yenile")}`;
     const { error } = await client.auth.resetPasswordForEmail(email.trim(), { redirectTo });
     setMessage(error ? { type: "error", text: error.message } : { type: "success", text: "Şifre yenileme bağlantısı e-posta adresine gönderildi." });
   }
@@ -187,6 +191,7 @@ export default function AuthExperience({ mode }: { mode: Mode }) {
 
             {mode === "register" && accountType === "seller" && <div className="authSellerNoticeV19"><Icon name="store"/><span><strong>Satıcı doğrulaması kayıt sonrasında yapılır.</strong> E-posta doğrulamasından sonra iyzico alt üye ve IBAN bilgilerini tamamlayacaksın.</span></div>}
             {message && <div className={`authMessageV8 ${message.type}`}><Icon name={message.type === "success" ? "check" : "shield"}/><span>{message.text}</span></div>}
+            {mode === "login" && message?.type === "error" && message.text.includes("doğrulanmamış") && email.trim() && <Link className="authResendLinkV20" href={`/kayit-bekleniyor?email=${encodeURIComponent(email.trim())}`}>Doğrulama e-postasını yeniden gönder</Link>}
             <button className="authSubmitV8" type="submit" disabled={loading}>{loading ? "İşleniyor..." : mode === "login" ? "Giriş yap" : accountType === "seller" ? "Satıcı hesabı oluştur" : "Alıcı hesabı oluştur"}<Icon name="arrow"/></button>
           </form>
 

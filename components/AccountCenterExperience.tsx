@@ -48,11 +48,9 @@ function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (val
 }
 
 export default function AccountCenterExperience() {
-  const { profile } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
   const [activeTab, setActiveTab] = useState<TabId>("profile");
   const [toast, setToast] = useState("");
-  const [twoFactor, setTwoFactor] = useState(true);
-  const [loginAlerts, setLoginAlerts] = useState(true);
   const [marketing, setMarketing] = useState(false);
   const [bidAlerts, setBidAlerts] = useState(true);
   const [messageAlerts, setMessageAlerts] = useState(true);
@@ -61,6 +59,10 @@ export default function AccountCenterExperience() {
   const [activityVisible, setActivityVisible] = useState(false);
   const [phoneVisible, setPhoneVisible] = useState(false);
   const [passwordOpen, setPasswordOpen] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [securityLoading, setSecurityLoading] = useState(false);
   const [fullName, setFullName] = useState("KapışKapış kullanıcısı");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -109,6 +111,52 @@ export default function AccountCenterExperience() {
     notify(message);
   }
 
+  async function saveProfile(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const client = getSupabaseBrowserClient();
+    if (!client) return notify("Supabase bağlantısı yapılandırılmamış.");
+    const name = fullName.trim();
+    if (name.length < 3) return notify("Ad soyad en az 3 karakter olmalı.");
+    const { error } = await client.rpc("kk_complete_my_profile", { p_full_name: name });
+    if (error) return notify(error.message);
+    await client.auth.updateUser({ data: { full_name: name } });
+    await refreshProfile();
+    notify("Profil bilgilerin kaydedildi.");
+  }
+
+  async function changePassword(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!user?.email) return notify("Oturum bilgisi bulunamadı.");
+    if (newPassword !== confirmPassword) return notify("Yeni şifreler eşleşmiyor.");
+    if (newPassword.length < 8) return notify("Yeni şifre en az 8 karakter olmalı.");
+    const client = getSupabaseBrowserClient();
+    if (!client) return notify("Supabase bağlantısı yapılandırılmamış.");
+    setSecurityLoading(true);
+    const { error: reauthError } = await client.auth.signInWithPassword({ email: user.email, password: currentPassword });
+    if (reauthError) {
+      setSecurityLoading(false);
+      return notify("Mevcut şifren yanlış.");
+    }
+    const { error } = await client.auth.updateUser({ password: newPassword });
+    if (!error) await client.auth.signOut({ scope: "others" });
+    setSecurityLoading(false);
+    if (error) return notify(error.message);
+    setCurrentPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
+    setPasswordOpen(false);
+    notify("Şifren güncellendi ve diğer cihaz oturumları kapatıldı.");
+  }
+
+  async function closeOtherSessions() {
+    const client = getSupabaseBrowserClient();
+    if (!client) return notify("Supabase bağlantısı yapılandırılmamış.");
+    setSecurityLoading(true);
+    const { error } = await client.auth.signOut({ scope: "others" });
+    setSecurityLoading(false);
+    notify(error ? error.message : "Diğer cihazlardaki oturumlar kapatıldı.");
+  }
+
   return (
     <div className="accountCenterV8">
       {toast && <div className="accountToastV8"><Icon name="check" />{toast}</div>}
@@ -149,17 +197,17 @@ export default function AccountCenterExperience() {
 
         <section className="accountContentV8">
           {activeTab === "profile" && (
-            <form onSubmit={(event) => save(event, "Profil bilgilerin kaydedildi.")}>
+            <form onSubmit={saveProfile}>
               <header className="accountSectionHeadV8"><div><span>PROFİL</span><h3>Herkese açık profil bilgileri</h3><p>Alıcıların ve satıcıların profilinde görebileceği bilgileri düzenle.</p></div><button type="submit">Değişiklikleri kaydet</button></header>
               <div className="accountProfileMediaV8">
                 <div className="accountAvatarLargeV8">{initials}</div>
                 <div><b>Profil fotoğrafı</b><p>JPG, PNG veya WEBP · En fazla 5 MB</p><div><label>Yeni fotoğraf seç<input type="file" accept="image/jpeg,image/png,image/webp" /></label><button type="button">Kaldır</button></div></div>
               </div>
               <div className="accountFormGridV8">
-                <label>Ad soyad<input key={fullName} defaultValue={fullName} required /></label>
+                <label>Ad soyad<input value={fullName} onChange={(event) => setFullName(event.target.value)} required /></label>
                 <label>Kullanıcı adı<div className="accountPrefixInputV8"><span>kapiskapis.com/</span><input defaultValue={email.split("@")[0] || "kullanici"} required /></div></label>
-                <label>E-posta adresi<div className="accountVerifiedInputV8"><input type="email" key={email} defaultValue={email} required />{emailVerified && <span><Icon name="check" /> Doğrulandı</span>}</div></label>
-                <label>Telefon numarası<div className="accountVerifiedInputV8"><input key={phone} defaultValue={phone} placeholder="Telefon numarası ekle" />{phoneVerified && <span><Icon name="check" /> Doğrulandı</span>}</div></label>
+                <label>E-posta adresi<div className="accountVerifiedInputV8"><input type="email" value={email} readOnly />{emailVerified && <span><Icon name="check" /> Doğrulandı</span>}</div></label>
+                <label>Telefon numarası<div className="accountVerifiedInputV8"><input value={phone} readOnly placeholder="Telefon numarası ekle" />{phoneVerified && <span><Icon name="check" /> Doğrulandı</span>}</div><Link className="accountVerifyLinkV20" href="/hesap-dogrulama">Telefon ve e-posta doğrulamasını yönet</Link></label>
                 <label>Şehir<select defaultValue="İzmir"><option>İzmir</option><option>İstanbul</option><option>Ankara</option><option>Bursa</option></select></label>
                 <label>Hesap türü<div className="accountRoleFieldV19"><span>{profile?.role === "admin" ? "Yönetici hesabı" : profile?.role === "seller" ? "Satıcı hesabı" : "Alıcı hesabı"}</span>{profile?.role === "buyer" && <Link href="/satici-dogrulama">Satıcı ol</Link>}</div></label>
               </div>
@@ -182,6 +230,7 @@ export default function AccountCenterExperience() {
                   <article key={String(title)}><span><Icon name={icon as IconName} /></span><div><h4>{String(title)}</h4><p>{String(helper)}</p></div><em className={complete ? "" : "pending"}>{complete ? <><Icon name="check" />Tamamlandı</> : "Bekliyor"}</em></article>
                 ))}
               </div>
+              <Link href="/hesap-dogrulama" className="accountVerificationActionV20">E-posta, telefon ve profil doğrulamasını yönet <Icon name="arrow" /></Link>
               <div className="verificationBenefitsV8"><div><Icon name="shield" /></div><div><span>AKILLI TEKLİF GÜVENCESİ</span><h4>{bidAccess.cardVerified ? "Kart doğrulandı" : "Teklif sırasında doğrulanacak"}</h4><p>{money(bidAccess.securityRequired)} aktif risk için ayrıldı · {money(bidAccess.refundableSecurity)} iade edilebilir.</p></div><button type="button" onClick={() => { window.location.href = "/teklif-guvencesi"; }}>Güvenceyi yönet</button></div>
             </div>
           )}
@@ -191,11 +240,11 @@ export default function AccountCenterExperience() {
               <header className="accountSectionHeadV8"><div><span>GÜVENLİK</span><h3>Şifre ve oturum güvenliği</h3><p>Hesabına erişimi kontrol et ve şüpheli girişleri engelle.</p></div><div className="accountSecureStateV8"><Icon name="shield" /> Güçlü koruma</div></header>
               <div className="securitySettingListV8">
                 <article><span><Icon name="key" /></span><div><h4>Şifre</h4><p>Son değişiklik 42 gün önce · Güçlü şifre kullanılıyor</p></div><button type="button" onClick={() => setPasswordOpen(!passwordOpen)}>Şifreyi değiştir</button></article>
-                {passwordOpen && <form className="passwordFormV8" onSubmit={(event) => { save(event, "Şifren başarıyla güncellendi."); setPasswordOpen(false); }}><label>Mevcut şifre<input type="password" required minLength={6}/></label><label>Yeni şifre<input type="password" required minLength={8}/></label><label>Yeni şifre tekrar<input type="password" required minLength={8}/></label><button type="submit">Yeni şifreyi kaydet</button></form>}
-                <article><span><Icon name="lock" /></span><div><h4>İki adımlı doğrulama</h4><p>Giriş yaparken telefonuna gönderilen ek kod istenir.</p></div><Toggle checked={twoFactor} onChange={setTwoFactor} label="İki adımlı doğrulama" /></article>
-                <article><span><Icon name="alert" /></span><div><h4>Yeni giriş uyarıları</h4><p>Tanımadığımız bir cihazdan giriş yapıldığında bildirim gönderilir.</p></div><Toggle checked={loginAlerts} onChange={setLoginAlerts} label="Yeni giriş uyarıları" /></article>
+                {passwordOpen && <form className="passwordFormV8" onSubmit={changePassword}><label>Mevcut şifre<input type="password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} autoComplete="current-password" required minLength={6}/></label><label>Yeni şifre<input type="password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} autoComplete="new-password" required minLength={8}/></label><label>Yeni şifre tekrar<input type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} autoComplete="new-password" required minLength={8}/></label><button type="submit" disabled={securityLoading}>{securityLoading ? "Güncelleniyor…" : "Yeni şifreyi kaydet"}</button></form>}
+                <article><span><Icon name="lock" /></span><div><h4>Telefon doğrulaması</h4><p>{phoneVerified ? "Telefon numaran güvenli işlemler için doğrulandı." : "Teklif ve satış işlemleri için telefonunu doğrula."}</p></div><Link className="accountSecurityLinkV20" href="/hesap-dogrulama">{phoneVerified ? "Yönet" : "Doğrula"}</Link></article>
+                <article><span><Icon name="alert" /></span><div><h4>Yeni giriş uyarıları</h4><p>Cihaz ve konum tabanlı giriş uyarıları güvenlik kayıtları turunda etkinleştirilecek.</p></div><em className="accountComingSoonV20">Hazırlanıyor</em></article>
               </div>
-              <div className="activeSessionsV8"><div className="accountSubheadV8"><div><span>OTURUMLAR</span><h4>Aktif cihazlar</h4></div><button type="button" onClick={() => notify("Diğer tüm oturumlar kapatıldı.")}>Diğerlerini kapat</button></div><article><span><Icon name="device" /></span><div><b>Windows · Chrome</b><small>İzmir, Türkiye · Şu an aktif</small></div><em>Bu cihaz</em></article><article><span><Icon name="phone" /></span><div><b>iPhone · Safari</b><small>İzmir, Türkiye · 2 saat önce</small></div><button type="button" aria-label="Oturumu kapat" onClick={() => notify("Mobil cihaz oturumu kapatıldı.")}><Icon name="trash" /></button></article></div>
+              <div className="activeSessionsV8"><div className="accountSubheadV8"><div><span>OTURUMLAR</span><h4>Aktif cihazlar</h4></div><button type="button" onClick={() => void closeOtherSessions()} disabled={securityLoading}>Diğerlerini kapat</button></div><article><span><Icon name="device" /></span><div><b>Bu tarayıcı</b><small>Geçerli KapışKapış oturumu</small></div><em>Bu cihaz</em></article></div>
             </div>
           )}
 
