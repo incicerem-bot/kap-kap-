@@ -27,6 +27,12 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const { user } = await requireRequestUser(request);
+    if (!user.email_confirmed_at) {
+      throw new PaymentHttpError(403, "Satıcı başvurusu için e-posta adresini doğrulamalısın.", "EMAIL_NOT_VERIFIED");
+    }
+    if (!user.phone_confirmed_at) {
+      throw new PaymentHttpError(403, "Satıcı başvurusu için telefon numaranı doğrulamalısın.", "PHONE_NOT_VERIFIED");
+    }
     const body = await request.json() as SellerOnboardingInput;
     const status = await submitSellerOnboarding(getSupabaseAdminClient(), user, body);
     return NextResponse.json({ ok: true, status });

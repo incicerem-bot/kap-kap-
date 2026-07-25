@@ -58,6 +58,12 @@ function errorResponse(error: unknown) {
 export async function POST(request: NextRequest) {
   try {
     const { user } = await requireRequestUser(request);
+    if (!user.email_confirmed_at) {
+      throw new PaymentHttpError(403, "Teklif vermek için e-posta adresini doğrulamalısın.", "EMAIL_NOT_VERIFIED");
+    }
+    if (!user.phone_confirmed_at) {
+      throw new PaymentHttpError(403, "Teklif vermek için telefon numaranı doğrulamalısın.", "PHONE_NOT_VERIFIED");
+    }
     const body = await request.json() as Body;
     const listingSlug = text(body.listingSlug, 160);
     const bidAmount = Math.round(Number(body.bidAmount) * 100) / 100;

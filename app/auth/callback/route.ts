@@ -18,6 +18,11 @@ export async function GET(request: NextRequest) {
     const supabase = await createSupabaseServerAuthClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (error) throw error;
+    try {
+      await supabase.rpc("kk_sync_my_auth_verification");
+    } catch {
+      // Migration henüz kurulmadıysa doğrulama yönlendirmesi yine tamamlanır.
+    }
     return NextResponse.redirect(`${origin}${next}`);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Oturum doğrulanamadı.";
