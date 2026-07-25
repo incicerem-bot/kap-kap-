@@ -15,6 +15,11 @@ export type AccountProfile = {
   onboardingCompleted: boolean;
   marketingOptIn: boolean;
   termsVersion: string | null;
+  email: string | null;
+  emailVerified: boolean;
+  phoneVerified: boolean;
+  phoneMasked: string | null;
+  profileCompletedAt: string | null;
 };
 
 type AccountRpcRow = {
@@ -27,6 +32,11 @@ type AccountRpcRow = {
   onboarding_completed?: boolean | null;
   marketing_opt_in?: boolean | null;
   terms_version?: string | null;
+  email?: string | null;
+  email_verified?: boolean | null;
+  phone_verified?: boolean | null;
+  phone_masked?: string | null;
+  profile_completed_at?: string | null;
 };
 
 function normalizeRole(value: unknown): AccountRole {
@@ -55,6 +65,11 @@ export function fallbackProfileFromUser(user: User): AccountProfile {
     onboardingCompleted: true,
     marketingOptIn: Boolean(user.user_metadata?.marketing_opt_in),
     termsVersion: typeof user.user_metadata?.terms_version === "string" ? user.user_metadata.terms_version : null,
+    email: user.email ?? null,
+    emailVerified: Boolean(user.email_confirmed_at),
+    phoneVerified: Boolean(user.phone_confirmed_at),
+    phoneMasked: user.phone ? `${user.phone.slice(0, 4)} *** ** ${user.phone.slice(-2)}` : null,
+    profileCompletedAt: user.user_metadata?.full_name ? user.created_at : null,
   };
 }
 
@@ -69,6 +84,11 @@ export async function fetchMyAccountProfile(user?: User | null): Promise<Account
     currentUser = data.user;
   }
 
+  try {
+    await client.rpc("kk_sync_my_auth_verification");
+  } catch {
+    // Doğrulama migrationı henüz kurulmadıysa profil güvenli varsayılana düşer.
+  }
   const { data, error } = await client.rpc("kk_get_my_account");
   if (error) {
     // Migration henüz kurulmadıysa kullanıcı oturumu yine çalışır; yetki kontrolleri
@@ -89,6 +109,11 @@ export async function fetchMyAccountProfile(user?: User | null): Promise<Account
     onboardingCompleted: row.onboarding_completed !== false,
     marketingOptIn: Boolean(row.marketing_opt_in),
     termsVersion: row.terms_version ?? null,
+    email: row.email ?? currentUser.email ?? null,
+    emailVerified: Boolean(row.email_verified ?? currentUser.email_confirmed_at),
+    phoneVerified: Boolean(row.phone_verified ?? currentUser.phone_confirmed_at),
+    phoneMasked: row.phone_masked ?? null,
+    profileCompletedAt: row.profile_completed_at ?? null,
   };
 }
 
