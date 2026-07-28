@@ -55,6 +55,21 @@ export async function requireRequestUser(request: NextRequest): Promise<{ user: 
   return { user: data.user, token };
 }
 
+export async function requireAdminRequestUser(request: NextRequest): Promise<{ user: User; token: string }> {
+  const result = await requireRequestUser(request);
+  const admin = getSupabaseAdminClient();
+  const { data: profile, error } = await admin
+    .from("kk_profiles")
+    .select("role,account_status")
+    .eq("id", result.user.id)
+    .maybeSingle();
+  if (error || !profile) throw new PaymentHttpError(403, "Yönetici profili doğrulanamadı.", error?.code);
+  if (profile.role !== "admin" || profile.account_status !== "active") {
+    throw new PaymentHttpError(403, "Bu işlem için yönetici yetkisi gerekir.", "ADMIN_REQUIRED");
+  }
+  return result;
+}
+
 export class PaymentHttpError extends Error {
   status: number;
   code?: string;

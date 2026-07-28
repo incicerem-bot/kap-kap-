@@ -35,6 +35,8 @@ export type SafePayoutStatus = {
   activatedAt: string | null;
   lastError: string | null;
   updatedAt: string | null;
+  platformReviewStatus: "not_submitted" | "pending" | "approved" | "rejected" | "suspended";
+  platformReviewNote: string | null;
 };
 
 function clean(value: unknown, max = 255) {
@@ -166,7 +168,7 @@ export async function ensureSellerForUser(admin: SupabaseClient, user: User, pre
 
   const { data: existing, error: existingError } = await admin
     .from("kk_sellers")
-    .select("id,slug,name,user_id")
+    .select("id,slug,name,user_id,platform_review_status,platform_review_note")
     .eq("user_id", user.id)
     .maybeSingle();
   if (existingError) throw new PaymentHttpError(500, "Satıcı hesabı okunamadı.", existingError.code);
@@ -196,7 +198,7 @@ export async function ensureSellerForUser(admin: SupabaseClient, user: User, pre
 export async function getSafePayoutStatus(admin: SupabaseClient, user: User): Promise<SafePayoutStatus> {
   const { data: seller, error: sellerError } = await admin
     .from("kk_sellers")
-    .select("id,slug,name,user_id")
+    .select("id,slug,name,user_id,platform_review_status,platform_review_note")
     .eq("user_id", user.id)
     .maybeSingle();
   if (sellerError) throw new PaymentHttpError(500, "Satıcı hesabı okunamadı.", sellerError.code);
@@ -214,6 +216,8 @@ export async function getSafePayoutStatus(admin: SupabaseClient, user: User): Pr
       activatedAt: null,
       lastError: null,
       updatedAt: null,
+      platformReviewStatus: "not_submitted",
+      platformReviewNote: null,
     };
   }
 
@@ -236,6 +240,8 @@ export async function getSafePayoutStatus(admin: SupabaseClient, user: User): Pr
     activatedAt: data?.activated_at ?? null,
     lastError: data?.last_error ?? null,
     updatedAt: data?.updated_at ?? null,
+    platformReviewStatus: (seller.platform_review_status ?? "not_submitted") as SafePayoutStatus["platformReviewStatus"],
+    platformReviewNote: seller.platform_review_note ?? null,
   };
 }
 
@@ -329,8 +335,14 @@ export async function submitSellerOnboarding(admin: SupabaseClient, user: User, 
   }).eq("seller_id", seller.id);
   if (activateError) throw new PaymentHttpError(500, "Alt üye anahtarı güvenli şekilde kaydedilemedi.", activateError.code);
 
-  await admin.from("kk_sellers").update({ name: validated.storeName, is_active: true, verified: true }).eq("id", seller.id);
-  await admin.from("kk_profiles").update({ role: "seller", seller_status: "active" }).eq("id", user.id).neq("role", "admin");
+  await admin.from("kk_sellers").update({
+    name: validated.storeName,
+    platform_review_status: "pending",
+    platform_review_note: null,
+    is_active: false,
+    verified: false,
+  }).eq("id", seller.id);
+  await admin.from("kk_profiles").update({ role: "seller", seller_status: "pending" }).eq("id", user.id).neq("role", "admin");
   await audit(admin, seller.id, "create", true, summary);
   return getSafePayoutStatus(admin, user);
 }
@@ -362,8 +374,17 @@ export async function syncSellerOnboarding(admin: SupabaseClient, user: User) {
       provider_summary: summary,
       last_error: null,
     }).eq("seller_id", seller.id);
-    await admin.from("kk_sellers").update({ is_active: true, verified: true }).eq("id", seller.id);
-    await admin.from("kk_profiles").update({ role: "seller", seller_status: "active" }).eq("id", user.id).neq("role", "admin");
+    const { data: reviewRow } = await admin.from("kk_sellers").select("platform_review_status").eq("id", seller.id).maybeSingle();
+    const reviewStatus = reviewRow?.platform_review_status === "approved" ? "approved" : "pending";
+    await admin.from("kk_sellers").update({
+      platform_review_status: reviewStatus,
+      is_active: reviewStatus === "approved",
+      verified: reviewStatus === "approved",
+    }).eq("id", seller.id);
+    await admin.from("kk_profiles").update({
+      role: "seller",
+      seller_status: reviewStatus === "approved" ? "active" : "pending",
+    }).eq("id", user.id).neq("role", "admin");
     await audit(admin, seller.id, "retrieve", true, summary);
   } else {
     const message = providerError(result);

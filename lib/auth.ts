@@ -20,6 +20,12 @@ export type AccountProfile = {
   phoneVerified: boolean;
   phoneMasked: string | null;
   profileCompletedAt: string | null;
+  username: string | null;
+  birthDate: string | null;
+  city: string | null;
+  district: string | null;
+  sellerReviewStatus: "not_submitted" | "pending" | "approved" | "rejected" | "suspended";
+  sellerReviewNote: string | null;
 };
 
 type AccountRpcRow = {
@@ -37,6 +43,12 @@ type AccountRpcRow = {
   phone_verified?: boolean | null;
   phone_masked?: string | null;
   profile_completed_at?: string | null;
+  username?: string | null;
+  birth_date?: string | null;
+  city?: string | null;
+  district?: string | null;
+  seller_review_status?: string | null;
+  seller_review_note?: string | null;
 };
 
 function normalizeRole(value: unknown): AccountRole {
@@ -69,7 +81,13 @@ export function fallbackProfileFromUser(user: User): AccountProfile {
     emailVerified: Boolean(user.email_confirmed_at),
     phoneVerified: Boolean(user.phone_confirmed_at),
     phoneMasked: user.phone ? `${user.phone.slice(0, 4)} *** ** ${user.phone.slice(-2)}` : null,
-    profileCompletedAt: user.user_metadata?.full_name ? user.created_at : null,
+    profileCompletedAt: null,
+    username: null,
+    birthDate: null,
+    city: null,
+    district: null,
+    sellerReviewStatus: "not_submitted",
+    sellerReviewNote: null,
   };
 }
 
@@ -114,6 +132,12 @@ export async function fetchMyAccountProfile(user?: User | null): Promise<Account
     phoneVerified: Boolean(row.phone_verified ?? currentUser.phone_confirmed_at),
     phoneMasked: row.phone_masked ?? null,
     profileCompletedAt: row.profile_completed_at ?? null,
+    username: row.username ?? null,
+    birthDate: row.birth_date ?? null,
+    city: row.city ?? null,
+    district: row.district ?? null,
+    sellerReviewStatus: row.seller_review_status === "approved" || row.seller_review_status === "pending" || row.seller_review_status === "rejected" || row.seller_review_status === "suspended" ? row.seller_review_status : "not_submitted",
+    sellerReviewNote: row.seller_review_note ?? null,
   };
 }
 
