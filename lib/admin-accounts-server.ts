@@ -266,7 +266,7 @@ export async function applyAdminAccountAction(
   if (roleAction && actorProfile.admin_level !== "owner") throw new PaymentHttpError(403, "Yönetici rolü yalnız sahip yönetici tarafından değiştirilebilir.");
   if (action === "suspend_account" && profile.role === "admin") throw new PaymentHttpError(400, "Yönetici hesapları bu işlemle askıya alınamaz.");
 
-  const { data: seller, error: sellerError } = await admin.from("kk_sellers").select("id,user_id,name,platform_review_status,review_revision").eq("user_id", targetUserId).maybeSingle();
+  const { data: seller, error: sellerError } = await admin.from("kk_sellers").select("id,user_id,name,platform_review_status,review_revision,store_setup_completed_at").eq("user_id", targetUserId).maybeSingle();
   if (sellerError) throw new PaymentHttpError(500, "Satıcı hesabı okunamadı.", sellerError.code);
 
   let auditAction: "seller_approved" | "seller_rejected" | "account_suspended" | "account_activated" | "admin_granted" | "admin_revoked";
@@ -285,10 +285,11 @@ export async function applyAdminAccountAction(
       if (payout?.onboarding_status !== "active" || !payout.submerchant_key || !payout.iban_masked) missing.push("aktif iyzico alt üye hesabı");
       if (missing.length) throw new PaymentHttpError(422, `Satıcı onaylanamaz. Eksik: ${missing.join(", ")}.`);
       const reviewedAt = new Date().toISOString();
-      await admin.from("kk_sellers").update({ platform_review_status: "approved", platform_review_note: reason || null, platform_reviewed_at: reviewedAt, platform_reviewed_by: adminUser.id, is_active: true, verified: true }).eq("id", seller.id);
+      const storefrontReady = Boolean(seller.store_setup_completed_at);
+      await admin.from("kk_sellers").update({ platform_review_status: "approved", platform_review_note: reason || null, platform_reviewed_at: reviewedAt, platform_reviewed_by: adminUser.id, is_active: storefrontReady, verified: true }).eq("id", seller.id);
       await admin.from("kk_profiles").update({ role: profile.role === "admin" ? "admin" : "seller", seller_status: "active" }).eq("id", targetUserId);
-      await createSellerReviewEvent(admin, seller.id, adminUser.id, "approved", reason || null, { revision: Number(seller.review_revision ?? 0), merchantType: payout?.merchant_type ?? null, ibanMasked: payout?.iban_masked ?? null });
-      await createNotification(admin, targetUserId, "Satıcı hesabın onaylandı", "Mağazan aktif. Artık ilan yayınlayabilir ve satış yapabilirsin.", "/ilanlarim");
+      await createSellerReviewEvent(admin, seller.id, adminUser.id, "approved", reason || null, { revision: Number(seller.review_revision ?? 0), merchantType: payout?.merchant_type ?? null, ibanMasked: payout?.iban_masked ?? null, storefrontReady });
+      await createNotification(admin, targetUserId, "Satıcı hesabın onaylandı", storefrontReady ? "Mağazan aktif. Artık ilan yayınlayabilir ve satış yapabilirsin." : "Satıcı hesabın onaylandı. Mağaza vitrini bilgilerini tamamlayarak satışa başla.", storefrontReady ? "/ilanlarim" : "/magazam/ayarlar");
       auditAction = "seller_approved";
     } else {
       const reviewedAt = new Date().toISOString();

@@ -49,6 +49,10 @@ export type SellerDatabaseProfile = {
   responseTimeMinutes: number;
   shipOnTimeRate: number;
   cancellationRate: number;
+  logoUrl?: string;
+  coverUrl?: string;
+  shippingNote?: string;
+  returnNote?: string;
 };
 
 export type SellerReviewSummary = {
@@ -216,7 +220,7 @@ export async function loadSellerReviewBundle(slug: string): Promise<SellerReview
 
   const { data: sellerRow, error: sellerError } = await client
     .from("kk_public_sellers")
-    .select("id,slug,name,initials,tagline,location,about,categories,badges,verified,followers_count,successful_sales_count,response_rate,response_time_minutes,ship_on_time_rate,cancellation_rate")
+    .select("id,slug,name,initials,tagline,location,about,categories,badges,verified,followers_count,successful_sales_count,response_rate,response_time_minutes,ship_on_time_rate,cancellation_rate,logo_path,cover_path,shipping_note,return_note")
     .eq("slug", slug)
     .maybeSingle();
 
@@ -271,6 +275,10 @@ export async function loadSellerReviewBundle(slug: string): Promise<SellerReview
       responseTimeMinutes: Number(sellerRow.response_time_minutes ?? 0),
       shipOnTimeRate: Number(sellerRow.ship_on_time_rate ?? 0),
       cancellationRate: Number(sellerRow.cancellation_rate ?? 0),
+      logoUrl: sellerRow.logo_path ? client.storage.from("seller-assets").getPublicUrl(String(sellerRow.logo_path)).data.publicUrl : undefined,
+      coverUrl: sellerRow.cover_path ? client.storage.from("seller-assets").getPublicUrl(String(sellerRow.cover_path)).data.publicUrl : undefined,
+      shippingNote: sellerRow.shipping_note ? String(sellerRow.shipping_note) : undefined,
+      returnNote: sellerRow.return_note ? String(sellerRow.return_note) : undefined,
     },
     summary: {
       reviewCount,
