@@ -1,13 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
 
 type ReviewStatus = "not_submitted" | "pending" | "approved" | "rejected" | "suspended";
 type AdminAction = "approve_seller" | "reject_seller" | "suspend_account" | "activate_account" | "grant_admin" | "revoke_admin";
 type Filter = "all" | "seller_pending" | "admins" | "active" | "suspended";
+type InvitationRole = "buyer" | "seller" | "operator";
+type InvitationStatus = "pending" | "accepted" | "revoked" | "expired";
 
 type Account = {
   id: string;
@@ -35,6 +37,23 @@ type Account = {
   };
 };
 
+type Invitation = {
+  id: string;
+  email: string;
+  fullName: string;
+  role: InvitationRole;
+  status: InvitationStatus;
+  authUserId: string | null;
+  invitedBy: string;
+  invitedByName: string;
+  redirectPath: string;
+  expiresAt: string;
+  acceptedAt: string | null;
+  createdAt: string;
+};
+
+type Notice = { type: "success" | "error"; text: string } | null;
+
 function dateLabel(value: string | null) {
   if (!value) return "Henüz giriş yok";
   return new Intl.DateTimeFormat("tr-TR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
@@ -56,18 +75,32 @@ function reviewLabel(status: ReviewStatus) {
   return "Başlatılmadı";
 }
 
+function invitationRoleLabel(role: InvitationRole) {
+  return role === "operator" ? "Operasyon yöneticisi" : role === "seller" ? "Satıcı" : "Alıcı";
+}
+
+function invitationStatusLabel(status: InvitationStatus) {
+  if (status === "accepted") return "Kabul edildi";
+  if (status === "revoked") return "İptal edildi";
+  if (status === "expired") return "Süresi doldu";
+  return "Davet bekleniyor";
+}
+
 export default function AdminAccountCenter({ compact = false }: { compact?: boolean }) {
   const { profile } = useAuth();
   const [accounts, setAccounts] = useState<Account[]>([]);
+  const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState<string | null>(null);
   const [selected, setSelected] = useState<Account | null>(null);
   const [reason, setReason] = useState("");
-  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [message, setMessage] = useState<Notice>(null);
+  const [inviteForm, setInviteForm] = useState({ fullName: "", email: "", role: "buyer" as InvitationRole });
+  const [inviteLoading, setInviteLoading] = useState(false);
 
-  const authorizedFetch = useCallback(async (url: string, init?: RequestInit) => {
+  const authorizedFetch = useCallback(async <T,>(url: string, init?: RequestInit): Promise<T> => {
     const client = getSupabaseBrowserClient();
     if (!client) throw new Error("Supabase bağlantısı bulunamadı.");
     const { data } = await client.auth.getSession();
@@ -77,7 +110,7 @@ export default function AdminAccountCenter({ compact = false }: { compact?: bool
       ...init,
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, ...(init?.headers ?? {}) },
     });
-    const body = await response.json().catch(() => ({}));
+    const body = await response.json().catch(() => ({})) as { ok?: boolean; message?: string } & T;
     if (!response.ok || !body.ok) throw new Error(body.message || "İşlem tamamlanamadı.");
     return body;
   }, []);
@@ -86,11 +119,15 @@ export default function AdminAccountCenter({ compact = false }: { compact?: bool
     setLoading(true);
     setMessage(null);
     try {
-      const body = await authorizedFetch(`/api/admin/accounts?perPage=200&q=${encodeURIComponent(query)}`);
-      setAccounts(body.accounts ?? []);
-      setSelected((current) => current ? (body.accounts ?? []).find((item: Account) => item.id === current.id) ?? null : null);
+      const [accountsBody, invitationsBody] = await Promise.all([
+        authorizedFetch<{ accounts: Account[] }>(`/api/admin/accounts?perPage=200&q=${encodeURIComponent(query)}`),
+        authorizedFetch<{ invitations: Invitation[] }>("/api/admin/invitations"),
+      ]);
+      setAccounts(accountsBody.accounts ?? []);
+      setInvitations(invitationsBody.invitations ?? []);
+      setSelected((current) => current ? (accountsBody.accounts ?? []).find((item) => item.id === current.id) ?? null : null);
     } catch (error) {
-      setMessage({ type: "error", text: error instanceof Error ? error.message : "Hesaplar yüklenemedi." });
+      setMessage({ type: "error", text: error instanceof Error ? error.message : "Yönetim verileri yüklenemedi." });
     } finally {
       setLoading(false);
     }
@@ -109,12 +146,13 @@ export default function AdminAccountCenter({ compact = false }: { compact?: bool
     return true;
   }), [accounts, filter]);
 
+  const pendingInvitations = useMemo(() => invitations.filter((invite) => invite.status === "pending"), [invitations]);
   const metrics = useMemo(() => ({
     total: accounts.length,
     sellerPending: accounts.filter((account) => account.seller?.reviewStatus === "pending").length,
-    incomplete: accounts.filter((account) => !account.profileCompleted || !account.emailVerified || !account.phoneVerified).length,
+    invites: pendingInvitations.length,
     suspended: accounts.filter((account) => account.accountStatus === "suspended").length,
-  }), [accounts]);
+  }), [accounts, pendingInvitations.length]);
 
   async function runAction(account: Account, action: AdminAction) {
     const needsReason = action === "reject_seller" || action === "suspend_account" || action === "grant_admin" || action === "revoke_admin";
@@ -125,7 +163,7 @@ export default function AdminAccountCenter({ compact = false }: { compact?: bool
     setProcessing(account.id);
     setMessage(null);
     try {
-      await authorizedFetch(`/api/admin/accounts/${account.id}`, {
+      await authorizedFetch<{ ok: true }>(`/api/admin/accounts/${account.id}`, {
         method: "PATCH",
         body: JSON.stringify({ action, reason: reason.trim() }),
       });
@@ -134,6 +172,43 @@ export default function AdminAccountCenter({ compact = false }: { compact?: bool
       await load();
     } catch (error) {
       setMessage({ type: "error", text: error instanceof Error ? error.message : "İşlem tamamlanamadı." });
+    } finally {
+      setProcessing(null);
+    }
+  }
+
+  async function sendInvitation(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (inviteForm.role === "operator" && profile?.adminLevel !== "owner") {
+      setMessage({ type: "error", text: "Operasyon yöneticisi davetini yalnız sahip yönetici gönderebilir." });
+      return;
+    }
+    setInviteLoading(true);
+    setMessage(null);
+    try {
+      await authorizedFetch<{ ok: true }>("/api/admin/invitations", {
+        method: "POST",
+        body: JSON.stringify(inviteForm),
+      });
+      setMessage({ type: "success", text: `${inviteForm.fullName} için ${invitationRoleLabel(inviteForm.role).toLocaleLowerCase("tr-TR")} daveti gönderildi.` });
+      setInviteForm({ fullName: "", email: "", role: "buyer" });
+      await load();
+    } catch (error) {
+      setMessage({ type: "error", text: error instanceof Error ? error.message : "Davet gönderilemedi." });
+    } finally {
+      setInviteLoading(false);
+    }
+  }
+
+  async function revokeInvitation(invitation: Invitation) {
+    setProcessing(invitation.id);
+    setMessage(null);
+    try {
+      await authorizedFetch<{ ok: true }>(`/api/admin/invitations/${invitation.id}?role=${invitation.role}`, { method: "DELETE" });
+      setMessage({ type: "success", text: `${invitation.email} adresine gönderilen davet iptal edildi.` });
+      await load();
+    } catch (error) {
+      setMessage({ type: "error", text: error instanceof Error ? error.message : "Davet iptal edilemedi." });
     } finally {
       setProcessing(null);
     }
@@ -148,19 +223,43 @@ export default function AdminAccountCenter({ compact = false }: { compact?: bool
       <section className="adminAccountsMetricsV22">
         <article><span>Toplam hesap</span><strong>{metrics.total}</strong></article>
         <article><span>Satıcı onayı</span><strong>{metrics.sellerPending}</strong></article>
-        <article><span>Eksik doğrulama</span><strong>{metrics.incomplete}</strong></article>
+        <article><span>Bekleyen davet</span><strong>{metrics.invites}</strong></article>
         <article><span>Askıdaki hesap</span><strong>{metrics.suspended}</strong></article>
+      </section>
+
+      <section className="adminInvitationCenterV25">
+        <div className="adminInvitationIntroV25">
+          <div><span>HESAP DAVETİ</span><h3>Yeni kullanıcıyı güvenli davet et</h3><p>Alıcı, satıcı veya operasyon yöneticisi için tek kullanımlık Supabase daveti gönder. Davet edilen kişi önce şifresini ve profilini tamamlar.</p></div>
+          <small>Davet bağlantısı 24 saat geçerlidir.</small>
+        </div>
+        <form onSubmit={sendInvitation} className="adminInvitationFormV25">
+          <label>Ad soyad<input value={inviteForm.fullName} onChange={(event) => setInviteForm((current) => ({ ...current, fullName: event.target.value }))} minLength={3} maxLength={120} required placeholder="Davet edilecek kişinin adı" /></label>
+          <label>E-posta<input type="email" value={inviteForm.email} onChange={(event) => setInviteForm((current) => ({ ...current, email: event.target.value }))} required placeholder="ornek@email.com" /></label>
+          <label>Hesap rolü<select value={inviteForm.role} onChange={(event) => setInviteForm((current) => ({ ...current, role: event.target.value as InvitationRole }))}>
+            <option value="buyer">Alıcı</option>
+            <option value="seller">Satıcı</option>
+            {profile.adminLevel === "owner" && <option value="operator">Operasyon yöneticisi</option>}
+          </select></label>
+          <button type="submit" disabled={inviteLoading}>{inviteLoading ? "Gönderiliyor…" : "Davet gönder"}</button>
+        </form>
+        <div className="adminInvitationListV25">
+          {invitations.length ? invitations.slice(0, 8).map((invitation) => (
+            <article key={invitation.id}>
+              <div><strong>{invitation.fullName}</strong><span>{invitation.email}</span><small>{invitationRoleLabel(invitation.role)} · {invitation.invitedByName}</small></div>
+              <div className={`inviteStatus-${invitation.status}`}><strong>{invitationStatusLabel(invitation.status)}</strong><small>{invitation.status === "accepted" ? dateLabel(invitation.acceptedAt) : invitation.status === "pending" ? `Son: ${dateLabel(invitation.expiresAt)}` : dateLabel(invitation.createdAt)}</small></div>
+              {invitation.status === "pending" && <button type="button" onClick={() => void revokeInvitation(invitation)} disabled={processing === invitation.id}>İptal et</button>}
+            </article>
+          )) : <p className="adminInvitationEmptyV25">Henüz yönetici tarafından gönderilmiş davet bulunmuyor.</p>}
+        </div>
       </section>
 
       <section className="adminAccountsToolbarV22">
         <label><span>Hesap ara</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Ad, e-posta, kullanıcı adı veya mağaza" /></label>
-        <div>
-          {([['all','Tümü'],['seller_pending','Satıcı onayı'],['admins','Yöneticiler'],['active','Aktif'],['suspended','Askıda']] as Array<[Filter,string]>).map(([value,label]) => <button type="button" className={filter === value ? "active" : ""} onClick={() => setFilter(value)} key={value}>{label}</button>)}
-        </div>
+        <div>{([['all','Tümü'],['seller_pending','Satıcı onayı'],['admins','Yöneticiler'],['active','Aktif'],['suspended','Askıda']] as Array<[Filter,string]>).map(([value,label]) => <button type="button" className={filter === value ? "active" : ""} onClick={() => setFilter(value)} key={value}>{label}</button>)}</div>
         <button type="button" onClick={() => void load()} disabled={loading}>Yenile</button>
       </section>
 
-      {profile?.adminLevel === "owner" && <div className="adminOwnerSecurityV23"><span>SAHİP YÖNETİCİ GÜVENLİĞİ</span><p>Yönetici rolü verme ve kaldırma işlemleri için Authenticator ile iki adımlı doğrulama zorunludur.</p><Link href="/ayarlar?tab=security">Güvenliği yönet</Link></div>}
+      {profile.adminLevel === "owner" && <div className="adminOwnerSecurityV23"><span>SAHİP YÖNETİCİ GÜVENLİĞİ</span><p>Operasyon yöneticisi daveti ve rol değişiklikleri için Authenticator ile iki adımlı doğrulama zorunludur.</p><Link href="/ayarlar?tab=security">Güvenliği yönet</Link></div>}
       {message && <div className={`adminAccountsNoticeV22 ${message.type}`} aria-live="polite">{message.text}</div>}
 
       <section className="adminAccountsLayoutV22">
@@ -188,8 +287,8 @@ export default function AdminAccountCenter({ compact = false }: { compact?: bool
             <label className="adminReasonV22">İşlem açıklaması<textarea value={reason} onChange={(event) => setReason(event.target.value)} maxLength={500} placeholder="Onay notu veya reddetme/askıya alma gerekçesi" /></label>
             <div className="adminAccountActionsV22">
               {selected.seller?.reviewStatus === "pending" && <><button type="button" onClick={() => void runAction(selected, "approve_seller")} disabled={processing === selected.id}>Satıcıyı onayla</button><button type="button" className="warning" onClick={() => void runAction(selected, "reject_seller")} disabled={processing === selected.id}>Düzeltmeye gönder</button></>}
-              {profile?.adminLevel === "owner" && selected.role !== "admin" && <button type="button" className="adminRole" onClick={() => void runAction(selected, "grant_admin")} disabled={processing === selected.id}>Operasyon yöneticisi yap</button>}
-              {profile?.adminLevel === "owner" && selected.role === "admin" && selected.adminLevel === "operator" && <button type="button" className="warning" onClick={() => void runAction(selected, "revoke_admin")} disabled={processing === selected.id}>Yönetici yetkisini kaldır</button>}
+              {profile.adminLevel === "owner" && selected.role !== "admin" && <button type="button" className="adminRole" onClick={() => void runAction(selected, "grant_admin")} disabled={processing === selected.id}>Operasyon yöneticisi yap</button>}
+              {profile.adminLevel === "owner" && selected.role === "admin" && selected.adminLevel === "operator" && <button type="button" className="warning" onClick={() => void runAction(selected, "revoke_admin")} disabled={processing === selected.id}>Yönetici yetkisini kaldır</button>}
               {selected.accountStatus === "active" ? <button type="button" className="danger" onClick={() => void runAction(selected, "suspend_account")} disabled={processing === selected.id || selected.role === "admin"}>Hesabı askıya al</button> : <button type="button" onClick={() => void runAction(selected, "activate_account")} disabled={processing === selected.id}>Hesabı etkinleştir</button>}
             </div>
           </> : <div className="adminAccountEmptyV22"><strong>Bir hesap seç</strong><p>Doğrulamalar, satıcı incelemesi ve hesap işlemleri burada görüntülenir.</p></div>}

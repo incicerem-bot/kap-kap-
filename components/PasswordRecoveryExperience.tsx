@@ -11,6 +11,8 @@ export default function PasswordRecoveryExperience() {
   const [checking, setChecking] = useState(true);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: "error" | "success"; text: string } | null>(null);
+  const [isInvitation, setIsInvitation] = useState(false);
+  const [returnTo, setReturnTo] = useState("/ayarlar?password=updated");
 
   const strength = useMemo(() => {
     let score = 0;
@@ -22,6 +24,11 @@ export default function PasswordRecoveryExperience() {
   }, [password]);
 
   useEffect(() => {
+    const query = new URLSearchParams(window.location.search);
+    const invitation = query.get("invite") === "1";
+    const requested = query.get("returnTo");
+    setIsInvitation(invitation);
+    setReturnTo(requested && requested.startsWith("/") && !requested.startsWith("//") ? requested : invitation ? "/profil-tamamlama" : "/ayarlar?password=updated");
     const client = getSupabaseBrowserClient();
     if (!client) return;
     void client.auth.getUser().then(({ data }) => setReady(Boolean(data.user))).finally(() => setChecking(false));
@@ -49,8 +56,8 @@ export default function PasswordRecoveryExperience() {
     }
     await client.auth.signOut({ scope: "others" });
     setLoading(false);
-    setMessage({ type: "success", text: "Şifren güncellendi. Diğer cihazlardaki oturumlar kapatıldı." });
-    window.setTimeout(() => window.location.assign("/ayarlar?password=updated"), 900);
+    setMessage({ type: "success", text: isInvitation ? "Şifren oluşturuldu. Hesap kurulumuna yönlendiriliyorsun." : "Şifren güncellendi. Diğer cihazlardaki oturumlar kapatıldı." });
+    window.setTimeout(() => window.location.assign(returnTo), 900);
   }
 
   return (
@@ -58,9 +65,9 @@ export default function PasswordRecoveryExperience() {
       <Link href="/" className="activationBrandV20"><img src="/kapiskapis-logo.png" alt="KapışKapış" /></Link>
       <section className="activationCardV20">
         <span className="activationIconV20">●</span>
-        <small>ŞİFRE GÜVENLİĞİ</small>
-        <h1>Yeni şifreni oluştur</h1>
-        <p>Yeni şifren önceki şifrenden farklı ve yalnızca KapışKapış hesabında kullandığın güçlü bir şifre olmalı.</p>
+        <small>{isInvitation ? "DAVETLİ HESAP KURULUMU" : "ŞİFRE GÜVENLİĞİ"}</small>
+        <h1>{isInvitation ? "KapışKapış şifreni oluştur" : "Yeni şifreni oluştur"}</h1>
+        <p>{isInvitation ? "Yönetici davetini kabul etmek için güçlü bir şifre belirle. Sonraki adımda profil bilgilerini tamamlayacaksın." : "Yeni şifren önceki şifrenden farklı ve yalnızca KapışKapış hesabında kullandığın güçlü bir şifre olmalı."}</p>
         {checking ? (
           <div className="activationMessageV20">Şifre yenileme bağlantısı doğrulanıyor…</div>
         ) : !ready ? (
