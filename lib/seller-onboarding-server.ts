@@ -164,7 +164,7 @@ function slugify(value: string) {
 }
 
 export async function ensureSellerForUser(admin: SupabaseClient, user: User, preferredName?: string) {
-  await admin.from("kk_profiles").update({ role: "seller", seller_status: "pending" }).eq("id", user.id).neq("role", "admin");
+  await admin.from("kk_profiles").update({ seller_status: "pending", seller_requested_at: new Date().toISOString() }).eq("id", user.id).neq("role", "admin");
 
   const { data: existing, error: existingError } = await admin
     .from("kk_sellers")
@@ -305,7 +305,7 @@ export async function submitSellerOnboarding(admin: SupabaseClient, user: User, 
   } catch (error) {
     const message = error instanceof Error ? error.message : "iyzico bağlantısı kurulamadı.";
     await admin.from("kk_seller_payout_accounts").update({ onboarding_status: "rejected", last_error: message.slice(0, 500) }).eq("seller_id", seller.id);
-    await admin.from("kk_profiles").update({ role: "seller", seller_status: "rejected" }).eq("id", user.id).neq("role", "admin");
+    await admin.from("kk_profiles").update({ role: "buyer", seller_status: "rejected" }).eq("id", user.id).neq("role", "admin");
     await audit(admin, seller.id, "create", false, { message });
     throw new PaymentHttpError(502, message);
   }
@@ -319,7 +319,7 @@ export async function submitSellerOnboarding(admin: SupabaseClient, user: User, 
       provider_summary: summary,
       provider_checked_at: new Date().toISOString(),
     }).eq("seller_id", seller.id);
-    await admin.from("kk_profiles").update({ role: "seller", seller_status: "rejected" }).eq("id", user.id).neq("role", "admin");
+    await admin.from("kk_profiles").update({ role: "buyer", seller_status: "rejected" }).eq("id", user.id).neq("role", "admin");
     await audit(admin, seller.id, "create", false, summary);
     throw new PaymentHttpError(422, message, String(result.errorCode ?? "IYZICO_ONBOARDING_FAILED"));
   }
@@ -342,7 +342,7 @@ export async function submitSellerOnboarding(admin: SupabaseClient, user: User, 
     is_active: false,
     verified: false,
   }).eq("id", seller.id);
-  await admin.from("kk_profiles").update({ role: "seller", seller_status: "pending" }).eq("id", user.id).neq("role", "admin");
+  await admin.from("kk_profiles").update({ role: "buyer", seller_status: "pending", seller_requested_at: new Date().toISOString() }).eq("id", user.id).neq("role", "admin");
   await audit(admin, seller.id, "create", true, summary);
   return getSafePayoutStatus(admin, user);
 }
@@ -382,8 +382,9 @@ export async function syncSellerOnboarding(admin: SupabaseClient, user: User) {
       verified: reviewStatus === "approved",
     }).eq("id", seller.id);
     await admin.from("kk_profiles").update({
-      role: "seller",
+      role: reviewStatus === "approved" ? "seller" : "buyer",
       seller_status: reviewStatus === "approved" ? "active" : "pending",
+      seller_requested_at: new Date().toISOString(),
     }).eq("id", user.id).neq("role", "admin");
     await audit(admin, seller.id, "retrieve", true, summary);
   } else {

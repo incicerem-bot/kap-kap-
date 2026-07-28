@@ -151,6 +151,14 @@ export function defaultRouteForRole(role: AccountRole) {
   return "/profil";
 }
 
+export function defaultRouteForAccount(profile: Pick<AccountProfile, "role" | "sellerStatus"> | null | undefined) {
+  if (!profile) return "/profil";
+  if (profile.role === "admin") return "/yonetim";
+  if (profile.role === "seller") return "/ilanlarim";
+  if (["pending", "rejected", "suspended"].includes(profile.sellerStatus)) return "/satici-dogrulama";
+  return "/profil";
+}
+
 export function isSafeInternalPath(value: string | null | undefined) {
   return Boolean(value && value.startsWith("/") && !value.startsWith("//") && !value.includes("\\"));
 }

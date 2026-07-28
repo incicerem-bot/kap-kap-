@@ -197,7 +197,7 @@ export async function applyAdminAccountAction(
       auditAction = "seller_approved";
     } else {
       await admin.from("kk_sellers").update({ platform_review_status: "rejected", platform_review_note: reason, platform_reviewed_at: new Date().toISOString(), platform_reviewed_by: adminUser.id, is_active: false, verified: false }).eq("id", seller.id);
-      await admin.from("kk_profiles").update({ role: profile.role === "admin" ? "admin" : "seller", seller_status: "rejected" }).eq("id", targetUserId);
+      await admin.from("kk_profiles").update({ role: profile.role === "admin" ? "admin" : "buyer", seller_status: "rejected" }).eq("id", targetUserId);
       await createNotification(admin, targetUserId, "Satıcı başvurunda düzeltme gerekiyor", reason, "/satici-dogrulama");
       auditAction = "seller_rejected";
     }
@@ -207,8 +207,10 @@ export async function applyAdminAccountAction(
     await createNotification(admin, targetUserId, "Hesabın geçici olarak kısıtlandı", reason, "/hesap-durumu?status=suspended");
     auditAction = "account_suspended";
   } else if (action === "activate_account") {
-    const nextSellerStatus = seller ? "pending" : profile.role === "seller" ? "pending" : "not_started";
-    await admin.from("kk_profiles").update({ account_status: "active", seller_status: nextSellerStatus }).eq("id", targetUserId);
+    const sellerWasApproved = seller?.platform_review_status === "approved";
+    const nextSellerStatus = seller ? (sellerWasApproved ? "active" : "pending") : "not_started";
+    const nextRole = profile.role === "admin" ? "admin" : sellerWasApproved ? "seller" : "buyer";
+    await admin.from("kk_profiles").update({ account_status: "active", role: nextRole, seller_status: nextSellerStatus }).eq("id", targetUserId);
     if (seller && seller.platform_review_status === "suspended") await admin.from("kk_sellers").update({ platform_review_status: "pending", platform_review_note: "Hesap yeniden etkinleştirildi; mağaza tekrar inceleme kuyruğuna alındı.", is_active: false, verified: false }).eq("id", seller.id);
     await createNotification(admin, targetUserId, "Hesabın yeniden etkinleştirildi", seller ? "Hesabını kullanabilirsin. Mağazan güven ekibi tarafından yeniden incelenecek." : "KapışKapış hesabını tekrar kullanabilirsin.", seller ? "/satici-dogrulama" : "/profil");
     auditAction = "account_activated";
@@ -222,7 +224,7 @@ export async function applyAdminAccountAction(
   } else if (action === "revoke_admin") {
     if (profile.role !== "admin") throw new PaymentHttpError(400, "Bu hesap yönetici değil.");
     if (profile.admin_level === "owner") throw new PaymentHttpError(400, "Sahip yönetici yetkisi bu ekrandan kaldırılamaz.");
-    const restoredRole = profile.role_before_admin === "seller" || (seller && profile.seller_status !== "not_started") ? "seller" : "buyer";
+    const restoredRole = profile.role_before_admin === "seller" && seller?.platform_review_status === "approved" ? "seller" : "buyer";
     await admin.from("kk_profiles").update({ role: restoredRole, admin_level: "none", role_before_admin: null, updated_at: new Date().toISOString() }).eq("id", targetUserId);
     await createNotification(admin, targetUserId, "Yönetici yetkisi kaldırıldı", `Hesabın ${restoredRole === "seller" ? "satıcı" : "alıcı"} rolüne döndürüldü.`, "/profil");
     await logAdminRoleSecurityEvent(admin, targetUserId, adminUser.id, "admin_revoked", reason);

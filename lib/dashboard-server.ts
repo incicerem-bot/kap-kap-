@@ -13,6 +13,7 @@ type ProfileRow = {
   email_verified_at: string | null;
   phone_verified_at: string | null;
   profile_completed_at: string | null;
+  seller_status: string | null;
 };
 
 type RoleData = {
@@ -228,7 +229,7 @@ async function buildAdminData(admin: SupabaseClient): Promise<RoleData> {
 
 export async function buildAccountDashboard(admin: SupabaseClient, user: User): Promise<AccountDashboard> {
   const profileResult = await admin.from("kk_profiles")
-    .select("full_name,username,role,admin_level,email_verified_at,phone_verified_at,profile_completed_at")
+    .select("full_name,username,role,admin_level,email_verified_at,phone_verified_at,profile_completed_at,seller_status")
     .eq("id", user.id)
     .maybeSingle();
   if (profileResult.error || !profileResult.data) throw new PaymentHttpError(503, "Hesap profili okunamadı. Paket 30-33 SQL kurulumlarını kontrol et.", profileResult.error?.code);
@@ -246,6 +247,7 @@ export async function buildAccountDashboard(admin: SupabaseClient, user: User): 
   const emailVerified = Boolean(profile.email_verified_at || user.email_confirmed_at);
   const phoneVerified = Boolean(profile.phone_verified_at || user.phone_confirmed_at);
   const sellerReviewStatus = roleData.sellerReviewStatus ?? "not_submitted";
+  const sellerStatus = profile.seller_status === "pending" || profile.seller_status === "active" || profile.seller_status === "rejected" || profile.seller_status === "suspended" ? profile.seller_status : "not_started";
 
   const tasks: DashboardTask[] = [
     { key: "email", title: "E-posta doğrulaması", description: emailVerified ? "E-posta adresin doğrulandı." : "Hesap güvenliği için e-posta adresini doğrula.", href: "/hesap-dogrulama?required=email", complete: emailVerified, important: !emailVerified },
@@ -254,7 +256,14 @@ export async function buildAccountDashboard(admin: SupabaseClient, user: User): 
   ];
 
   if (role === "buyer") {
-    tasks.push({ key: "seller", title: "Satıcı hesabı", description: "Ürün satmak için satıcı doğrulama sürecini başlatabilirsin.", href: "/satici-dogrulama", complete: false });
+    const sellerTask = sellerStatus === "pending"
+      ? { title: "Satıcı başvurusu incelemede", description: "Ödeme ve mağaza onay adımlarını başvuru merkezinden takip et.", important: true }
+      : sellerStatus === "rejected"
+        ? { title: "Satıcı başvurusunda düzeltme gerekiyor", description: "Başvuru notunu inceleyip gerekli bilgileri güncelle.", important: true }
+        : sellerStatus === "suspended"
+          ? { title: "Satıcı başvurusu askıda", description: "Başvuru durumunu ve yönetici notunu kontrol et.", important: true }
+          : { title: "Satıcı hesabı", description: "Ürün satmak için satıcı doğrulama sürecini başlatabilirsin.", important: false };
+    tasks.push({ key: "seller", title: sellerTask.title, description: sellerTask.description, href: "/satici-dogrulama", complete: false, important: sellerTask.important });
   } else if (role === "seller") {
     tasks.push({ key: "payout", title: "iyzico ödeme hesabı", description: roleData.sellerPayoutStatus === "active" ? "Satış gelirlerini almaya hazırsın." : "Satış gelirlerini almak için alt üye hesabını tamamla.", href: "/satici-dogrulama", complete: roleData.sellerPayoutStatus === "active", important: roleData.sellerPayoutStatus !== "active" });
     tasks.push({ key: "review", title: "KapışKapış mağaza onayı", description: sellerReviewStatus === "approved" ? "Mağazan platform tarafından onaylandı." : sellerReviewStatus === "pending" ? "Başvurun yönetici incelemesinde." : "Mağaza inceleme şartlarını tamamla.", href: "/satici-dogrulama", complete: sellerReviewStatus === "approved", important: sellerReviewStatus === "rejected" || sellerReviewStatus === "suspended" });
@@ -272,6 +281,7 @@ export async function buildAccountDashboard(admin: SupabaseClient, user: User): 
       phoneVerified,
       profileCompleted,
       adminLevel: profile.admin_level === "owner" || profile.admin_level === "operator" ? profile.admin_level : "none",
+      sellerStatus,
       sellerReviewStatus,
       sellerPayoutStatus: roleData.sellerPayoutStatus ?? null,
       storeSlug: roleData.storeSlug ?? null,
