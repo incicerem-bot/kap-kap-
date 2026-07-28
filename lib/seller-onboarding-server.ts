@@ -23,6 +23,22 @@ export type SellerOnboardingInput = {
   consent?: boolean;
 };
 
+export type SellerReviewEvent = {
+  id: string;
+  eventType: "submitted" | "resubmitted" | "approved" | "rejected" | "suspended" | "reactivated";
+  note: string | null;
+  createdAt: string;
+};
+
+export type SellerApplicationReadiness = {
+  emailVerified: boolean;
+  phoneVerified: boolean;
+  storeReady: boolean;
+  contactReady: boolean;
+  payoutReady: boolean;
+  readyForApproval: boolean;
+};
+
 export type SafePayoutStatus = {
   sellerId: string | null;
   sellerSlug: string | null;
@@ -37,6 +53,11 @@ export type SafePayoutStatus = {
   updatedAt: string | null;
   platformReviewStatus: "not_submitted" | "pending" | "approved" | "rejected" | "suspended";
   platformReviewNote: string | null;
+  reviewSubmittedAt: string | null;
+  reviewRevision: number;
+  reviewedAt: string | null;
+  readiness: SellerApplicationReadiness;
+  history: SellerReviewEvent[];
 };
 
 function clean(value: unknown, max = 255) {
@@ -196,12 +217,23 @@ export async function ensureSellerForUser(admin: SupabaseClient, user: User, pre
 }
 
 export async function getSafePayoutStatus(admin: SupabaseClient, user: User): Promise<SafePayoutStatus> {
-  const { data: seller, error: sellerError } = await admin
-    .from("kk_sellers")
-    .select("id,slug,name,user_id,platform_review_status,platform_review_note")
-    .eq("user_id", user.id)
-    .maybeSingle();
+  const [{ data: seller, error: sellerError }, { data: profile, error: profileError }] = await Promise.all([
+    admin
+      .from("kk_sellers")
+      .select("id,slug,name,user_id,platform_review_status,platform_review_note,review_submitted_at,review_revision,platform_reviewed_at")
+      .eq("user_id", user.id)
+      .maybeSingle(),
+    admin
+      .from("kk_profiles")
+      .select("email_verified_at,phone_verified_at")
+      .eq("id", user.id)
+      .maybeSingle(),
+  ]);
   if (sellerError) throw new PaymentHttpError(500, "Satıcı hesabı okunamadı.", sellerError.code);
+  if (profileError) throw new PaymentHttpError(500, "Hesap doğrulama durumu okunamadı.", profileError.code);
+
+  const emailVerified = Boolean(profile?.email_verified_at || user.email_confirmed_at);
+  const phoneVerified = Boolean(profile?.phone_verified_at || user.phone_confirmed_at);
 
   if (!seller) {
     return {
@@ -218,15 +250,48 @@ export async function getSafePayoutStatus(admin: SupabaseClient, user: User): Pr
       updatedAt: null,
       platformReviewStatus: "not_submitted",
       platformReviewNote: null,
+      reviewSubmittedAt: null,
+      reviewRevision: 0,
+      reviewedAt: null,
+      readiness: {
+        emailVerified,
+        phoneVerified,
+        storeReady: false,
+        contactReady: false,
+        payoutReady: false,
+        readyForApproval: false,
+      },
+      history: [],
     };
   }
 
-  const { data, error } = await admin
-    .from("kk_seller_payout_accounts")
-    .select("onboarding_status,merchant_type,iban_masked,provider_external_id,submitted_at,activated_at,last_error,updated_at")
-    .eq("seller_id", seller.id)
-    .maybeSingle();
+  const [{ data, error }, { data: events, error: eventsError }] = await Promise.all([
+    admin
+      .from("kk_seller_payout_accounts")
+      .select("onboarding_status,merchant_type,iban_masked,provider_external_id,submitted_at,activated_at,last_error,updated_at,contact_name,contact_surname,contact_email,contact_phone_masked")
+      .eq("seller_id", seller.id)
+      .maybeSingle(),
+    admin
+      .from("kk_seller_review_events")
+      .select("id,event_type,note,created_at")
+      .eq("seller_id", seller.id)
+      .order("created_at", { ascending: false })
+      .limit(10),
+  ]);
   if (error) throw new PaymentHttpError(500, "Satıcı ödeme durumu okunamadı.", error.code);
+  if (eventsError && eventsError.code !== "42P01") throw new PaymentHttpError(500, "Satıcı inceleme geçmişi okunamadı.", eventsError.code);
+
+  const storeReady = seller.name.trim().length >= 3;
+  const contactReady = Boolean(data?.contact_name && data?.contact_surname && data?.contact_email && data?.contact_phone_masked);
+  const payoutReady = data?.onboarding_status === "active" && Boolean(data?.provider_external_id) && Boolean(data?.iban_masked);
+  const readiness: SellerApplicationReadiness = {
+    emailVerified,
+    phoneVerified,
+    storeReady,
+    contactReady,
+    payoutReady,
+    readyForApproval: emailVerified && phoneVerified && storeReady && contactReady && payoutReady,
+  };
 
   return {
     sellerId: seller.id,
@@ -242,7 +307,80 @@ export async function getSafePayoutStatus(admin: SupabaseClient, user: User): Pr
     updatedAt: data?.updated_at ?? null,
     platformReviewStatus: (seller.platform_review_status ?? "not_submitted") as SafePayoutStatus["platformReviewStatus"],
     platformReviewNote: seller.platform_review_note ?? null,
+    reviewSubmittedAt: seller.review_submitted_at ?? null,
+    reviewRevision: Number(seller.review_revision ?? 0),
+    reviewedAt: seller.platform_reviewed_at ?? null,
+    readiness,
+    history: ((events ?? []) as Array<{ id: string; event_type: SellerReviewEvent["eventType"]; note: string | null; created_at: string }>).map((event) => ({
+      id: event.id,
+      eventType: event.event_type,
+      note: event.note,
+      createdAt: event.created_at,
+    })),
   };
+}
+
+export async function resubmitSellerReview(admin: SupabaseClient, user: User, noteInput?: string) {
+  const note = clean(noteInput, 500) || null;
+  const [{ data: profile, error: profileError }, { data: seller, error: sellerError }] = await Promise.all([
+    admin.from("kk_profiles").select("account_status,email_verified_at,phone_verified_at,role").eq("id", user.id).maybeSingle(),
+    admin.from("kk_sellers").select("id,platform_review_status,review_revision").eq("user_id", user.id).maybeSingle(),
+  ]);
+  if (profileError || !profile) throw new PaymentHttpError(403, "Kullanıcı hesabı doğrulanamadı.", profileError?.code);
+  if (profile.account_status !== "active") throw new PaymentHttpError(403, "Hesap aktif değil.");
+  if (!profile.email_verified_at || !profile.phone_verified_at) throw new PaymentHttpError(422, "E-posta ve telefon doğrulamalarını tamamlamalısın.");
+  if (sellerError || !seller) throw new PaymentHttpError(404, "Satıcı başvurusu bulunamadı.", sellerError?.code);
+  if (!["rejected", "not_submitted", "pending"].includes(String(seller.platform_review_status))) {
+    throw new PaymentHttpError(422, "Bu başvuru yeniden incelemeye gönderilemez.");
+  }
+
+  const { data: payout, error: payoutError } = await admin
+    .from("kk_seller_payout_accounts")
+    .select("onboarding_status,submerchant_key,merchant_type,iban_masked")
+    .eq("seller_id", seller.id)
+    .maybeSingle();
+  if (payoutError) throw new PaymentHttpError(500, "Satıcı ödeme hesabı okunamadı.", payoutError.code);
+  if (payout?.onboarding_status !== "active" || !payout.submerchant_key) {
+    throw new PaymentHttpError(422, "Yeniden inceleme için iyzico ödeme hesabının aktif olması gerekiyor.");
+  }
+
+  const now = new Date().toISOString();
+  const nextRevision = Math.max(0, Number(seller.review_revision ?? 0)) + 1;
+  const { error: sellerUpdateError } = await admin.from("kk_sellers").update({
+    platform_review_status: "pending",
+    platform_review_note: null,
+    platform_reviewed_at: null,
+    platform_reviewed_by: null,
+    review_submitted_at: now,
+    review_revision: nextRevision,
+    is_active: false,
+    verified: false,
+    updated_at: now,
+  }).eq("id", seller.id);
+  if (sellerUpdateError) throw new PaymentHttpError(500, "Satıcı inceleme kaydı güncellenemedi. Paket 40 SQL dosyasını çalıştır.", sellerUpdateError.code);
+
+  await admin.from("kk_profiles").update({
+    role: profile.role === "admin" ? "admin" : "buyer",
+    seller_status: "pending",
+    seller_requested_at: now,
+    updated_at: now,
+  }).eq("id", user.id);
+
+  const { error: eventError } = await admin.from("kk_seller_review_events").insert({
+    seller_id: seller.id,
+    actor_user_id: user.id,
+    event_type: seller.platform_review_status === "rejected" ? "resubmitted" : "submitted",
+    note,
+    snapshot: {
+      payoutStatus: payout.onboarding_status,
+      merchantType: payout.merchant_type,
+      ibanMasked: payout.iban_masked,
+      revision: nextRevision,
+    },
+  });
+  if (eventError) throw new PaymentHttpError(500, "Satıcı inceleme geçmişi kaydedilemedi. Paket 40 SQL dosyasını çalıştır.", eventError.code);
+
+  return getSafePayoutStatus(admin, user);
 }
 
 function providerError(result: IyzicoResponse) {
@@ -339,9 +477,18 @@ export async function submitSellerOnboarding(admin: SupabaseClient, user: User, 
     name: validated.storeName,
     platform_review_status: "pending",
     platform_review_note: null,
+    review_submitted_at: now,
+    review_revision: 1,
     is_active: false,
     verified: false,
   }).eq("id", seller.id);
+  await admin.from("kk_seller_review_events").insert({
+    seller_id: seller.id,
+    actor_user_id: user.id,
+    event_type: "submitted",
+    note: "iyzico ödeme hesabı etkinleştirildi ve mağaza incelemeye gönderildi.",
+    snapshot: { merchantType: validated.type, ibanMasked: validated.safeFields.iban_masked },
+  });
   await admin.from("kk_profiles").update({ role: "buyer", seller_status: "pending", seller_requested_at: new Date().toISOString() }).eq("id", user.id).neq("role", "admin");
   await audit(admin, seller.id, "create", true, summary);
   return getSafePayoutStatus(admin, user);
@@ -376,11 +523,16 @@ export async function syncSellerOnboarding(admin: SupabaseClient, user: User) {
     }).eq("seller_id", seller.id);
     const { data: reviewRow } = await admin.from("kk_sellers").select("platform_review_status").eq("id", seller.id).maybeSingle();
     const reviewStatus = reviewRow?.platform_review_status === "approved" ? "approved" : "pending";
-    await admin.from("kk_sellers").update({
+    const sellerSyncUpdate: Record<string, unknown> = {
       platform_review_status: reviewStatus,
       is_active: reviewStatus === "approved",
       verified: reviewStatus === "approved",
-    }).eq("id", seller.id);
+    };
+    if (reviewStatus !== "approved") {
+      sellerSyncUpdate.review_submitted_at = now;
+      sellerSyncUpdate.review_revision = 1;
+    }
+    await admin.from("kk_sellers").update(sellerSyncUpdate).eq("id", seller.id);
     await admin.from("kk_profiles").update({
       role: reviewStatus === "approved" ? "seller" : "buyer",
       seller_status: reviewStatus === "approved" ? "active" : "pending",
