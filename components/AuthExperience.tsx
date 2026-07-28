@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
-import { defaultRouteForRole, fetchMyAccountProfile, isSafeInternalPath } from "@/lib/auth";
+import { defaultRouteForAccount, fetchMyAccountProfile, isSafeInternalPath } from "@/lib/auth";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
 
 type Mode = "login" | "register";
@@ -82,7 +82,7 @@ export default function AuthExperience({ mode }: { mode: Mode }) {
         const profile = await fetchMyAccountProfile(data.user);
         const query = new URLSearchParams(window.location.search);
         const requested = query.get("returnTo") || query.get("redirect");
-        const destination = isSafeInternalPath(requested) ? requested! : defaultRouteForRole(profile?.role ?? "buyer");
+        const destination = isSafeInternalPath(requested) ? requested! : defaultRouteForAccount(profile);
         const { data: assurance } = await client.auth.mfa.getAuthenticatorAssuranceLevel();
         if (assurance?.nextLevel === "aal2" && assurance.currentLevel !== "aal2") {
           window.location.assign(`/mfa-dogrula?returnTo=${encodeURIComponent(destination)}`);
@@ -166,7 +166,7 @@ export default function AuthExperience({ mode }: { mode: Mode }) {
 
         <section className="authFormPanelV8">
           <div className="authModeTabsV8"><Link href="/giris" className={mode === "login" ? "active" : ""}>Giriş yap</Link><Link href="/kayit" className={mode === "register" ? "active" : ""}>Kayıt ol</Link></div>
-          <header><span>{mode === "login" ? "TEKRAR HOŞ GELDİN" : "YENİ HESAP"}</span><h2>{mode === "login" ? "Hesabına giriş yap" : "Hesap türünü seç ve kayıt ol"}</h2><p>{mode === "login" ? "Rolüne uygun hesap merkezine güvenli şekilde yönlendirileceksin." : "Alıcı hesabı hemen kullanılabilir; satıcı hesabı satış öncesinde iyzico doğrulamasını tamamlar."}</p></header>
+          <header><span>{mode === "login" ? "TEKRAR HOŞ GELDİN" : "YENİ HESAP"}</span><h2>{mode === "login" ? "Hesabına giriş yap" : "Hesap türünü seç ve kayıt ol"}</h2><p>{mode === "login" ? "Rolüne uygun hesap merkezine güvenli şekilde yönlendirileceksin." : "Alıcı hesabı hemen kullanılabilir. Satıcı seçen hesap, ödeme ve mağaza onayından sonra satıcı yetkisi kazanır."}</p></header>
 
           <form className="authFormV8" onSubmit={submit}>
             {mode === "register" && (
@@ -178,7 +178,7 @@ export default function AuthExperience({ mode }: { mode: Mode }) {
                 </label>
                 <label className={accountType === "seller" ? "active" : ""}>
                   <input type="radio" name="accountType" value="seller" checked={accountType === "seller"} onChange={() => setAccountType("seller")} />
-                  <span><Icon name="store" /></span><div><strong>Satıcı hesabı</strong><small>Alıcı özelliklerine ek olarak mağaza aç ve açık artırma yayınla.</small></div><i><Icon name="check" /></i>
+                  <span><Icon name="store" /></span><div><strong>Satıcı başvurusu</strong><small>Alıcı özelliklerine ek olarak mağaza aç ve açık artırma yayınla.</small></div><i><Icon name="check" /></i>
                 </label>
               </fieldset>
             )}

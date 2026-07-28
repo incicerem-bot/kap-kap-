@@ -61,11 +61,13 @@ export default function MarketplaceShell({ title, eyebrow, description, children
   const role = profile?.role ?? "buyer";
   const isSeller = role === "seller";
   const isAdmin = role === "admin";
+  const sellerStatus = profile?.sellerStatus ?? "not_started";
+  const isSellerCandidate = !isSeller && !isAdmin && ["pending", "rejected", "suspended"].includes(sellerStatus);
   const sellHref = isSeller ? "/ilan-olustur" : "/satici-dogrulama?required=seller";
   const accountItems = user
     ? [
         ...commonAccount.slice(0, 1),
-        ...(isSeller ? [["/ilanlarim", "Satış Merkezi"], ["/satici-dogrulama", "Satıcı Doğrulama"]] : [["/satici-dogrulama", "Satıcı Ol"]]),
+        ...(isSeller ? [["/ilanlarim", "Satış Merkezi"], ["/satici-dogrulama", "Satıcı Doğrulama"]] : [["/satici-dogrulama", isSellerCandidate ? "Satıcı Başvurusu" : "Satıcı Ol"]]),
         ...commonAccount.slice(1),
         ...(isAdmin ? [["/yonetim", "Yönetim Merkezi"]] : []),
       ]
@@ -85,7 +87,7 @@ export default function MarketplaceShell({ title, eyebrow, description, children
             <Link href="/favoriler" aria-label="Favoriler"><Icon name="heart" />{favorites.ids.length > 0 && <small>{favorites.ids.length}</small>}</Link>
             <Link href="/bildirimler" aria-label="Bildirimler"><Icon name="bell" />{unreadNotificationCount > 0 && <small>{unreadNotificationCount}</small>}</Link>
             <Link href="/mesajlar" aria-label="Mesajlar"><Icon name="message" /></Link>
-            <Link href="/profil" className="marketIdentityV19" aria-label="Profil"><span>{initials}</span><div><b>{displayName}</b><small>{isAdmin ? "Yönetici" : isSeller ? "Satıcı" : "Alıcı"}</small></div></Link>
+            <Link href="/profil" className="marketIdentityV19" aria-label="Profil"><span>{initials}</span><div><b>{displayName}</b><small>{isAdmin ? "Yönetici" : isSeller ? "Satıcı" : isSellerCandidate ? "Satıcı adayı" : "Alıcı"}</small></div></Link>
           </> : !authLoading && <div className="marketGuestActionsV19"><Link href="/giris">Giriş yap</Link><Link href="/kayit">Kayıt ol</Link></div>}
           <Link href={sellHref} className="marketSell"><Icon name="plus" /> İlan Ver</Link>
         </nav>
@@ -101,7 +103,7 @@ export default function MarketplaceShell({ title, eyebrow, description, children
             {accountItems.map(([href, label]) => <Link key={href} href={href} className={pathname === href ? "active" : ""}>{label}</Link>)}
             {user && <button type="button" className="accountLogoutV19" onClick={() => void signOut()}><Icon name="logout" /> Güvenli çıkış</button>}
           </nav>
-          <div className="sidebarPromo"><span>{isSeller ? "SATICI MERKEZİ" : "SATICI OL"}</span><strong>{isSeller ? "Yeni ilan oluştur" : "Mağazanı aç"}</strong><p>{isSeller ? "Ürününü birkaç adımda açık artırmaya çıkar." : "Satıcı doğrulamasını tamamla ve satışa başla."}</p><Link href={sellHref}>{isSeller ? "İlan oluştur" : "Satıcı başvurusu"}</Link></div>
+          <div className="sidebarPromo"><span>{isSeller ? "SATICI MERKEZİ" : isSellerCandidate ? "SATICI BAŞVURUSU" : "SATICI OL"}</span><strong>{isSeller ? "Yeni ilan oluştur" : isSellerCandidate ? "Başvurunu tamamla" : "Mağazanı aç"}</strong><p>{isSeller ? "Ürününü birkaç adımda açık artırmaya çıkar." : isSellerCandidate ? "Ödeme ve mağaza onay adımlarını takip et." : "Satıcı doğrulamasını tamamla ve satışa başla."}</p><Link href={sellHref}>{isSeller ? "İlan oluştur" : isSellerCandidate ? "Başvuruyu görüntüle" : "Satıcı başvurusu"}</Link></div>
         </aside>
 
         <section className={`marketContent ${compact ? "marketContentCompact" : ""}`}>

@@ -24,9 +24,10 @@ function Icon({ name }: { name: IconName }) {
   return <svg {...common}>{paths[name]}</svg>;
 }
 
-function roleLabel(role: AccountDashboard["role"], adminLevel: AccountDashboard["identity"]["adminLevel"]) {
+function roleLabel(role: AccountDashboard["role"], adminLevel: AccountDashboard["identity"]["adminLevel"], sellerStatus: AccountDashboard["identity"]["sellerStatus"]) {
   if (role === "admin") return adminLevel === "owner" ? "Sahip yönetici" : "Operasyon yöneticisi";
   if (role === "seller") return "Satıcı hesabı";
+  if (["pending", "rejected", "suspended"].includes(sellerStatus)) return "Satıcı adayı";
   return "Alıcı hesabı";
 }
 
@@ -34,9 +35,10 @@ function roleIcon(role: AccountDashboard["role"]): IconName {
   return role === "admin" ? "admin" : role === "seller" ? "seller" : "buyer";
 }
 
-function roleDescription(role: AccountDashboard["role"]) {
+function roleDescription(role: AccountDashboard["role"], sellerStatus: AccountDashboard["identity"]["sellerStatus"]) {
   if (role === "admin") return "Platform güvenliği, kullanıcı onayları ve operasyon kuyruğunu yönet.";
   if (role === "seller") return "İlanlarını, satışlarını, kargolarını ve mağaza durumunu takip et.";
+  if (["pending", "rejected", "suspended"].includes(sellerStatus)) return "Alıcı hesabını kullanmaya devam ederken satıcı başvurunun adımlarını takip et.";
   return "Tekliflerini, siparişlerini ve hesap doğrulamalarını tek merkezden takip et.";
 }
 
@@ -108,9 +110,9 @@ export default function ProfileDashboard() {
       <section className={`dashboardHeroV24 dashboardRole-${dashboard.role}`}>
         <div className="dashboardRoleIconV24"><Icon name={roleIcon(dashboard.role)}/></div>
         <div className="dashboardHeroCopyV24">
-          <span>{roleLabel(dashboard.role, dashboard.identity.adminLevel)}</span>
+          <span>{roleLabel(dashboard.role, dashboard.identity.adminLevel, dashboard.identity.sellerStatus)}</span>
           <h2>Merhaba {firstName}</h2>
-          <p>{roleDescription(dashboard.role)}</p>
+          <p>{roleDescription(dashboard.role, dashboard.identity.sellerStatus)}</p>
           <div className="dashboardIdentityChipsV24">
             {dashboard.identity.username && <small>@{dashboard.identity.username}</small>}
             <small className={dashboard.identity.emailVerified ? "complete" : "missing"}>{dashboard.identity.emailVerified ? "E-posta doğrulandı" : "E-posta eksik"}</small>
@@ -118,7 +120,7 @@ export default function ProfileDashboard() {
           </div>
         </div>
         <div className="dashboardHeroActionsV24">
-          {dashboard.role === "buyer" && <Link href="/arama">Açık artırmaları keşfet</Link>}
+          {dashboard.role === "buyer" && (["pending", "rejected", "suspended"].includes(dashboard.identity.sellerStatus) ? <Link href="/satici-dogrulama">Satıcı başvurusunu görüntüle</Link> : <Link href="/arama">Açık artırmaları keşfet</Link>)}
           {dashboard.role === "seller" && <Link href="/ilan-olustur">Yeni ilan oluştur</Link>}
           {dashboard.role === "admin" && <Link href="/yonetim/kullanicilar">Kullanıcı yönetimi</Link>}
           <button type="button" onClick={() => void load()} aria-label="Hesap özetini yenile"><Icon name="refresh"/></button>
@@ -182,7 +184,7 @@ export default function ProfileDashboard() {
         </div> : <div className="dashboardEmptyV24"><Icon name="workspace"/><b>{dashboard.role === "seller" ? "Henüz ilan bulunmuyor" : dashboard.role === "admin" ? "Yeni operasyon kaydı yok" : "Henüz teklif vermedin"}</b><p>{dashboard.role === "seller" ? "İlk ürününü yayınlayarak satışa başlayabilirsin." : dashboard.role === "buyer" ? "İlgini çeken bir açık artırmaya katıl." : "Yeni kayıtlar burada listelenecek."}</p>{dashboard.role === "seller" && <Link href="/ilan-olustur">İlan oluştur</Link>}{dashboard.role === "buyer" && <Link href="/arama">Ürünleri keşfet</Link>}</div>}
       </section>
 
-      {dashboard.role === "buyer" && <section className="dashboardSellerCtaV24"><div><span>SATICI OL</span><h3>Kullanmadığın ürünleri açık artırmaya çıkar</h3><p>Satıcı doğrulamasını tamamla, mağazanı aç ve güvenli ödeme ile satış yap.</p></div><Link href="/satici-dogrulama">Satıcı başvurusunu başlat <Icon name="arrow"/></Link></section>}
+      {dashboard.role === "buyer" && <section className="dashboardSellerCtaV24"><div><span>{["pending", "rejected", "suspended"].includes(dashboard.identity.sellerStatus) ? "SATICI BAŞVURUSU" : "SATICI OL"}</span><h3>{dashboard.identity.sellerStatus === "pending" ? "Başvurun devam ediyor" : dashboard.identity.sellerStatus === "rejected" ? "Başvurunda düzeltme gerekiyor" : dashboard.identity.sellerStatus === "suspended" ? "Başvurun askıda" : "Kullanmadığın ürünleri açık artırmaya çıkar"}</h3><p>{["pending", "rejected", "suspended"].includes(dashboard.identity.sellerStatus) ? "Ödeme hesabı ve KapışKapış mağaza onayı adımlarını aynı merkezden takip et." : "Satıcı doğrulamasını tamamla, mağazanı aç ve güvenli ödeme ile satış yap."}</p></div><Link href="/satici-dogrulama">{["pending", "rejected", "suspended"].includes(dashboard.identity.sellerStatus) ? "Başvuruyu görüntüle" : "Satıcı başvurusunu başlat"} <Icon name="arrow"/></Link></section>}
       {dashboard.role === "seller" && dashboard.identity.storeSlug && <section className="dashboardSellerCtaV24"><div><span>MAĞAZAN</span><h3>Herkese açık mağazanı kontrol et</h3><p>İlanların, değerlendirmelerin ve satıcı güven göstergelerin müşterilere nasıl görünüyor incele.</p></div><Link href={`/magaza/${dashboard.identity.storeSlug}`}>Mağazayı görüntüle <Icon name="arrow"/></Link></section>}
     </div>
   );
