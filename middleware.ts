@@ -19,11 +19,17 @@ const authOnlyPrefixes = [
   "/odeme",
   "/odeme-sonucu",
   "/satici-dogrulama",
+  "/hesap-dogrulama",
+  "/sifre-yenile",
+  "/profil-tamamlama",
+  "/mfa-dogrula",
 ];
 
 const sellerOnlyPrefixes = ["/ilan-olustur", "/ilanlarim"];
 const adminOnlyPrefixes = ["/yonetim"];
 const authPages = ["/giris", "/kayit"];
+const verificationExemptPrefixes = ["/hesap-dogrulama", "/sifre-yenile", "/hesap-durumu", "/profil-tamamlama", "/mfa-dogrula"];
+const phoneRequiredPrefixes = ["/ilan-olustur", "/satici-dogrulama", "/teklif-guvencesi", "/teklif-guvencesi-sonucu"];
 
 function matches(pathname: string, prefixes: string[]) {
   return prefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
@@ -84,10 +90,11 @@ export async function middleware(request: NextRequest) {
 
   let role: AccountRole = "buyer";
   let accountStatus: AccountStatus = "active";
+  let profileCompletedAt: string | null = null;
 
   const { data: profile, error: profileError } = await supabase
     .from("kk_profiles")
-    .select("role,account_status")
+    .select("role,account_status,profile_completed_at")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -98,10 +105,41 @@ export async function middleware(request: NextRequest) {
   } else {
     role = normalizeRole(profile.role);
     accountStatus = normalizeStatus(profile.account_status);
+    profileCompletedAt = typeof profile.profile_completed_at === "string" ? profile.profile_completed_at : null;
   }
 
   if (accountStatus !== "active" && pathname !== "/hesap-durumu") {
     return redirectWithCookies(request, response, "/hesap-durumu", { status: accountStatus });
+  }
+
+  const verificationExempt = matches(pathname, verificationExemptPrefixes);
+  if (needsAuth && !verificationExempt && !user.email_confirmed_at) {
+    return redirectWithCookies(request, response, "/hesap-dogrulama", {
+      required: "email",
+      returnTo: `${pathname}${request.nextUrl.search}`,
+    });
+  }
+
+  if (needsAuth && !verificationExempt && !profileCompletedAt) {
+    return redirectWithCookies(request, response, "/profil-tamamlama", {
+      returnTo: `${pathname}${request.nextUrl.search}`,
+    });
+  }
+
+  if (matches(pathname, phoneRequiredPrefixes) && !user.phone_confirmed_at) {
+    return redirectWithCookies(request, response, "/hesap-dogrulama", {
+      required: "phone",
+      returnTo: `${pathname}${request.nextUrl.search}`,
+    });
+  }
+
+  if (needsAuth && pathname !== "/mfa-dogrula") {
+    const { data: assurance } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    if (assurance?.nextLevel === "aal2" && assurance.currentLevel !== "aal2") {
+      return redirectWithCookies(request, response, "/mfa-dogrula", {
+        returnTo: `${pathname}${request.nextUrl.search}`,
+      });
+    }
   }
 
   if (authPages.includes(pathname)) {
@@ -114,7 +152,10 @@ export async function middleware(request: NextRequest) {
     return redirectWithCookies(request, response, "/yetkisiz", { required: "admin" });
   }
 
-  if (matches(pathname, sellerOnlyPrefixes) && role !== "seller" && role !== "admin") {
+  if (matches(pathname, sellerOnlyPrefixes) && role !== "seller") {
+    if (role === "admin") {
+      return redirectWithCookies(request, response, "/yetkisiz", { required: "seller" });
+    }
     return redirectWithCookies(request, response, "/satici-dogrulama", { required: "seller", returnTo: pathname });
   }
 
