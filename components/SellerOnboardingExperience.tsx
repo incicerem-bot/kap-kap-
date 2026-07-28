@@ -264,7 +264,7 @@ export default function SellerOnboardingExperience() {
         <div className="sellerOnboardingHeroActionsV17">
           {status?.providerExternalId && !paymentActive && <button type="button" onClick={sync} disabled={syncing}><Icon name="sync"/>{syncing ? "Kontrol ediliyor" : "iyzico durumunu yenile"}</button>}
           {paymentActive && status?.platformReviewStatus === "rejected" && <button type="button" onClick={resubmitReview} disabled={resubmitting || !status.readiness?.readyForApproval}><Icon name="sync"/>{resubmitting ? "Gönderiliyor" : "Yeniden incelemeye gönder"}</button>}
-          {active && <Link href="/ilan-olustur">İlan oluştur <Icon name="arrow"/></Link>}
+          {active && <><Link href="/magazam/ayarlar">Mağaza ayarları <Icon name="arrow"/></Link><Link href="/ilan-olustur">İlan oluştur <Icon name="arrow"/></Link></>}
         </div>
       </section>
 
@@ -279,7 +279,7 @@ export default function SellerOnboardingExperience() {
       {active ? (
         <section className="sellerOnboardingActiveV17">
           <div className="sellerOnboardingActiveMarkV17"><Icon name="check"/></div>
-          <div><span>DOĞRULAMA TAMAMLANDI</span><h3>Satış geliri hesabın hazır</h3><p>Ödeme sırasında satıcı eşleşmen otomatik yapılacak. Alt üye anahtarın yalnızca güvenli sunucu tarafında saklanıyor ve tarayıcıya gönderilmiyor.</p></div>
+          <div><span>DOĞRULAMA TAMAMLANDI</span><h3>Satıcı hesabın hazır</h3><p>Ödeme hesabın ve KapışKapış onayın tamamlandı. Mağaza vitrininin adını, bağlantısını ve görsellerini Mağaza Ayarları bölümünden düzenle.</p><Link href="/magazam/ayarlar">Mağaza vitrini ayarları <Icon name="arrow"/></Link></div>
           <dl>
             <div><dt>Satıcı türü</dt><dd>{status?.merchantType === "PERSONAL" ? "Bireysel" : status?.merchantType === "PRIVATE_COMPANY" ? "Şahıs şirketi" : "Limited / anonim"}</dd></div>
             <div><dt>Aktivasyon</dt><dd>{dateLabel(status?.activatedAt ?? null)}</dd></div>

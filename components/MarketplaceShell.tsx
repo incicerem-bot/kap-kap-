@@ -67,7 +67,7 @@ export default function MarketplaceShell({ title, eyebrow, description, children
   const accountItems = user
     ? [
         ...commonAccount.slice(0, 1),
-        ...(isSeller ? [["/ilanlarim", "Satış Merkezi"], ["/satici-dogrulama", "Satıcı Doğrulama"]] : [["/satici-dogrulama", isSellerCandidate ? "Satıcı Başvurusu" : "Satıcı Ol"]]),
+        ...(isSeller ? [["/ilanlarim", "Satış Merkezi"], ["/magazam/ayarlar", "Mağaza Ayarları"], ["/satici-dogrulama", "Satıcı Doğrulama"]] : [["/satici-dogrulama", isSellerCandidate ? "Satıcı Başvurusu" : "Satıcı Ol"]]),
         ...commonAccount.slice(1),
         ...(isAdmin ? [["/yonetim", "Yönetim Merkezi"]] : []),
       ]

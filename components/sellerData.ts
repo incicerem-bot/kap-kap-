@@ -32,6 +32,10 @@ export type SellerProfile = {
   categories: string[];
   about: string;
   badges: string[];
+  logoUrl?: string;
+  coverUrl?: string;
+  shippingNote?: string;
+  returnNote?: string;
   ratingDistribution: Record<1 | 2 | 3 | 4 | 5, number>;
   reviews: SellerReview[];
 };

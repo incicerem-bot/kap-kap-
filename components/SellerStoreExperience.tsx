@@ -100,6 +100,10 @@ export default function SellerStoreExperience({ seller: initialSeller, initialTa
       responseTime: responseMinutes < 60 ? `${responseMinutes} dakika` : `${Math.round(responseMinutes / 60)} saat`,
       shipOnTime: databaseBundle.seller.shipOnTimeRate,
       cancellationRate: databaseBundle.seller.cancellationRate,
+      logoUrl: databaseBundle.seller.logoUrl,
+      coverUrl: databaseBundle.seller.coverUrl,
+      shippingNote: databaseBundle.seller.shippingNote,
+      returnNote: databaseBundle.seller.returnNote,
       categories: databaseBundle.seller.categories,
       about: databaseBundle.seller.about,
       badges: databaseBundle.seller.badges,
@@ -144,10 +148,10 @@ export default function SellerStoreExperience({ seller: initialSeller, initialTa
     <div className="sellerStoreV15">
       {notice && <button type="button" className="storeToastV15" onClick={() => setNotice("")}><Icon name="check" /> {notice}</button>}
 
-      <section className="storeHeroV15">
+      <section className={`storeHeroV15 ${seller.coverUrl ? "hasCoverV25" : ""}`} style={seller.coverUrl ? { backgroundImage: `linear-gradient(90deg, rgba(8,10,14,.96), rgba(8,10,14,.72)), url(${seller.coverUrl})` } : undefined}>
         <div className="storeHeroGlowV15" />
         <div className="storeIdentityV15">
-          <div className="storeAvatarV15">{seller.initials}<i><Icon name="check" /></i></div>
+          <div className={`storeAvatarV15 ${seller.logoUrl ? "hasLogoV25" : ""}`}>{seller.logoUrl ? <img src={seller.logoUrl} alt={`${seller.name} mağaza logosu`} /> : seller.initials}<i><Icon name="check" /></i></div>
           <div className="storeIdentityCopyV15">
             <div><span>DOĞRULANMIŞ KAPIŞKAPIŞ MAĞAZASI</span>{seller.verified && <em><Icon name="shield" /> Güvenli satıcı</em>}</div>
             <h1>{seller.name}</h1>
@@ -214,6 +218,7 @@ export default function SellerStoreExperience({ seller: initialSeller, initialTa
           <div className="storeAboutMainV15">
             <article><span>MAĞAZA HAKKINDA</span><h2>{seller.name}</h2><p>{seller.about}</p></article>
             <article><span>UZMANLIK ALANLARI</span><h2>Satış kategorileri</h2><div className="storeCategoryTagsV15">{seller.categories.map((category) => <Link key={category} href={`/arama?q=${encodeURIComponent(category)}`}>{category}</Link>)}</div></article>
+            <article><span>TESLİMAT VE İADE</span><h2>Mağaza işlem koşulları</h2><p><strong>Kargo:</strong> {seller.shippingNote || "Siparişler KapışKapış kargo akışına göre güvenli şekilde gönderilir."}</p><p><strong>İade:</strong> {seller.returnNote || "İade ve uyuşmazlık işlemleri KapışKapış güvenli ödeme kurallarına göre yürütülür."}</p></article>
             <article><span>ŞEFFAFLIK NOTU</span><h2>Bu göstergeler nasıl hesaplanır?</h2><p>Yanıt oranı, zamanında kargo ve iptal oranı; tamamlanmış KapışKapış işlemlerindeki son 90 günlük mağaza hareketlerinden oluşturulur. Mağaza kendi puanını veya değerlendirmeleri değiştiremez.</p></article>
           </div>
           <aside className="storeVerificationV15"><header><Icon name="shield" /><div><span>GÜVEN DOĞRULAMALARI</span><h2>Mağaza kontrolleri</h2></div></header>{seller.badges.map((badge) => <div key={badge}><i><Icon name="check" /></i><span>{badge}</span></div>)}<footer><Icon name="chart" /><p><strong>Güven göstergeleri güncel</strong><span>Son kontrol: 19 Temmuz 2026</span></p></footer></aside>
