@@ -66,6 +66,13 @@ export default function ProfileCompletionExperience() {
       ? "/satici-dogrulama"
       : "/profil";
   const age = useMemo(() => ageFromBirthDate(form.birthDate), [form.birthDate]);
+
+  useEffect(() => {
+    if (user && profile?.profileCompletedAt && !loading) {
+      window.location.replace(returnTo);
+    }
+  }, [loading, profile?.profileCompletedAt, returnTo, user]);
+
   const progress = [
     form.fullName.trim().length >= 3,
     /^[a-z0-9][a-z0-9._-]{2,29}$/.test(form.username),
@@ -83,8 +90,24 @@ export default function ProfileCompletionExperience() {
       router.push(`/giris?returnTo=${encodeURIComponent(`/profil-tamamlama?returnTo=${encodeURIComponent(returnTo)}`)}`);
       return;
     }
+
+    const fullName = form.fullName.trim();
+    const username = normalizeUsername(form.username);
+    const city = form.city.trim();
+    if (fullName.length < 3) {
+      setNotice({ type: "error", text: "Ad soyad en az 3 karakter olmalıdır." });
+      return;
+    }
+    if (!/^[a-z0-9][a-z0-9._-]{2,29}$/.test(username)) {
+      setNotice({ type: "error", text: "Kullanıcı adı en az 3 karakter olmalı ve yalnızca küçük harf, rakam, nokta, alt çizgi veya tire içermelidir." });
+      return;
+    }
     if (age === null || age < 18) {
       setNotice({ type: "error", text: "KapışKapış hesabı için 18 yaşını doldurmuş olmalısın." });
+      return;
+    }
+    if (city.length < 2) {
+      setNotice({ type: "error", text: "Şehir bilgisini eksiksiz gir." });
       return;
     }
 
@@ -96,30 +119,38 @@ export default function ProfileCompletionExperience() {
 
     setLoading(true);
     setNotice(null);
-    const { error } = await client.rpc("kk_complete_my_profile_v2", {
-      p_full_name: form.fullName.trim(),
-      p_username: form.username,
-      p_birth_date: form.birthDate,
-      p_city: form.city.trim(),
-      p_district: form.district.trim() || null,
-    });
+    try {
+      const { data: sessionData, error: sessionError } = await client.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (sessionError || !token) {
+        throw new Error("Oturum süresi dolmuş. Lütfen yeniden giriş yap.");
+      }
 
-    if (error) {
+      const response = await fetch("/api/account/profile/complete", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          fullName,
+          username,
+          birthDate: form.birthDate,
+          city,
+          district: form.district.trim() || null,
+        }),
+      });
+      const payload = await response.json().catch(() => ({})) as { ok?: boolean; message?: string };
+      if (!response.ok || !payload.ok) throw new Error(payload.message || "Profil bilgileri kaydedilemedi.");
+
+      await refreshProfile();
+      setNotice({ type: "success", text: "Profilin tamamlandı. Hesap merkezi açılıyor…" });
+      window.setTimeout(() => window.location.assign(returnTo), 500);
+    } catch (error) {
+      setNotice({ type: "error", text: error instanceof Error ? error.message : "Profil bilgileri kaydedilemedi." });
+    } finally {
       setLoading(false);
-      setNotice({ type: "error", text: error.message });
-      return;
     }
-
-    await client.auth.updateUser({
-      data: {
-        full_name: form.fullName.trim(),
-        username: form.username,
-      },
-    });
-    await refreshProfile();
-    setLoading(false);
-    setNotice({ type: "success", text: "Profilin tamamlandı. Güvenli işlemler kullanıma açıldı." });
-    window.setTimeout(() => router.replace(returnTo), 650);
   }
 
   return (
@@ -161,7 +192,7 @@ export default function ProfileCompletionExperience() {
 
         <footer>
           <Link href="/hukuk?doc=gizlilik" target="_blank">KVKK ve gizlilik bilgilerini görüntüle</Link>
-          <button type="submit" disabled={loading || progress < 4}>{loading ? "Kaydediliyor…" : "Profili tamamla"}</button>
+          <button type="submit" disabled={loading}>{loading ? "Kaydediliyor…" : "Profili tamamla"}</button>
         </footer>
       </form>
     </div>
