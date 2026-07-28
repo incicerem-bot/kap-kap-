@@ -52,6 +52,18 @@ export async function requireRequestUser(request: NextRequest): Promise<{ user: 
   if (profile.account_status === "suspended") throw new PaymentHttpError(403, "Hesabın geçici olarak kısıtlandı.", "ACCOUNT_SUSPENDED");
   if (profile.account_status === "closed") throw new PaymentHttpError(403, "Hesabın kapalı.", "ACCOUNT_CLOSED");
 
+  const claims = decodeJwtPayload(token);
+  if (claims.session_id && /^[0-9a-f-]{36}$/i.test(claims.session_id)) {
+    const { data: securitySession, error: sessionError } = await admin
+      .from("kk_account_sessions")
+      .select("revoked_at")
+      .eq("user_id", data.user.id)
+      .eq("session_id", claims.session_id)
+      .maybeSingle();
+    if (sessionError && sessionError.code !== "42P01") throw new PaymentHttpError(503, "Oturum güvenliği doğrulanamadı.", sessionError.code);
+    if (securitySession?.revoked_at) throw new PaymentHttpError(401, "Bu oturum güvenlik merkezinden kapatılmış. Yeniden giriş yap.", "SESSION_REVOKED");
+  }
+
   return { user: data.user, token };
 }
 
@@ -66,6 +78,34 @@ export async function requireAdminRequestUser(request: NextRequest): Promise<{ u
   if (error || !profile) throw new PaymentHttpError(403, "Yönetici profili doğrulanamadı.", error?.code);
   if (profile.role !== "admin" || profile.account_status !== "active") {
     throw new PaymentHttpError(403, "Bu işlem için yönetici yetkisi gerekir.", "ADMIN_REQUIRED");
+  }
+  return result;
+}
+
+function decodeJwtPayload(token: string): { aal?: string; session_id?: string } {
+  try {
+    const payload = token.split(".")[1];
+    return payload ? JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as { aal?: string; session_id?: string } : {};
+  } catch {
+    return {};
+  }
+}
+
+export async function requireOwnerAdminRequestUser(request: NextRequest): Promise<{ user: User; token: string }> {
+  const result = await requireAdminRequestUser(request);
+  const admin = getSupabaseAdminClient();
+  const { data: profile, error } = await admin
+    .from("kk_profiles")
+    .select("admin_level,account_status")
+    .eq("id", result.user.id)
+    .maybeSingle();
+  if (error || !profile) throw new PaymentHttpError(403, "Yönetici sahipliği doğrulanamadı.", error?.code);
+  if (profile.admin_level !== "owner" || profile.account_status !== "active") {
+    throw new PaymentHttpError(403, "Bu işlem yalnız yönetici sahibi tarafından yapılabilir.", "OWNER_ADMIN_REQUIRED");
+  }
+  const claims = decodeJwtPayload(result.token);
+  if (claims.aal !== "aal2") {
+    throw new PaymentHttpError(403, "Yönetici rolü değişiklikleri için iki adımlı doğrulamayı tamamlamalısın.", "MFA_REQUIRED");
   }
   return result;
 }

@@ -26,6 +26,7 @@ export type AccountProfile = {
   district: string | null;
   sellerReviewStatus: "not_submitted" | "pending" | "approved" | "rejected" | "suspended";
   sellerReviewNote: string | null;
+  adminLevel: "none" | "operator" | "owner";
 };
 
 type AccountRpcRow = {
@@ -49,6 +50,7 @@ type AccountRpcRow = {
   district?: string | null;
   seller_review_status?: string | null;
   seller_review_note?: string | null;
+  admin_level?: string | null;
 };
 
 function normalizeRole(value: unknown): AccountRole {
@@ -88,6 +90,7 @@ export function fallbackProfileFromUser(user: User): AccountProfile {
     district: null,
     sellerReviewStatus: "not_submitted",
     sellerReviewNote: null,
+    adminLevel: "none",
   };
 }
 
@@ -138,6 +141,7 @@ export async function fetchMyAccountProfile(user?: User | null): Promise<Account
     district: row.district ?? null,
     sellerReviewStatus: row.seller_review_status === "approved" || row.seller_review_status === "pending" || row.seller_review_status === "rejected" || row.seller_review_status === "suspended" ? row.seller_review_status : "not_submitted",
     sellerReviewNote: row.seller_review_note ?? null,
+    adminLevel: row.admin_level === "owner" || row.admin_level === "operator" ? row.admin_level : "none",
   };
 }
 
