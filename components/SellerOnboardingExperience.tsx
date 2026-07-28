@@ -20,6 +20,8 @@ type StatusPayload = {
   activatedAt: string | null;
   lastError: string | null;
   updatedAt: string | null;
+  platformReviewStatus: "not_submitted" | "pending" | "approved" | "rejected" | "suspended";
+  platformReviewNote: string | null;
 };
 
 type FormState = {
@@ -143,8 +145,18 @@ export default function SellerOnboardingExperience() {
 
   useEffect(() => { void loadStatus(); }, [loadStatus]);
 
-  const active = status?.onboardingStatus === "active";
-  const copy = statusCopy[status?.onboardingStatus ?? "not_started"];
+  const paymentActive = status?.onboardingStatus === "active";
+  const platformApproved = status?.platformReviewStatus === "approved";
+  const active = paymentActive && platformApproved;
+  const copy = paymentActive
+    ? status?.platformReviewStatus === "rejected"
+      ? { title: "Mağaza başvurusu düzeltilmeli", description: status.platformReviewNote || "KapışKapış güven ekibinin notunu inceleyip bilgilerini güncelle.", icon: "alert" as IconName }
+      : status?.platformReviewStatus === "suspended"
+        ? { title: "Mağaza hesabı askıda", description: status.platformReviewNote || "Güven ekibi incelemesi tamamlanana kadar yeni ilan yayınlanamaz.", icon: "alert" as IconName }
+        : platformApproved
+          ? { title: "Satıcı hesabın aktif", description: "iyzico ödeme hesabın ve KapışKapış mağaza onayın tamamlandı.", icon: "check" as IconName }
+          : { title: "KapışKapış mağaza incelemesi", description: "Ödeme hesabın hazır. Güven ekibi mağaza bilgilerini kontrol ediyor.", icon: "clock" as IconName }
+    : statusCopy[status?.onboardingStatus ?? "not_started"];
   const companyFields = form.merchantType !== "PERSONAL";
   const privateCompany = form.merchantType === "PRIVATE_COMPANY";
 
@@ -167,7 +179,7 @@ export default function SellerOnboardingExperience() {
       const body = await apiCall("/api/seller/onboarding", { method: "POST", body: JSON.stringify(payload) });
       setStatus(body.status);
       await refreshProfile();
-      setMessage("Satıcı hesabın ve ödeme yetkin başarıyla oluşturuldu.");
+      setMessage("iyzico ödeme hesabın oluşturuldu. Mağazan KapışKapış güven incelemesine alındı.");
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "Başvuru gönderilemedi.");
     } finally {
@@ -213,7 +225,7 @@ export default function SellerOnboardingExperience() {
           <p>{copy.description}</p>
         </div>
         <div className="sellerOnboardingHeroActionsV17">
-          {status?.providerExternalId && !active && <button type="button" onClick={sync} disabled={syncing}><Icon name="sync"/>{syncing ? "Kontrol ediliyor" : "Durumu yenile"}</button>}
+          {status?.providerExternalId && (!paymentActive || status?.platformReviewStatus === "rejected") && <button type="button" onClick={sync} disabled={syncing}><Icon name="sync"/>{syncing ? "Kontrol ediliyor" : paymentActive ? "Tekrar incelemeye gönder" : "iyzico durumunu yenile"}</button>}
           {active && <Link href="/ilan-olustur">İlan oluştur <Icon name="arrow"/></Link>}
         </div>
       </section>
@@ -222,8 +234,8 @@ export default function SellerOnboardingExperience() {
 
       <section className="sellerOnboardingMetricsV17">
         <article><span><Icon name="store"/></span><div><small>Mağaza</small><strong>{status?.sellerName || "KapışKapış mağazan"}</strong><p>{status?.sellerSlug ? `/magaza/${status.sellerSlug}` : "Mağaza kaydı hazırlanıyor"}</p></div></article>
-        <article><span><Icon name="bank"/></span><div><small>Ödeme hesabı</small><strong>{active ? "Aktif" : status?.onboardingStatus === "pending" ? "İşleniyor" : "Tamamlanmadı"}</strong><p>{status?.maskedIban || "IBAN henüz eklenmedi"}</p></div></article>
-        <article><span><Icon name="shield"/></span><div><small>Satış güvenliği</small><strong>{active ? "Yayına hazır" : "%" + completion + " tamamlandı"}</strong><p>{active ? "Ödeme ve aktarım akışı açık" : "İlan yayınlamak için başvuruyu tamamla"}</p></div></article>
+        <article><span><Icon name="bank"/></span><div><small>Ödeme hesabı</small><strong>{paymentActive ? "Aktif" : status?.onboardingStatus === "pending" ? "İşleniyor" : "Tamamlanmadı"}</strong><p>{status?.maskedIban || "IBAN henüz eklenmedi"}</p></div></article>
+        <article><span><Icon name="shield"/></span><div><small>KapışKapış onayı</small><strong>{platformApproved ? "Onaylandı" : paymentActive ? status?.platformReviewStatus === "rejected" ? "Düzeltme gerekli" : "İncelemede" : "%" + completion + " tamamlandı"}</strong><p>{platformApproved ? "Mağaza ve ilan yayınlama yetkisi açık" : paymentActive ? status?.platformReviewNote || "Güven ekibi mağaza bilgilerini kontrol ediyor" : "Önce ödeme başvurusunu tamamla"}</p></div></article>
       </section>
 
       {active ? (
@@ -234,6 +246,16 @@ export default function SellerOnboardingExperience() {
             <div><dt>Satıcı türü</dt><dd>{status?.merchantType === "PERSONAL" ? "Bireysel" : status?.merchantType === "PRIVATE_COMPANY" ? "Şahıs şirketi" : "Limited / anonim"}</dd></div>
             <div><dt>Aktivasyon</dt><dd>{dateLabel(status?.activatedAt ?? null)}</dd></div>
             <div><dt>IBAN</dt><dd>{status?.maskedIban || "Gizli"}</dd></div>
+          </dl>
+        </section>
+      ) : paymentActive ? (
+        <section className="sellerOnboardingActiveV17 sellerOnboardingReviewV21">
+          <div className="sellerOnboardingActiveMarkV17"><Icon name={status?.platformReviewStatus === "rejected" || status?.platformReviewStatus === "suspended" ? "alert" : "clock"}/></div>
+          <div><span>KAPIŞKAPIŞ MAĞAZA ONAYI</span><h3>{status?.platformReviewStatus === "rejected" ? "Başvurunda düzeltme gerekiyor" : status?.platformReviewStatus === "suspended" ? "Mağazan geçici olarak askıda" : "Mağaza incelemen devam ediyor"}</h3><p>{status?.platformReviewNote || "Ödeme hesabın oluşturuldu. Güven ekibi mağaza adı, hesap doğrulamaları ve satış uygunluğunu kontrol ediyor."}</p></div>
+          <dl>
+            <div><dt>iyzico hesabı</dt><dd>Aktif</dd></div>
+            <div><dt>Platform incelemesi</dt><dd>{status?.platformReviewStatus === "rejected" ? "Düzeltme gerekli" : status?.platformReviewStatus === "suspended" ? "Askıda" : "Bekliyor"}</dd></div>
+            <div><dt>Başvuru tarihi</dt><dd>{dateLabel(status?.submittedAt ?? null)}</dd></div>
           </dl>
         </section>
       ) : (

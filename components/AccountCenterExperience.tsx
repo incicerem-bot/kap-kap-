@@ -48,7 +48,7 @@ function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (val
 }
 
 export default function AccountCenterExperience() {
-  const { user, profile, refreshProfile } = useAuth();
+  const { user, profile } = useAuth();
   const [activeTab, setActiveTab] = useState<TabId>("profile");
   const [toast, setToast] = useState("");
   const [marketing, setMarketing] = useState(false);
@@ -69,6 +69,10 @@ export default function AccountCenterExperience() {
   const [emailVerified, setEmailVerified] = useState(false);
   const [phoneVerified, setPhoneVerified] = useState(false);
   const [bidAccess, setBidAccess] = useState<BidAccess>({ paymentVerified: false, identityVerified: false, cardVerified: false, heldSecurity: 0, securityRequired: 0, refundableSecurity: 0 });
+
+  useEffect(() => {
+    if (profile?.fullName) setFullName(profile.fullName);
+  }, [profile?.fullName]);
 
   useEffect(() => {
     if (!supabaseConfigured) return;
@@ -111,18 +115,6 @@ export default function AccountCenterExperience() {
     notify(message);
   }
 
-  async function saveProfile(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const client = getSupabaseBrowserClient();
-    if (!client) return notify("Supabase bağlantısı yapılandırılmamış.");
-    const name = fullName.trim();
-    if (name.length < 3) return notify("Ad soyad en az 3 karakter olmalı.");
-    const { error } = await client.rpc("kk_complete_my_profile", { p_full_name: name });
-    if (error) return notify(error.message);
-    await client.auth.updateUser({ data: { full_name: name } });
-    await refreshProfile();
-    notify("Profil bilgilerin kaydedildi.");
-  }
 
   async function changePassword(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -197,28 +189,28 @@ export default function AccountCenterExperience() {
 
         <section className="accountContentV8">
           {activeTab === "profile" && (
-            <form onSubmit={saveProfile}>
-              <header className="accountSectionHeadV8"><div><span>PROFİL</span><h3>Herkese açık profil bilgileri</h3><p>Alıcıların ve satıcıların profilinde görebileceği bilgileri düzenle.</p></div><button type="submit">Değişiklikleri kaydet</button></header>
+            <div>
+              <header className="accountSectionHeadV8"><div><span>PROFİL</span><h3>Hesap ve profil bilgileri</h3><p>Teklif ve satış işlemlerinde kullanılan doğrulanmış hesap bilgilerini görüntüle.</p></div><Link className="accountSecurityLinkV20" href="/profil-tamamlama">Profili düzenle</Link></header>
               <div className="accountProfileMediaV8">
                 <div className="accountAvatarLargeV8">{initials}</div>
-                <div><b>Profil fotoğrafı</b><p>JPG, PNG veya WEBP · En fazla 5 MB</p><div><label>Yeni fotoğraf seç<input type="file" accept="image/jpeg,image/png,image/webp" /></label><button type="button">Kaldır</button></div></div>
+                <div><b>{profile?.fullName || fullName}</b><p>{profile?.username ? `@${profile.username}` : "Kullanıcı adı henüz oluşturulmadı"}</p><div><Link className="accountVerifyLinkV20" href="/profil-tamamlama">Profil bilgilerini tamamla</Link></div></div>
               </div>
               <div className="accountFormGridV8">
-                <label>Ad soyad<input value={fullName} onChange={(event) => setFullName(event.target.value)} required /></label>
-                <label>Kullanıcı adı<div className="accountPrefixInputV8"><span>kapiskapis.com/</span><input defaultValue={email.split("@")[0] || "kullanici"} required /></div></label>
+                <label>Ad soyad<input value={profile?.fullName || fullName} readOnly /></label>
+                <label>Kullanıcı adı<div className="accountPrefixInputV8"><span>kapiskapis.com/</span><input value={profile?.username || "eksik"} readOnly /></div></label>
                 <label>E-posta adresi<div className="accountVerifiedInputV8"><input type="email" value={email} readOnly />{emailVerified && <span><Icon name="check" /> Doğrulandı</span>}</div></label>
-                <label>Telefon numarası<div className="accountVerifiedInputV8"><input value={phone} readOnly placeholder="Telefon numarası ekle" />{phoneVerified && <span><Icon name="check" /> Doğrulandı</span>}</div><Link className="accountVerifyLinkV20" href="/hesap-dogrulama">Telefon ve e-posta doğrulamasını yönet</Link></label>
-                <label>Şehir<select defaultValue="İzmir"><option>İzmir</option><option>İstanbul</option><option>Ankara</option><option>Bursa</option></select></label>
+                <label>Telefon numarası<div className="accountVerifiedInputV8"><input value={profile?.phoneMasked || phone} readOnly placeholder="Telefon numarası ekle" />{phoneVerified && <span><Icon name="check" /> Doğrulandı</span>}</div><Link className="accountVerifyLinkV20" href="/hesap-dogrulama">Telefon ve e-posta doğrulamasını yönet</Link></label>
+                <label>Konum<input value={[profile?.district, profile?.city].filter(Boolean).join(" / ") || "Eksik"} readOnly /></label>
                 <label>Hesap türü<div className="accountRoleFieldV19"><span>{profile?.role === "admin" ? "Yönetici hesabı" : profile?.role === "seller" ? "Satıcı hesabı" : "Alıcı hesabı"}</span>{profile?.role === "buyer" && <Link href="/satici-dogrulama">Satıcı ol</Link>}</div></label>
               </div>
-              <label className="accountFullFieldV8">Hakkımda<textarea rows={5} maxLength={500} defaultValue="Teknoloji ürünleri, oyun ekipmanları ve koleksiyon parçaları satıyorum."/><small>En fazla 500 karakter</small></label>
-              <footer className="accountFormFooterV8"><span>Son güncelleme: 19 Temmuz 2026, 10:42</span><button type="submit">Değişiklikleri kaydet</button></footer>
-            </form>
+              <div className="paymentNoticeV8"><Icon name="shield" /><div><b>Kimlik bilgilerin herkese açık gösterilmez</b><p>Doğum tarihi ve iletişim bilgileri yalnız yaş, güvenlik ve işlem doğrulaması için kullanılır. Mağazada kullanıcı adı, şehir ve güven rozetleri görünür.</p></div></div>
+              <footer className="accountFormFooterV8"><span>{profile?.profileCompletedAt ? "Profil bilgileri tamamlandı." : "Teklif ve satış işlemleri için profilini tamamlamalısın."}</span><Link className="accountSecurityLinkV20" href="/profil-tamamlama">{profile?.profileCompletedAt ? "Bilgileri güncelle" : "Profili tamamla"}</Link></footer>
+            </div>
           )}
 
           {activeTab === "verification" && (
             <div>
-              <header className="accountSectionHeadV8"><div><span>DOĞRULAMA</span><h3>Hesabını güvenilir hale getir</h3><p>Teklif yetkisi ve limit bilgileri artık doğrudan Supabase güvenlik kaydından okunuyor.</p></div><div className="accountLevelBadgeV8">{verifiedCount === 4 ? "Tam doğrulama" : `${verifiedCount}/4 tamamlandı`}</div></header>
+              <header className="accountSectionHeadV8"><div><span>DOĞRULAMA</span><h3>Hesabını güvenilir hale getir</h3><p>Teklif yetkisi ve Akıllı Teklif Güvencesi bilgileri doğrudan Supabase güvenlik kaydından okunuyor.</p></div><div className="accountLevelBadgeV8">{verifiedCount === 4 ? "Tam doğrulama" : `${verifiedCount}/4 tamamlandı`}</div></header>
               <div className="verificationProgressV8"><div><span style={{ width: `${completion}%` }} /></div><p><b>{verifiedCount}/4 doğrulama tamamlandı</b><small>{bidAccess.paymentVerified ? `${money(bidAccess.heldSecurity)} aktif teklif güvencen var.` : "Teklif verirken gereken güvence otomatik hesaplanır."}</small></p></div>
               <div className="verificationCardsV8">
                 {[

@@ -13,7 +13,6 @@ type Message = { type: "success" | "error"; text: string } | null;
 export default function AccountVerificationExperience() {
   const searchParams = useSearchParams();
   const { user, profile, refreshProfile } = useAuth();
-  const [fullName, setFullName] = useState(profile?.fullName ?? "");
   const [phone, setPhone] = useState(user?.phone ?? "");
   const [pendingPhone, setPendingPhone] = useState("");
   const [otp, setOtp] = useState("");
@@ -22,9 +21,8 @@ export default function AccountVerificationExperience() {
   const [message, setMessage] = useState<Message>(null);
 
   useEffect(() => {
-    setFullName(profile?.fullName ?? "");
     if (user?.phone) setPhone(user.phone);
-  }, [profile?.fullName, user?.phone]);
+  }, [user?.phone]);
 
   useEffect(() => {
     if (!user) return;
@@ -33,7 +31,7 @@ export default function AccountVerificationExperience() {
 
   const emailVerified = profile?.emailVerified ?? Boolean(user?.email_confirmed_at);
   const phoneVerified = profile?.phoneVerified ?? Boolean(user?.phone_confirmed_at);
-  const profileComplete = Boolean(profile?.profileCompletedAt || fullName.trim().length >= 3);
+  const profileComplete = Boolean(profile?.profileCompletedAt);
   const completed = [emailVerified, phoneVerified, profileComplete].filter(Boolean).length;
   const returnToRaw = searchParams.get("returnTo");
   const returnTo = isSafeInternalPath(returnToRaw) ? returnToRaw! : profile?.role === "seller" ? "/ilanlarim" : "/profil";
@@ -58,28 +56,6 @@ export default function AccountVerificationExperience() {
     });
     setLoading(false);
     setMessage(error ? { type: "error", text: error.message } : { type: "success", text: "Doğrulama e-postası yeniden gönderildi." });
-  }
-
-  async function saveProfile(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const name = fullName.trim();
-    if (name.length < 3) {
-      setMessage({ type: "error", text: "Ad soyad en az 3 karakter olmalı." });
-      return;
-    }
-    const client = getSupabaseBrowserClient();
-    if (!client) return;
-    setLoading(true);
-    setMessage(null);
-    const { error } = await client.rpc("kk_complete_my_profile", { p_full_name: name });
-    if (!error) await client.auth.updateUser({ data: { full_name: name } });
-    setLoading(false);
-    if (error) {
-      setMessage({ type: "error", text: error.message });
-      return;
-    }
-    await refreshProfile();
-    setMessage({ type: "success", text: "Profil bilgilerin tamamlandı." });
   }
 
   async function startPhoneVerification(event: FormEvent<HTMLFormElement>) {
@@ -181,11 +157,9 @@ export default function AccountVerificationExperience() {
         </article>
 
         <article className={profileComplete ? "complete" : ""}>
-          <header><i>3</i><div><small>PROFİL</small><h3>{profileComplete ? "Profil bilgileri tamamlandı" : "Ad soyad bilgisini tamamla"}</h3></div><em>{profileComplete ? "Tamamlandı" : "Gerekli"}</em></header>
-          <form className="verificationInlineFormV20" onSubmit={saveProfile}>
-            <label>Ad soyad<input value={fullName} onChange={(event) => setFullName(event.target.value)} autoComplete="name" required /></label>
-            <button type="submit" disabled={loading}>Profili kaydet</button>
-          </form>
+          <header><i>3</i><div><small>PROFİL</small><h3>{profileComplete ? "Profil bilgileri tamamlandı" : "Profil bilgilerini tamamla"}</h3></div><em>{profileComplete ? "Tamamlandı" : "Gerekli"}</em></header>
+          <p>{profileComplete ? `@${profile?.username || "kullanici"} · ${profile?.city || "Konum tamamlandı"}` : "Kullanıcı adı, doğum tarihi ve şehir bilgilerini güvenli profil ekranında tamamla."}</p>
+          <Link href={`/profil-tamamlama?returnTo=${encodeURIComponent(returnTo)}`}>{profileComplete ? "Profili düzenle" : "Profili tamamla"}</Link>
         </article>
       </section>
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, type ReactNode } from "react";
+import AdminAccountCenter from "@/components/AdminAccountCenter";
 
 type Section = "overview" | "moderation" | "users" | "payments" | "risk";
 type ListingStatus = "pending" | "review" | "approved" | "removed";
@@ -259,13 +260,7 @@ export default function AdminOperationsCenter() {
         )}
 
         {section === "users" && (
-          <section className="kkAdminTablePanel">
-            <div className="kkAdminTableIntro"><div><span>HESAP DENETİMİ</span><h3>Kullanıcı ve satıcı doğrulama</h3><p>Risk puanı, işlem geçmişi ve doğrulama seviyesine göre hesapları yönetin.</p></div></div>
-            <div className="kkAdminUserTable">
-              <div className="kkAdminTableRow head"><span>Kullanıcı</span><span>Doğrulama</span><span>Satış / Hacim</span><span>Risk</span><span>Durum</span><span>İşlem</span></div>
-              {filteredUsers.map((item) => <div className="kkAdminTableRow" key={item.id}><span className="kkAdminUserCell"><b>{item.name.slice(0, 2).toUpperCase()}</b><em><strong>{item.name}</strong><small>{item.email}<br/>{item.lastSeen}</small></em></span><span>{item.level}</span><span><strong>{item.sales} satış</strong><small>{money(item.volume)}</small></span><span><b className={`kkAdminRiskNumber ${item.risk >= 70 ? "high" : item.risk >= 35 ? "medium" : "low"}`}>{item.risk}/100</b></span><span><i className={`kkAdminUserStatus ${item.status}`}>{item.status === "verified" ? "Doğrulanmış" : item.status === "review" ? "İncelemede" : "Limitli"}</i></span><span className="kkAdminRowActions"><button type="button" onClick={() => showToast(`${item.name} hesap özeti açıldı.`)}>Detay</button>{item.status !== "verified" && <button type="button" onClick={() => updateUser(item.id, "verified")}>Onayla</button>}{item.status !== "limited" && <button className="danger" type="button" onClick={() => updateUser(item.id, "limited")}>Limit koy</button>}</span></div>)}
-            </div>
-          </section>
+          <AdminAccountCenter compact />
         )}
 
         {section === "payments" && (
