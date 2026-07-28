@@ -6,8 +6,8 @@ import { useAuth } from "@/components/AuthProvider";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
 
 type ReviewStatus = "not_submitted" | "pending" | "approved" | "rejected" | "suspended";
-type AdminAction = "approve_seller" | "reject_seller" | "suspend_account" | "activate_account";
-type Filter = "all" | "seller_pending" | "active" | "suspended";
+type AdminAction = "approve_seller" | "reject_seller" | "suspend_account" | "activate_account" | "grant_admin" | "revoke_admin";
+type Filter = "all" | "seller_pending" | "admins" | "active" | "suspended";
 
 type Account = {
   id: string;
@@ -15,6 +15,7 @@ type Account = {
   fullName: string;
   username: string | null;
   role: "buyer" | "seller" | "admin";
+  adminLevel: "none" | "operator" | "owner";
   accountStatus: "active" | "suspended" | "closed";
   sellerStatus: "not_started" | "pending" | "active" | "rejected" | "suspended";
   emailVerified: boolean;
@@ -41,6 +42,10 @@ function dateLabel(value: string | null) {
 
 function roleLabel(role: Account["role"]) {
   return role === "admin" ? "Yönetici" : role === "seller" ? "Satıcı" : "Alıcı";
+}
+
+function adminLevelLabel(level: Account["adminLevel"]) {
+  return level === "owner" ? "Sahip yönetici" : level === "operator" ? "Operasyon yöneticisi" : "Yönetici değil";
 }
 
 function reviewLabel(status: ReviewStatus) {
@@ -98,6 +103,7 @@ export default function AdminAccountCenter({ compact = false }: { compact?: bool
 
   const filtered = useMemo(() => accounts.filter((account) => {
     if (filter === "seller_pending") return account.seller?.reviewStatus === "pending";
+    if (filter === "admins") return account.role === "admin";
     if (filter === "suspended") return account.accountStatus === "suspended";
     if (filter === "active") return account.accountStatus === "active" && (!account.seller || account.seller.reviewStatus === "approved");
     return true;
@@ -111,7 +117,7 @@ export default function AdminAccountCenter({ compact = false }: { compact?: bool
   }), [accounts]);
 
   async function runAction(account: Account, action: AdminAction) {
-    const needsReason = action === "reject_seller" || action === "suspend_account";
+    const needsReason = action === "reject_seller" || action === "suspend_account" || action === "grant_admin" || action === "revoke_admin";
     if (needsReason && reason.trim().length < 5) {
       setMessage({ type: "error", text: "Bu işlem için en az 5 karakterlik açıklama yazmalısın." });
       return;
@@ -123,7 +129,7 @@ export default function AdminAccountCenter({ compact = false }: { compact?: bool
         method: "PATCH",
         body: JSON.stringify({ action, reason: reason.trim() }),
       });
-      setMessage({ type: "success", text: action === "approve_seller" ? "Satıcı mağazası onaylandı." : action === "reject_seller" ? "Satıcı başvurusu düzeltmeye gönderildi." : action === "suspend_account" ? "Hesap askıya alındı." : "Hesap yeniden etkinleştirildi." });
+      setMessage({ type: "success", text: action === "approve_seller" ? "Satıcı mağazası onaylandı." : action === "reject_seller" ? "Satıcı başvurusu düzeltmeye gönderildi." : action === "suspend_account" ? "Hesap askıya alındı." : action === "activate_account" ? "Hesap yeniden etkinleştirildi." : action === "grant_admin" ? "Operasyon yöneticisi yetkisi verildi." : "Yönetici yetkisi kaldırıldı." });
       setReason("");
       await load();
     } catch (error) {
@@ -149,11 +155,12 @@ export default function AdminAccountCenter({ compact = false }: { compact?: bool
       <section className="adminAccountsToolbarV22">
         <label><span>Hesap ara</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Ad, e-posta, kullanıcı adı veya mağaza" /></label>
         <div>
-          {([['all','Tümü'],['seller_pending','Satıcı onayı'],['active','Aktif'],['suspended','Askıda']] as Array<[Filter,string]>).map(([value,label]) => <button type="button" className={filter === value ? "active" : ""} onClick={() => setFilter(value)} key={value}>{label}</button>)}
+          {([['all','Tümü'],['seller_pending','Satıcı onayı'],['admins','Yöneticiler'],['active','Aktif'],['suspended','Askıda']] as Array<[Filter,string]>).map(([value,label]) => <button type="button" className={filter === value ? "active" : ""} onClick={() => setFilter(value)} key={value}>{label}</button>)}
         </div>
         <button type="button" onClick={() => void load()} disabled={loading}>Yenile</button>
       </section>
 
+      {profile?.adminLevel === "owner" && <div className="adminOwnerSecurityV23"><span>SAHİP YÖNETİCİ GÜVENLİĞİ</span><p>Yönetici rolü verme ve kaldırma işlemleri için Authenticator ile iki adımlı doğrulama zorunludur.</p><Link href="/ayarlar?tab=security">Güvenliği yönet</Link></div>}
       {message && <div className={`adminAccountsNoticeV22 ${message.type}`} aria-live="polite">{message.text}</div>}
 
       <section className="adminAccountsLayoutV22">
@@ -162,7 +169,7 @@ export default function AdminAccountCenter({ compact = false }: { compact?: bool
             <button type="button" key={account.id} className={selected?.id === account.id ? "selected" : ""} onClick={() => { setSelected(account); setReason(""); }}>
               <span className="adminAccountAvatarV22">{account.fullName.slice(0, 2).toLocaleUpperCase("tr-TR")}</span>
               <span className="adminAccountIdentityV22"><strong>{account.fullName}</strong><small>{account.email}</small><em>{account.username ? `@${account.username}` : "Kullanıcı adı eksik"} · {account.city || "Şehir eksik"}</em></span>
-              <span className="adminAccountBadgesV22"><i className={`role-${account.role}`}>{roleLabel(account.role)}</i><i className={`status-${account.accountStatus}`}>{account.accountStatus === "active" ? "Aktif" : account.accountStatus === "suspended" ? "Askıda" : "Kapalı"}</i>{account.seller && <i className={`review-${account.seller.reviewStatus}`}>{reviewLabel(account.seller.reviewStatus)}</i>}</span>
+              <span className="adminAccountBadgesV22"><i className={`role-${account.role}`}>{account.role === "admin" ? adminLevelLabel(account.adminLevel) : roleLabel(account.role)}</i><i className={`status-${account.accountStatus}`}>{account.accountStatus === "active" ? "Aktif" : account.accountStatus === "suspended" ? "Askıda" : "Kapalı"}</i>{account.seller && <i className={`review-${account.seller.reviewStatus}`}>{reviewLabel(account.seller.reviewStatus)}</i>}</span>
             </button>
           )) : <div className="adminAccountsLoadingV22">Bu filtrede hesap bulunamadı.</div>}
         </div>
@@ -174,12 +181,15 @@ export default function AdminAccountCenter({ compact = false }: { compact?: bool
               <div><dt>E-posta</dt><dd>{selected.emailVerified ? "Doğrulandı" : "Eksik"}</dd></div>
               <div><dt>Telefon</dt><dd>{selected.phoneVerified ? "Doğrulandı" : "Eksik"}</dd></div>
               <div><dt>Profil</dt><dd>{selected.profileCompleted ? "Tamamlandı" : "Eksik"}</dd></div>
+              <div><dt>Yetki seviyesi</dt><dd>{selected.role === "admin" ? adminLevelLabel(selected.adminLevel) : roleLabel(selected.role)}</dd></div>
               <div><dt>Son giriş</dt><dd>{dateLabel(selected.lastLoginAt)}</dd></div>
             </dl>
             {selected.seller && <section className="adminSellerReviewV22"><span>SATICI BAŞVURUSU</span><h4>{selected.seller.name}</h4><p>iyzico: <strong>{selected.seller.payoutStatus === "active" ? "Aktif" : selected.seller.payoutStatus}</strong> · KapışKapış: <strong>{reviewLabel(selected.seller.reviewStatus)}</strong></p>{selected.seller.reviewNote && <blockquote>{selected.seller.reviewNote}</blockquote>}<Link href={`/magaza/${selected.seller.slug}`} target="_blank">Mağaza önizlemesini aç</Link></section>}
             <label className="adminReasonV22">İşlem açıklaması<textarea value={reason} onChange={(event) => setReason(event.target.value)} maxLength={500} placeholder="Onay notu veya reddetme/askıya alma gerekçesi" /></label>
             <div className="adminAccountActionsV22">
               {selected.seller?.reviewStatus === "pending" && <><button type="button" onClick={() => void runAction(selected, "approve_seller")} disabled={processing === selected.id}>Satıcıyı onayla</button><button type="button" className="warning" onClick={() => void runAction(selected, "reject_seller")} disabled={processing === selected.id}>Düzeltmeye gönder</button></>}
+              {profile?.adminLevel === "owner" && selected.role !== "admin" && <button type="button" className="adminRole" onClick={() => void runAction(selected, "grant_admin")} disabled={processing === selected.id}>Operasyon yöneticisi yap</button>}
+              {profile?.adminLevel === "owner" && selected.role === "admin" && selected.adminLevel === "operator" && <button type="button" className="warning" onClick={() => void runAction(selected, "revoke_admin")} disabled={processing === selected.id}>Yönetici yetkisini kaldır</button>}
               {selected.accountStatus === "active" ? <button type="button" className="danger" onClick={() => void runAction(selected, "suspend_account")} disabled={processing === selected.id || selected.role === "admin"}>Hesabı askıya al</button> : <button type="button" onClick={() => void runAction(selected, "activate_account")} disabled={processing === selected.id}>Hesabı etkinleştir</button>}
             </div>
           </> : <div className="adminAccountEmptyV22"><strong>Bir hesap seç</strong><p>Doğrulamalar, satıcı incelemesi ve hesap işlemleri burada görüntülenir.</p></div>}

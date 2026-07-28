@@ -82,7 +82,13 @@ export default function AuthExperience({ mode }: { mode: Mode }) {
         const profile = await fetchMyAccountProfile(data.user);
         const query = new URLSearchParams(window.location.search);
         const requested = query.get("returnTo") || query.get("redirect");
-        window.location.assign(isSafeInternalPath(requested) ? requested! : defaultRouteForRole(profile?.role ?? "buyer"));
+        const destination = isSafeInternalPath(requested) ? requested! : defaultRouteForRole(profile?.role ?? "buyer");
+        const { data: assurance } = await client.auth.mfa.getAuthenticatorAssuranceLevel();
+        if (assurance?.nextLevel === "aal2" && assurance.currentLevel !== "aal2") {
+          window.location.assign(`/mfa-dogrula?returnTo=${encodeURIComponent(destination)}`);
+          return;
+        }
+        window.location.assign(destination);
       } else {
         const nextPath = accountType === "seller" ? "/satici-dogrulama" : "/profil";
         const emailRedirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextPath)}`;

@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import type { User } from "@supabase/supabase-js";
 import { fetchMyAccountProfile, type AccountProfile } from "@/lib/auth";
 import { getSupabaseBrowserClient, supabaseConfigured } from "@/lib/supabase";
+import { registerSecuritySessionSilently } from "@/lib/account-security";
 
 type AuthContextValue = {
   user: User | null;
@@ -45,12 +46,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!active) return;
       setUser(data.user ?? null);
       await loadProfile(data.user ?? null);
+      if (data.user) void registerSecuritySessionSilently();
       if (active) setLoading(false);
     });
 
     const { data: listener } = client.auth.onAuthStateChange((_event, session) => {
       const nextUser = session?.user ?? null;
       setUser(nextUser);
+      if (nextUser) void registerSecuritySessionSilently();
       void loadProfile(nextUser).finally(() => {
         if (active) setLoading(false);
       });

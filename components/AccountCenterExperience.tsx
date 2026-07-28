@@ -5,6 +5,8 @@ import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "re
 import { fetchMyBidAccess, type BidAccess, supabaseConfigured } from "@/lib/auctions";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
 import { useAuth } from "@/components/AuthProvider";
+import AccountSecurityPanel from "@/components/AccountSecurityPanel";
+import { applySecurityAction } from "@/lib/account-security";
 
 type TabId = "profile" | "verification" | "security" | "payment" | "address" | "notifications" | "privacy";
 type IconName = "user" | "shield" | "check" | "card" | "pin" | "bell" | "eye" | "lock" | "phone" | "mail" | "id" | "key" | "device" | "trash" | "plus" | "arrow" | "alert";
@@ -63,6 +65,11 @@ export default function AccountCenterExperience() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [securityLoading, setSecurityLoading] = useState(false);
+
+  useEffect(() => {
+    const requested = new URLSearchParams(window.location.search).get("tab");
+    if (requested && tabs.some((tab) => tab.id === requested)) setActiveTab(requested as TabId);
+  }, []);
   const [fullName, setFullName] = useState("KapışKapış kullanıcısı");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -130,7 +137,10 @@ export default function AccountCenterExperience() {
       return notify("Mevcut şifren yanlış.");
     }
     const { error } = await client.auth.updateUser({ password: newPassword });
-    if (!error) await client.auth.signOut({ scope: "others" });
+    if (!error) {
+      await client.auth.signOut({ scope: "others" });
+      try { await applySecurityAction("password_changed"); } catch { /* Migration kurulmadıysa şifre değişikliği yine geçerlidir. */ }
+    }
     setSecurityLoading(false);
     if (error) return notify(error.message);
     setCurrentPassword("");
@@ -234,9 +244,9 @@ export default function AccountCenterExperience() {
                 <article><span><Icon name="key" /></span><div><h4>Şifre</h4><p>Son değişiklik 42 gün önce · Güçlü şifre kullanılıyor</p></div><button type="button" onClick={() => setPasswordOpen(!passwordOpen)}>Şifreyi değiştir</button></article>
                 {passwordOpen && <form className="passwordFormV8" onSubmit={changePassword}><label>Mevcut şifre<input type="password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} autoComplete="current-password" required minLength={6}/></label><label>Yeni şifre<input type="password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} autoComplete="new-password" required minLength={8}/></label><label>Yeni şifre tekrar<input type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} autoComplete="new-password" required minLength={8}/></label><button type="submit" disabled={securityLoading}>{securityLoading ? "Güncelleniyor…" : "Yeni şifreyi kaydet"}</button></form>}
                 <article><span><Icon name="lock" /></span><div><h4>Telefon doğrulaması</h4><p>{phoneVerified ? "Telefon numaran güvenli işlemler için doğrulandı." : "Teklif ve satış işlemleri için telefonunu doğrula."}</p></div><Link className="accountSecurityLinkV20" href="/hesap-dogrulama">{phoneVerified ? "Yönet" : "Doğrula"}</Link></article>
-                <article><span><Icon name="alert" /></span><div><h4>Yeni giriş uyarıları</h4><p>Cihaz ve konum tabanlı giriş uyarıları güvenlik kayıtları turunda etkinleştirilecek.</p></div><em className="accountComingSoonV20">Hazırlanıyor</em></article>
+                <article><span><Icon name="alert" /></span><div><h4>Yeni giriş uyarıları</h4><p>Yeni cihaz algılandığında hesabına kalıcı güvenlik bildirimi gönderilir.</p></div><em className="accountComingSoonV20">Aktif</em></article>
               </div>
-              <div className="activeSessionsV8"><div className="accountSubheadV8"><div><span>OTURUMLAR</span><h4>Aktif cihazlar</h4></div><button type="button" onClick={() => void closeOtherSessions()} disabled={securityLoading}>Diğerlerini kapat</button></div><article><span><Icon name="device" /></span><div><b>Bu tarayıcı</b><small>Geçerli KapışKapış oturumu</small></div><em>Bu cihaz</em></article></div>
+              <AccountSecurityPanel onNotify={notify} />
             </div>
           )}
 
