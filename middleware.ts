@@ -1,6 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import type { AccountRole, AccountStatus } from "@/lib/auth";
+import type { AccountRole, AccountStatus, SellerStatus } from "@/lib/auth";
 
 const authOnlyPrefixes = [
   "/profil",
@@ -21,14 +21,13 @@ const authOnlyPrefixes = [
   "/satici-dogrulama",
   "/hesap-dogrulama",
   "/sifre-yenile",
-  "/profil-tamamlama",
   "/mfa-dogrula",
 ];
 
-const sellerOnlyPrefixes = ["/ilan-olustur", "/ilanlarim"];
+const sellerOnlyPrefixes = ["/ilan-olustur", "/ilanlarim", "/magazam"];
 const adminOnlyPrefixes = ["/yonetim"];
 const authPages = ["/giris", "/kayit"];
-const verificationExemptPrefixes = ["/hesap-dogrulama", "/sifre-yenile", "/hesap-durumu", "/profil-tamamlama", "/mfa-dogrula"];
+const verificationExemptPrefixes = ["/hesap-dogrulama", "/sifre-yenile", "/hesap-durumu", "/mfa-dogrula"];
 const phoneRequiredPrefixes = ["/ilan-olustur", "/satici-dogrulama", "/teklif-guvencesi", "/teklif-guvencesi-sonucu"];
 
 function matches(pathname: string, prefixes: string[]) {
@@ -43,9 +42,14 @@ function normalizeStatus(value: unknown): AccountStatus {
   return value === "suspended" || value === "closed" ? value : "active";
 }
 
-function homeForRole(role: AccountRole) {
+function normalizeSellerStatus(value: unknown): SellerStatus {
+  return value === "pending" || value === "active" || value === "rejected" || value === "suspended" ? value : "not_started";
+}
+
+function homeForRole(role: AccountRole, sellerStatus: SellerStatus) {
   if (role === "admin") return "/yonetim";
   if (role === "seller") return "/ilanlarim";
+  if (["pending", "rejected", "suspended"].includes(sellerStatus)) return "/satici-dogrulama";
   return "/profil";
 }
 
@@ -90,11 +94,11 @@ export async function middleware(request: NextRequest) {
 
   let role: AccountRole = "buyer";
   let accountStatus: AccountStatus = "active";
-  let profileCompletedAt: string | null = null;
+  let sellerStatus: SellerStatus = "not_started";
 
   const { data: profile, error: profileError } = await supabase
     .from("kk_profiles")
-    .select("role,account_status,profile_completed_at")
+    .select("role,account_status,seller_status")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -105,7 +109,7 @@ export async function middleware(request: NextRequest) {
   } else {
     role = normalizeRole(profile.role);
     accountStatus = normalizeStatus(profile.account_status);
-    profileCompletedAt = typeof profile.profile_completed_at === "string" ? profile.profile_completed_at : null;
+    sellerStatus = normalizeSellerStatus(profile.seller_status);
   }
 
   if (accountStatus !== "active" && pathname !== "/hesap-durumu") {
@@ -120,11 +124,6 @@ export async function middleware(request: NextRequest) {
     });
   }
 
-  if (needsAuth && !verificationExempt && !profileCompletedAt) {
-    return redirectWithCookies(request, response, "/profil-tamamlama", {
-      returnTo: `${pathname}${request.nextUrl.search}`,
-    });
-  }
 
   if (matches(pathname, phoneRequiredPrefixes) && !user.phone_confirmed_at) {
     return redirectWithCookies(request, response, "/hesap-dogrulama", {
@@ -144,7 +143,7 @@ export async function middleware(request: NextRequest) {
 
   if (authPages.includes(pathname)) {
     const returnTo = request.nextUrl.searchParams.get("returnTo") || request.nextUrl.searchParams.get("redirect");
-    const safeReturn = returnTo?.startsWith("/") && !returnTo.startsWith("//") ? returnTo : homeForRole(role);
+    const safeReturn = returnTo?.startsWith("/") && !returnTo.startsWith("//") ? returnTo : homeForRole(role, sellerStatus);
     return redirectWithCookies(request, response, safeReturn);
   }
 
