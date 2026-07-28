@@ -34,15 +34,6 @@ export async function POST(request: NextRequest) {
       throw new PaymentHttpError(403, "Satıcı başvurusu için telefon numaranı doğrulamalısın.", "PHONE_NOT_VERIFIED");
     }
     const admin = getSupabaseAdminClient();
-    const { data: profile, error: profileError } = await admin
-      .from("kk_profiles")
-      .select("profile_completed_at")
-      .eq("id", user.id)
-      .maybeSingle();
-    if (profileError) throw new PaymentHttpError(503, "Kullanıcı profil şeması hazır değil.", profileError.code);
-    if (!profile?.profile_completed_at) {
-      throw new PaymentHttpError(403, "Satıcı başvurusu için kullanıcı profilini tamamlamalısın.", "PROFILE_INCOMPLETE");
-    }
     const body = await request.json() as SellerOnboardingInput;
     const status = await submitSellerOnboarding(admin, user, body);
     return NextResponse.json({ ok: true, status });
