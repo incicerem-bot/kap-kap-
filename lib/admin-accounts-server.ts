@@ -189,7 +189,7 @@ export async function applyAdminAccountAction(
     if (payoutError) throw new PaymentHttpError(500, "Satıcı ödeme hesabı okunamadı.", payoutError.code);
 
     if (action === "approve_seller") {
-      if (!profile.email_verified_at || !profile.phone_verified_at || !profile.profile_completed_at) throw new PaymentHttpError(422, "Satıcının e-posta, telefon ve profil doğrulamalarının tamamlanması gerekiyor.");
+      if (!profile.email_verified_at || !profile.phone_verified_at) throw new PaymentHttpError(422, "Satıcının e-posta ve telefon doğrulamalarının tamamlanması gerekiyor.");
       if (payout?.onboarding_status !== "active" || !payout.submerchant_key) throw new PaymentHttpError(422, "iyzico alt üye hesabı aktif olmayan satıcı onaylanamaz.");
       await admin.from("kk_sellers").update({ platform_review_status: "approved", platform_review_note: reason || null, platform_reviewed_at: new Date().toISOString(), platform_reviewed_by: adminUser.id, is_active: true, verified: true }).eq("id", seller.id);
       await admin.from("kk_profiles").update({ role: profile.role === "admin" ? "admin" : "seller", seller_status: "active" }).eq("id", targetUserId);

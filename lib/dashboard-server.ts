@@ -250,7 +250,7 @@ export async function buildAccountDashboard(admin: SupabaseClient, user: User): 
   const tasks: DashboardTask[] = [
     { key: "email", title: "E-posta doğrulaması", description: emailVerified ? "E-posta adresin doğrulandı." : "Hesap güvenliği için e-posta adresini doğrula.", href: "/hesap-dogrulama?required=email", complete: emailVerified, important: !emailVerified },
     { key: "phone", title: "Telefon doğrulaması", description: phoneVerified ? "Telefon numaran doğrulandı." : "Teklif ve satış işlemleri için telefonunu doğrula.", href: "/hesap-dogrulama?required=phone", complete: phoneVerified, important: !phoneVerified },
-    { key: "profile", title: "Profil bilgileri", description: profileCompleted ? "Temel profil bilgilerin tamamlandı." : "Kullanıcı adı, doğum tarihi ve şehir bilgilerini tamamla.", href: "/profil-tamamlama", complete: profileCompleted, important: !profileCompleted },
+    { key: "profile", title: "Profil bilgileri", description: profileCompleted ? "İsteğe bağlı profil bilgilerin kayıtlı." : "Profil bilgileri isteğe bağlıdır; hesabını kullanmanı engellemez.", href: "/ayarlar?tab=profile", complete: true, important: false },
   ];
 
   if (role === "buyer") {

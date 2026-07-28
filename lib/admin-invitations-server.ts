@@ -53,7 +53,7 @@ function destinationForRole(role: InvitationRole) {
 
 function invitationRedirect(origin: string, role: InvitationRole) {
   const destination = destinationForRole(role);
-  const passwordPage = `/sifre-yenile?invite=1&returnTo=${encodeURIComponent(`/profil-tamamlama?returnTo=${encodeURIComponent(destination)}`)}`;
+  const passwordPage = `/sifre-yenile?invite=1&returnTo=${encodeURIComponent(destination)}`;
   return `${origin}/auth/callback?next=${encodeURIComponent(passwordPage)}`;
 }
 
