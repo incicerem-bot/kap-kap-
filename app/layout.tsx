@@ -20,6 +20,7 @@ import "./account-activation-v20.css";
 import "./profile-onboarding-v21.css";
 import "./admin-accounts-v22.css";
 import "./security-v23.css";
+import "./dashboard-v24.css";
 import { AuthProvider } from "@/components/AuthProvider";
 
 export const metadata: Metadata = {

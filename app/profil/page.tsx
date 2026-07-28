@@ -6,9 +6,9 @@ export default function ProfilePage() {
   return (
     <MarketplaceShell
       eyebrow="HESAP MERKEZİ"
-      title="Profilim"
-      description="Satış performansını, bakiyeni ve hesap güvenliğini tek ekrandan yönet."
-      action={<Link href="/ayarlar" className="profileHeaderAction">Profili düzenle</Link>}
+      title="Hesap Özeti"
+      description="Rolüne özel işlemlerini, doğrulamalarını ve son hareketlerini tek ekrandan yönet."
+      action={<Link href="/ayarlar" className="profileHeaderAction">Ayarlar ve güvenlik</Link>}
     >
       <ProfileDashboard />
     </MarketplaceShell>
