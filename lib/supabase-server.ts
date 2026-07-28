@@ -34,23 +34,13 @@ export function getBearerToken(request: NextRequest) {
   return match?.[1]?.trim() || null;
 }
 
-export async function requireRequestUser(request: NextRequest): Promise<{ user: User; token: string }> {
+export async function requireAuthenticatedRequestUser(request: NextRequest): Promise<{ user: User; token: string }> {
   const token = getBearerToken(request);
   if (!token) throw new PaymentHttpError(401, "Oturum bulunamadı. Lütfen yeniden giriş yap.");
 
   const admin = getSupabaseAdminClient();
   const { data, error } = await admin.auth.getUser(token);
   if (error || !data.user) throw new PaymentHttpError(401, "Oturum geçersiz veya süresi dolmuş.");
-
-  const { data: profile, error: profileError } = await admin
-    .from("kk_profiles")
-    .select("account_status")
-    .eq("id", data.user.id)
-    .maybeSingle();
-  if (profileError) throw new PaymentHttpError(503, "Yetkilendirme şeması hazır değil. Supabase rol migration dosyasını çalıştır.", profileError.code);
-  if (!profile) throw new PaymentHttpError(403, "Kullanıcı profili bulunamadı.");
-  if (profile.account_status === "suspended") throw new PaymentHttpError(403, "Hesabın geçici olarak kısıtlandı.", "ACCOUNT_SUSPENDED");
-  if (profile.account_status === "closed") throw new PaymentHttpError(403, "Hesabın kapalı.", "ACCOUNT_CLOSED");
 
   const claims = decodeJwtPayload(token);
   if (claims.session_id && /^[0-9a-f-]{36}$/i.test(claims.session_id)) {
@@ -65,6 +55,22 @@ export async function requireRequestUser(request: NextRequest): Promise<{ user: 
   }
 
   return { user: data.user, token };
+}
+
+export async function requireRequestUser(request: NextRequest): Promise<{ user: User; token: string }> {
+  const result = await requireAuthenticatedRequestUser(request);
+  const admin = getSupabaseAdminClient();
+  const { data: profile, error: profileError } = await admin
+    .from("kk_profiles")
+    .select("account_status")
+    .eq("id", result.user.id)
+    .maybeSingle();
+  if (profileError) throw new PaymentHttpError(503, "Yetkilendirme şeması hazır değil. Supabase rol migration dosyasını çalıştır.", profileError.code);
+  if (!profile) throw new PaymentHttpError(403, "Kullanıcı profili bulunamadı.");
+  if (profile.account_status === "suspended") throw new PaymentHttpError(403, "Hesabın geçici olarak kısıtlandı.", "ACCOUNT_SUSPENDED");
+  if (profile.account_status === "closed") throw new PaymentHttpError(403, "Hesabın kapalı.", "ACCOUNT_CLOSED");
+
+  return result;
 }
 
 export async function requireAdminRequestUser(request: NextRequest): Promise<{ user: User; token: string }> {
