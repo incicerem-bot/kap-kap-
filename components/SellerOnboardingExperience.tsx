@@ -22,6 +22,23 @@ type StatusPayload = {
   updatedAt: string | null;
   platformReviewStatus: "not_submitted" | "pending" | "approved" | "rejected" | "suspended";
   platformReviewNote: string | null;
+  reviewSubmittedAt: string | null;
+  reviewRevision: number;
+  reviewedAt: string | null;
+  readiness: {
+    emailVerified: boolean;
+    phoneVerified: boolean;
+    storeReady: boolean;
+    contactReady: boolean;
+    payoutReady: boolean;
+    readyForApproval: boolean;
+  };
+  history: Array<{
+    id: string;
+    eventType: "submitted" | "resubmitted" | "approved" | "rejected" | "suspended" | "reactivated";
+    note: string | null;
+    createdAt: string;
+  }>;
 };
 
 type FormState = {
@@ -100,6 +117,7 @@ export default function SellerOnboardingExperience() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [resubmitting, setResubmitting] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
@@ -203,6 +221,25 @@ export default function SellerOnboardingExperience() {
     }
   };
 
+  const resubmitReview = async () => {
+    setResubmitting(true);
+    setError("");
+    setMessage("");
+    try {
+      const body = await apiCall("/api/seller/onboarding/review", {
+        method: "POST",
+        body: JSON.stringify({ note: "Yönetici notundaki düzeltmeler tamamlandı." }),
+      });
+      setStatus(body.status);
+      await refreshProfile();
+      setMessage("Mağaza başvurun yeniden KapışKapış incelemesine gönderildi.");
+    } catch (reviewError) {
+      setError(reviewError instanceof Error ? reviewError.message : "Başvuru yeniden incelemeye gönderilemedi.");
+    } finally {
+      setResubmitting(false);
+    }
+  };
+
   if (!supabaseConfigured) {
     return <section className="sellerOnboardingStateV17"><Icon name="alert"/><h2>Supabase bağlantısı bulunamadı</h2><p>Satıcı doğrulama sistemi için Vercel ortam değişkenlerini tamamlamalısın.</p></section>;
   }
@@ -225,7 +262,8 @@ export default function SellerOnboardingExperience() {
           <p>{copy.description}</p>
         </div>
         <div className="sellerOnboardingHeroActionsV17">
-          {status?.providerExternalId && (!paymentActive || status?.platformReviewStatus === "rejected") && <button type="button" onClick={sync} disabled={syncing}><Icon name="sync"/>{syncing ? "Kontrol ediliyor" : paymentActive ? "Tekrar incelemeye gönder" : "iyzico durumunu yenile"}</button>}
+          {status?.providerExternalId && !paymentActive && <button type="button" onClick={sync} disabled={syncing}><Icon name="sync"/>{syncing ? "Kontrol ediliyor" : "iyzico durumunu yenile"}</button>}
+          {paymentActive && status?.platformReviewStatus === "rejected" && <button type="button" onClick={resubmitReview} disabled={resubmitting || !status.readiness?.readyForApproval}><Icon name="sync"/>{resubmitting ? "Gönderiliyor" : "Yeniden incelemeye gönder"}</button>}
           {active && <Link href="/ilan-olustur">İlan oluştur <Icon name="arrow"/></Link>}
         </div>
       </section>
@@ -249,14 +287,26 @@ export default function SellerOnboardingExperience() {
           </dl>
         </section>
       ) : paymentActive ? (
-        <section className="sellerOnboardingActiveV17 sellerOnboardingReviewV21">
-          <div className="sellerOnboardingActiveMarkV17"><Icon name={status?.platformReviewStatus === "rejected" || status?.platformReviewStatus === "suspended" ? "alert" : "clock"}/></div>
-          <div><span>KAPIŞKAPIŞ MAĞAZA ONAYI</span><h3>{status?.platformReviewStatus === "rejected" ? "Başvurunda düzeltme gerekiyor" : status?.platformReviewStatus === "suspended" ? "Mağazan geçici olarak askıda" : "Mağaza incelemen devam ediyor"}</h3><p>{status?.platformReviewNote || "Ödeme hesabın oluşturuldu. Güven ekibi mağaza adı, hesap doğrulamaları ve satış uygunluğunu kontrol ediyor."}</p></div>
-          <dl>
-            <div><dt>iyzico hesabı</dt><dd>Aktif</dd></div>
-            <div><dt>Platform incelemesi</dt><dd>{status?.platformReviewStatus === "rejected" ? "Düzeltme gerekli" : status?.platformReviewStatus === "suspended" ? "Askıda" : "Bekliyor"}</dd></div>
-            <div><dt>Başvuru tarihi</dt><dd>{dateLabel(status?.submittedAt ?? null)}</dd></div>
-          </dl>
+        <section className="sellerApplicationReviewV40">
+          <div className="sellerApplicationReviewHeadV40">
+            <div className="sellerOnboardingActiveMarkV17"><Icon name={status?.platformReviewStatus === "rejected" || status?.platformReviewStatus === "suspended" ? "alert" : "clock"}/></div>
+            <div><span>KAPIŞKAPIŞ MAĞAZA ONAYI</span><h3>{status?.platformReviewStatus === "rejected" ? "Başvurunda düzeltme gerekiyor" : status?.platformReviewStatus === "suspended" ? "Mağazan geçici olarak askıda" : "Mağaza incelemen devam ediyor"}</h3><p>{status?.platformReviewNote || "Ödeme hesabın oluşturuldu. Güven ekibi mağaza adı, iletişim doğrulamaları ve ödeme hesabını kontrol ediyor."}</p></div>
+            <small>Başvuru #{Math.max(1, status?.reviewRevision ?? 1)}<br/>{dateLabel(status?.reviewSubmittedAt ?? status?.submittedAt ?? null)}</small>
+          </div>
+          <div className="sellerApplicationChecklistV40">
+            {([
+              ["E-posta doğrulaması", status?.readiness?.emailVerified],
+              ["Telefon doğrulaması", status?.readiness?.phoneVerified],
+              ["Mağaza bilgileri", status?.readiness?.storeReady],
+              ["Satıcı iletişim bilgileri", status?.readiness?.contactReady],
+              ["iyzico ödeme hesabı", status?.readiness?.payoutReady],
+            ] as Array<[string, boolean | undefined]>).map(([label, done]) => <article className={done ? "done" : "missing"} key={label}><b>{done ? "✓" : "!"}</b><div><strong>{label}</strong><small>{done ? "Tamamlandı" : "Eksik veya doğrulanmadı"}</small></div></article>)}
+          </div>
+          {status?.platformReviewStatus === "rejected" && <div className="sellerApplicationResubmitV40"><div><strong>Yönetici notunu düzelttin mi?</strong><p>Eksik adımları tamamladıktan sonra mağazanı yeniden incelemeye gönder. Yeni başvuru aynı iyzico hesabını kullanır.</p></div><button type="button" onClick={resubmitReview} disabled={resubmitting || !status.readiness?.readyForApproval}>{resubmitting ? "Gönderiliyor…" : "Yeniden incelemeye gönder"}</button></div>}
+          <div className="sellerApplicationHistoryV40">
+            <h4>Başvuru geçmişi</h4>
+            {status?.history?.length ? status.history.map((event) => <article key={event.id}><i/><div><strong>{event.eventType === "approved" ? "Mağaza onaylandı" : event.eventType === "rejected" ? "Düzeltme istendi" : event.eventType === "resubmitted" ? "Yeniden incelemeye gönderildi" : event.eventType === "suspended" ? "Mağaza askıya alındı" : event.eventType === "reactivated" ? "İnceleme yeniden açıldı" : "Başvuru gönderildi"}</strong><small>{dateLabel(event.createdAt)}</small>{event.note && <p>{event.note}</p>}</div></article>) : <p>Başvuru geçmişi Paket 40 kurulumu sonrasında burada görünecek.</p>}
+          </div>
         </section>
       ) : (
         <form className="sellerOnboardingFormV17" onSubmit={submit}>

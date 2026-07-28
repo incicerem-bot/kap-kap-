@@ -32,8 +32,30 @@ type Account = {
     name: string;
     reviewStatus: ReviewStatus;
     reviewNote: string | null;
+    reviewSubmittedAt: string | null;
+    reviewRevision: number;
+    reviewedAt: string | null;
     payoutStatus: string;
     payoutActivatedAt: string | null;
+    payoutSubmittedAt: string | null;
+    providerCheckedAt: string | null;
+    merchantType: string | null;
+    maskedIban: string | null;
+    contactName: string | null;
+    contactSurname: string | null;
+    contactEmail: string | null;
+    contactPhoneMasked: string | null;
+    legalCompanyTitle: string | null;
+    taxOffice: string | null;
+    lastError: string | null;
+    readiness: {
+      emailVerified: boolean;
+      phoneVerified: boolean;
+      storeReady: boolean;
+      contactReady: boolean;
+      payoutReady: boolean;
+      readyForApproval: boolean;
+    };
   };
 };
 
@@ -283,10 +305,34 @@ export default function AdminAccountCenter({ compact = false }: { compact?: bool
               <div><dt>Yetki seviyesi</dt><dd>{selected.role === "admin" ? adminLevelLabel(selected.adminLevel) : roleLabel(selected.role)}</dd></div>
               <div><dt>Son giriş</dt><dd>{dateLabel(selected.lastLoginAt)}</dd></div>
             </dl>
-            {selected.seller && <section className="adminSellerReviewV22"><span>SATICI BAŞVURUSU</span><h4>{selected.seller.name}</h4><p>iyzico: <strong>{selected.seller.payoutStatus === "active" ? "Aktif" : selected.seller.payoutStatus}</strong> · KapışKapış: <strong>{reviewLabel(selected.seller.reviewStatus)}</strong></p>{selected.seller.reviewNote && <blockquote>{selected.seller.reviewNote}</blockquote>}<Link href={`/magaza/${selected.seller.slug}`} target="_blank">Mağaza önizlemesini aç</Link></section>}
+            {selected.seller && <section className="adminSellerReviewV22 adminSellerReviewV40">
+              <div className="adminSellerReviewHeadV40"><div><span>SATICI BAŞVURUSU</span><h4>{selected.seller.name}</h4><p>Başvuru #{Math.max(1, selected.seller.reviewRevision)} · {dateLabel(selected.seller.reviewSubmittedAt)}</p></div><i className={`review-${selected.seller.reviewStatus}`}>{reviewLabel(selected.seller.reviewStatus)}</i></div>
+              <div className="adminSellerChecklistV40">
+                {([
+                  ["E-posta", selected.seller.readiness.emailVerified],
+                  ["Telefon", selected.seller.readiness.phoneVerified],
+                  ["Mağaza adı", selected.seller.readiness.storeReady],
+                  ["İletişim", selected.seller.readiness.contactReady],
+                  ["iyzico hesabı", selected.seller.readiness.payoutReady],
+                ] as Array<[string, boolean]>).map(([label, done]) => <div className={done ? "done" : "missing"} key={label}><b>{done ? "✓" : "!"}</b><span>{label}</span><small>{done ? "Hazır" : "Eksik"}</small></div>)}
+              </div>
+              <dl className="adminSellerDetailsV40">
+                <div><dt>Satıcı türü</dt><dd>{selected.seller.merchantType === "PERSONAL" ? "Bireysel" : selected.seller.merchantType === "PRIVATE_COMPANY" ? "Şahıs şirketi" : selected.seller.merchantType ? "Limited / anonim" : "—"}</dd></div>
+                <div><dt>Yetkili</dt><dd>{[selected.seller.contactName, selected.seller.contactSurname].filter(Boolean).join(" ") || "—"}</dd></div>
+                <div><dt>İletişim</dt><dd>{selected.seller.contactEmail || "—"}<br/>{selected.seller.contactPhoneMasked || ""}</dd></div>
+                <div><dt>IBAN</dt><dd>{selected.seller.maskedIban || "—"}</dd></div>
+                {selected.seller.legalCompanyTitle && <div><dt>Şirket</dt><dd>{selected.seller.legalCompanyTitle}</dd></div>}
+                {selected.seller.taxOffice && <div><dt>Vergi dairesi</dt><dd>{selected.seller.taxOffice}</dd></div>}
+                <div><dt>iyzico aktivasyon</dt><dd>{dateLabel(selected.seller.payoutActivatedAt)}</dd></div>
+                <div><dt>Son sağlayıcı kontrolü</dt><dd>{dateLabel(selected.seller.providerCheckedAt)}</dd></div>
+              </dl>
+              {selected.seller.lastError && <div className="adminSellerProviderErrorV40"><strong>iyzico mesajı</strong><p>{selected.seller.lastError}</p></div>}
+              {selected.seller.reviewNote && <blockquote>{selected.seller.reviewNote}</blockquote>}
+              <div className="adminSellerReviewFootV40"><span className={selected.seller.readiness.readyForApproval ? "ready" : "blocked"}>{selected.seller.readiness.readyForApproval ? "Onaya hazır" : "Eksikler tamamlanmadan onaylanamaz"}</span><Link href={`/magaza/${selected.seller.slug}`} target="_blank">Mağaza önizlemesini aç</Link></div>
+            </section>}
             <label className="adminReasonV22">İşlem açıklaması<textarea value={reason} onChange={(event) => setReason(event.target.value)} maxLength={500} placeholder="Onay notu veya reddetme/askıya alma gerekçesi" /></label>
             <div className="adminAccountActionsV22">
-              {selected.seller?.reviewStatus === "pending" && <><button type="button" onClick={() => void runAction(selected, "approve_seller")} disabled={processing === selected.id}>Satıcıyı onayla</button><button type="button" className="warning" onClick={() => void runAction(selected, "reject_seller")} disabled={processing === selected.id}>Düzeltmeye gönder</button></>}
+              {selected.seller?.reviewStatus === "pending" && <><button type="button" onClick={() => void runAction(selected, "approve_seller")} disabled={processing === selected.id || !selected.seller.readiness.readyForApproval} title={!selected.seller.readiness.readyForApproval ? "Eksik doğrulamalar tamamlanmadan onay verilemez." : undefined}>Satıcıyı onayla</button><button type="button" className="warning" onClick={() => void runAction(selected, "reject_seller")} disabled={processing === selected.id}>Düzeltmeye gönder</button></>}
               {profile.adminLevel === "owner" && selected.role !== "admin" && <button type="button" className="adminRole" onClick={() => void runAction(selected, "grant_admin")} disabled={processing === selected.id}>Operasyon yöneticisi yap</button>}
               {profile.adminLevel === "owner" && selected.role === "admin" && selected.adminLevel === "operator" && <button type="button" className="warning" onClick={() => void runAction(selected, "revoke_admin")} disabled={processing === selected.id}>Yönetici yetkisini kaldır</button>}
               {selected.accountStatus === "active" ? <button type="button" className="danger" onClick={() => void runAction(selected, "suspend_account")} disabled={processing === selected.id || selected.role === "admin"}>Hesabı askıya al</button> : <button type="button" onClick={() => void runAction(selected, "activate_account")} disabled={processing === selected.id}>Hesabı etkinleştir</button>}
