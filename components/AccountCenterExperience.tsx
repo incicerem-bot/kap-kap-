@@ -200,10 +200,10 @@ export default function AccountCenterExperience() {
         <section className="accountContentV8">
           {activeTab === "profile" && (
             <div>
-              <header className="accountSectionHeadV8"><div><span>PROFİL</span><h3>Hesap ve profil bilgileri</h3><p>Teklif ve satış işlemlerinde kullanılan doğrulanmış hesap bilgilerini görüntüle.</p></div><Link className="accountSecurityLinkV20" href="/profil-tamamlama">Profili düzenle</Link></header>
+              <header className="accountSectionHeadV8"><div><span>PROFİL</span><h3>Hesap bilgileri</h3><p>Temel hesap ve iletişim bilgilerini görüntüle. Ek profil bilgileri zorunlu değildir.</p></div></header>
               <div className="accountProfileMediaV8">
                 <div className="accountAvatarLargeV8">{initials}</div>
-                <div><b>{profile?.fullName || fullName}</b><p>{profile?.username ? `@${profile.username}` : "Kullanıcı adı henüz oluşturulmadı"}</p><div><Link className="accountVerifyLinkV20" href="/profil-tamamlama">Profil bilgilerini tamamla</Link></div></div>
+                <div><b>{profile?.fullName || fullName}</b><p>{profile?.username ? `@${profile.username}` : "Kullanıcı adı eklenmemiş"}</p></div>
               </div>
               <div className="accountFormGridV8">
                 <label>Ad soyad<input value={profile?.fullName || fullName} readOnly /></label>
@@ -214,7 +214,7 @@ export default function AccountCenterExperience() {
                 <label>Hesap türü<div className="accountRoleFieldV19"><span>{profile?.role === "admin" ? "Yönetici hesabı" : profile?.role === "seller" ? "Satıcı hesabı" : "Alıcı hesabı"}</span>{profile?.role === "buyer" && <Link href="/satici-dogrulama">Satıcı ol</Link>}</div></label>
               </div>
               <div className="paymentNoticeV8"><Icon name="shield" /><div><b>Kimlik bilgilerin herkese açık gösterilmez</b><p>Doğum tarihi ve iletişim bilgileri yalnız yaş, güvenlik ve işlem doğrulaması için kullanılır. Mağazada kullanıcı adı, şehir ve güven rozetleri görünür.</p></div></div>
-              <footer className="accountFormFooterV8"><span>{profile?.profileCompletedAt ? "Profil bilgileri tamamlandı." : "Teklif ve satış işlemleri için profilini tamamlamalısın."}</span><Link className="accountSecurityLinkV20" href="/profil-tamamlama">{profile?.profileCompletedAt ? "Bilgileri güncelle" : "Profili tamamla"}</Link></footer>
+              <footer className="accountFormFooterV8"><span>Profil tamamlama zorunluluğu kaldırıldı. Teklif ve satış yetkileri iletişim, ödeme ve satıcı doğrulamalarına göre çalışır.</span></footer>
             </div>
           )}
 
@@ -232,7 +232,7 @@ export default function AccountCenterExperience() {
                   <article key={String(title)}><span><Icon name={icon as IconName} /></span><div><h4>{String(title)}</h4><p>{String(helper)}</p></div><em className={complete ? "" : "pending"}>{complete ? <><Icon name="check" />Tamamlandı</> : "Bekliyor"}</em></article>
                 ))}
               </div>
-              <Link href="/hesap-dogrulama" className="accountVerificationActionV20">E-posta, telefon ve profil doğrulamasını yönet <Icon name="arrow" /></Link>
+              <Link href="/hesap-dogrulama" className="accountVerificationActionV20">E-posta ve telefon doğrulamasını yönet <Icon name="arrow" /></Link>
               <div className="verificationBenefitsV8"><div><Icon name="shield" /></div><div><span>AKILLI TEKLİF GÜVENCESİ</span><h4>{bidAccess.cardVerified ? "Kart doğrulandı" : "Teklif sırasında doğrulanacak"}</h4><p>{money(bidAccess.securityRequired)} aktif risk için ayrıldı · {money(bidAccess.refundableSecurity)} iade edilebilir.</p></div><button type="button" onClick={() => { window.location.href = "/teklif-guvencesi"; }}>Güvenceyi yönet</button></div>
             </div>
           )}

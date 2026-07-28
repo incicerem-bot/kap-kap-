@@ -31,8 +31,7 @@ export default function AccountVerificationExperience() {
 
   const emailVerified = profile?.emailVerified ?? Boolean(user?.email_confirmed_at);
   const phoneVerified = profile?.phoneVerified ?? Boolean(user?.phone_confirmed_at);
-  const profileComplete = Boolean(profile?.profileCompletedAt);
-  const completed = [emailVerified, phoneVerified, profileComplete].filter(Boolean).length;
+  const completed = [emailVerified, phoneVerified].filter(Boolean).length;
   const returnToRaw = searchParams.get("returnTo");
   const returnTo = isSafeInternalPath(returnToRaw) ? returnToRaw! : profile?.role === "seller" ? "/ilanlarim" : "/profil";
   const required = searchParams.get("required");
@@ -128,7 +127,7 @@ export default function AccountVerificationExperience() {
     <div className="verificationCenterV20">
       <section className="verificationHeroV20">
         <div><span>HESAP AKTİVASYONU</span><h2>{headline}</h2><p>E-posta ve telefon doğrulaması hesap güvenliğini artırır; satıcı ve teklif işlemleri için gerçek kullanıcı bağlantısı sağlar.</p></div>
-        <div className="verificationScoreV20"><strong>{completed}/3</strong><span>temel adım tamamlandı</span><i><b style={{ width: `${(completed / 3) * 100}%` }} /></i></div>
+        <div className="verificationScoreV20"><strong>{completed}/2</strong><span>temel doğrulama tamamlandı</span><i><b style={{ width: `${(completed / 2) * 100}%` }} /></i></div>
       </section>
 
       {message && <div className={`verificationMessageV20 ${message.type}`} aria-live="polite">{message.text}</div>}
@@ -156,11 +155,6 @@ export default function AccountVerificationExperience() {
           )}
         </article>
 
-        <article className={profileComplete ? "complete" : ""}>
-          <header><i>3</i><div><small>PROFİL</small><h3>{profileComplete ? "Profil bilgileri tamamlandı" : "Profil bilgilerini tamamla"}</h3></div><em>{profileComplete ? "Tamamlandı" : "Gerekli"}</em></header>
-          <p>{profileComplete ? `@${profile?.username || "kullanici"} · ${profile?.city || "Konum tamamlandı"}` : "Kullanıcı adı, doğum tarihi ve şehir bilgilerini güvenli profil ekranında tamamla."}</p>
-          <Link href={`/profil-tamamlama?returnTo=${encodeURIComponent(returnTo)}`}>{profileComplete ? "Profili düzenle" : "Profili tamamla"}</Link>
-        </article>
       </section>
 
       <section className="verificationRoleV20">
@@ -169,8 +163,8 @@ export default function AccountVerificationExperience() {
       </section>
 
       <footer className="verificationFooterV20">
-        <span>{emailVerified && phoneVerified && profileComplete ? "Temel hesap aktivasyonun tamamlandı." : "Eksik adımları tamamladığında korumalı işlemler açılır."}</span>
-        <Link href={returnTo} className={emailVerified && phoneVerified && profileComplete ? "ready" : ""}>Devam et</Link>
+        <span>{emailVerified && phoneVerified ? "Temel hesap doğrulaman tamamlandı." : "Eksik doğrulamaları tamamladığında korumalı işlemler açılır."}</span>
+        <Link href={returnTo} className={emailVerified && phoneVerified ? "ready" : ""}>Devam et</Link>
       </footer>
     </div>
   );

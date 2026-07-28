@@ -28,7 +28,7 @@ export default function PasswordRecoveryExperience() {
     const invitation = query.get("invite") === "1";
     const requested = query.get("returnTo");
     setIsInvitation(invitation);
-    setReturnTo(requested && requested.startsWith("/") && !requested.startsWith("//") ? requested : invitation ? "/profil-tamamlama" : "/ayarlar?password=updated");
+    setReturnTo(requested && requested.startsWith("/") && !requested.startsWith("//") ? requested : invitation ? "/profil" : "/ayarlar?password=updated");
     const client = getSupabaseBrowserClient();
     if (!client) return;
     void client.auth.getUser().then(({ data }) => setReady(Boolean(data.user))).finally(() => setChecking(false));
@@ -67,7 +67,7 @@ export default function PasswordRecoveryExperience() {
         <span className="activationIconV20">●</span>
         <small>{isInvitation ? "DAVETLİ HESAP KURULUMU" : "ŞİFRE GÜVENLİĞİ"}</small>
         <h1>{isInvitation ? "KapışKapış şifreni oluştur" : "Yeni şifreni oluştur"}</h1>
-        <p>{isInvitation ? "Yönetici davetini kabul etmek için güçlü bir şifre belirle. Sonraki adımda profil bilgilerini tamamlayacaksın." : "Yeni şifren önceki şifrenden farklı ve yalnızca KapışKapış hesabında kullandığın güçlü bir şifre olmalı."}</p>
+        <p>{isInvitation ? "Yönetici davetini kabul etmek için güçlü bir şifre belirle. Ardından rolüne uygun hesap merkezine yönlendirileceksin." : "Yeni şifren önceki şifrenden farklı ve yalnızca KapışKapış hesabında kullandığın güçlü bir şifre olmalı."}</p>
         {checking ? (
           <div className="activationMessageV20">Şifre yenileme bağlantısı doğrulanıyor…</div>
         ) : !ready ? (

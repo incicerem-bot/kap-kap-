@@ -229,7 +229,7 @@ export default function AdminAccountCenter({ compact = false }: { compact?: bool
 
       <section className="adminInvitationCenterV25">
         <div className="adminInvitationIntroV25">
-          <div><span>HESAP DAVETİ</span><h3>Yeni kullanıcıyı güvenli davet et</h3><p>Alıcı, satıcı veya operasyon yöneticisi için tek kullanımlık Supabase daveti gönder. Davet edilen kişi önce şifresini ve profilini tamamlar.</p></div>
+          <div><span>HESAP DAVETİ</span><h3>Yeni kullanıcıyı güvenli davet et</h3><p>Alıcı, satıcı veya operasyon yöneticisi için tek kullanımlık Supabase daveti gönder. Davet edilen kişi şifresini oluşturur ve rolüne uygun merkeze yönlendirilir.</p></div>
           <small>Davet bağlantısı 24 saat geçerlidir.</small>
         </div>
         <form onSubmit={sendInvitation} className="adminInvitationFormV25">
@@ -279,7 +279,7 @@ export default function AdminAccountCenter({ compact = false }: { compact?: bool
             <dl>
               <div><dt>E-posta</dt><dd>{selected.emailVerified ? "Doğrulandı" : "Eksik"}</dd></div>
               <div><dt>Telefon</dt><dd>{selected.phoneVerified ? "Doğrulandı" : "Eksik"}</dd></div>
-              <div><dt>Profil</dt><dd>{selected.profileCompleted ? "Tamamlandı" : "Eksik"}</dd></div>
+              <div><dt>Ek profil bilgisi</dt><dd>{selected.profileCompleted ? "Kayıtlı" : "İsteğe bağlı"}</dd></div>
               <div><dt>Yetki seviyesi</dt><dd>{selected.role === "admin" ? adminLevelLabel(selected.adminLevel) : roleLabel(selected.role)}</dd></div>
               <div><dt>Son giriş</dt><dd>{dateLabel(selected.lastLoginAt)}</dd></div>
             </dl>
