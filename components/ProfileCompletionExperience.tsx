@@ -38,7 +38,7 @@ function ageFromBirthDate(value: string) {
 export default function ProfileCompletionExperience() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, profile, refreshProfile } = useAuth();
+  const { user, profile } = useAuth();
   const [form, setForm] = useState<FormState>({
     fullName: profile?.fullName ?? "",
     username: profile?.username ?? "",
@@ -140,12 +140,16 @@ export default function ProfileCompletionExperience() {
           district: form.district.trim() || null,
         }),
       });
-      const payload = await response.json().catch(() => ({})) as { ok?: boolean; message?: string };
-      if (!response.ok || !payload.ok) throw new Error(payload.message || "Profil bilgileri kaydedilemedi.");
+      const payload = await response.json().catch(() => ({})) as { ok?: boolean; message?: string; code?: string; requestId?: string };
+      if (!response.ok || !payload.ok) {
+        const suffix = payload.requestId ? ` (Kayıt: ${payload.requestId.slice(0, 8)})` : "";
+        throw new Error(`${payload.message || "Profil bilgileri kaydedilemedi."}${suffix}`);
+      }
 
-      await refreshProfile();
       setNotice({ type: "success", text: "Profilin tamamlandı. Hesap merkezi açılıyor…" });
-      window.setTimeout(() => window.location.assign(returnTo), 500);
+      // Profil başarıyla kaydedildikten sonra ek bir profil sorgusunun başarısız olması
+      // kullanıcıya yanlışlıkla kayıt hatası göstermemeli. Tam sayfa yenilemesi yeni profili okur.
+      window.setTimeout(() => window.location.replace(returnTo), 350);
     } catch (error) {
       setNotice({ type: "error", text: error instanceof Error ? error.message : "Profil bilgileri kaydedilemedi." });
     } finally {
