@@ -49,6 +49,7 @@ export type AccountDashboard = {
     phoneVerified: boolean;
     profileCompleted: boolean;
     adminLevel: "none" | "operator" | "owner";
+    sellerStatus: "not_started" | "pending" | "active" | "rejected" | "suspended";
     sellerReviewStatus: "not_submitted" | "pending" | "approved" | "rejected" | "suspended";
     sellerPayoutStatus: string | null;
     storeSlug: string | null;
