@@ -45,7 +45,7 @@ const menu: Array<[string, IconName, string]> = [
 ];
 
 const commonAccount = [
-  ["/profil", "Profilim"], ["/profil-tamamlama", "Profil Bilgileri"], ["/hesap-dogrulama", "Hesap Doğrulama"], ["/teklif-guvencesi", "Teklif Güvencesi"], ["/tekliflerim", "Tekliflerim"],
+  ["/profil", "Hesap Özeti"], ["/profil-tamamlama", "Profil Bilgileri"], ["/hesap-dogrulama", "Hesap Doğrulama"], ["/teklif-guvencesi", "Teklif Güvencesi"], ["/tekliflerim", "Tekliflerim"],
   ["/favoriler", "Favorilerim"], ["/karsilastir", "Ürün Karşılaştırma"], ["/siparisler", "Siparişlerim"],
   ["/kargo", "Kargo ve İadeler"], ["/uyusmazlik", "Uyuşmazlıklar"], ["/mesajlar", "Mesajlar"],
   ["/bildirimler", "Bildirimler"], ["/cuzdan", "Cüzdanım"], ["/ayarlar", "Ayarlar ve Güvenlik"], ["/hukuk", "Hukuk ve Güven"],
@@ -59,7 +59,7 @@ export default function MarketplaceShell({ title, eyebrow, description, children
   const { unreadCount: unreadNotificationCount } = useNotifications();
   const { user, profile, loading: authLoading, signOut } = useAuth();
   const role = profile?.role ?? "buyer";
-  const isSeller = role === "seller" || role === "admin";
+  const isSeller = role === "seller";
   const isAdmin = role === "admin";
   const sellHref = isSeller ? "/ilan-olustur" : "/satici-dogrulama?required=seller";
   const accountItems = user

@@ -1,204 +1,189 @@
-import Link from "next/link";
-import { demoProducts } from "@/components/productData";
-import type { ReactNode } from "react";
+"use client";
 
-type IconName =
-  | "shield"
-  | "wallet"
-  | "listing"
-  | "bid"
-  | "sale"
-  | "eye"
-  | "arrow"
-  | "check"
-  | "message"
-  | "settings"
-  | "store"
-  | "plus"
-  | "bank";
+import Link from "next/link";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useAuth } from "@/components/AuthProvider";
+import { fetchAccountDashboard } from "@/lib/dashboard";
+import type { AccountDashboard, DashboardTone } from "@/types/dashboard";
+
+type IconName = "buyer" | "seller" | "admin" | "check" | "warning" | "arrow" | "refresh" | "activity" | "workspace";
 
 function Icon({ name }: { name: IconName }) {
-  const common = {
-    viewBox: "0 0 24 24",
-    fill: "none",
-    stroke: "currentColor",
-    strokeWidth: 1.8,
-    strokeLinecap: "round" as const,
-    strokeLinejoin: "round" as const,
-    "aria-hidden": true,
-  };
-
+  const common = { viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, "aria-hidden": true };
   const paths: Record<IconName, ReactNode> = {
-    shield: <><path d="M12 3 4.5 6v5.4c0 4.6 3.1 8.1 7.5 9.6 4.4-1.5 7.5-5 7.5-9.6V6L12 3Z"/><path d="m8.8 12 2 2 4.5-4.5"/></>,
-    wallet: <><path d="M4 6.5h14a2 2 0 0 1 2 2v9H4a2 2 0 0 1-2-2v-11a2 2 0 0 1 2-2h12"/><path d="M15 11h5v4h-5a2 2 0 0 1 0-4Z"/></>,
-    listing: <><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></>,
-    bid: <><path d="m4 14 7-7 5 5-7 7-5-5Z"/><path d="m13 5 2-2 6 6-2 2M14 20h8"/></>,
-    sale: <><circle cx="9" cy="19" r="1.5"/><circle cx="18" cy="19" r="1.5"/><path d="M3 4h2l2.2 10.2a2 2 0 0 0 2 1.6h8.7a2 2 0 0 0 2-1.6L21 8H7"/></>,
-    eye: <><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.5"/></>,
-    arrow: <><path d="M5 12h14M14 7l5 5-5 5"/></>,
+    buyer: <><circle cx="12" cy="8" r="4"/><path d="M4 22a8 8 0 0 1 16 0"/></>,
+    seller: <><path d="M4 9v11h16V9"/><path d="M3 9 5 3h14l2 6M8 20v-6h8v6"/></>,
+    admin: <><path d="M12 3 4.5 6v5.4c0 4.6 3.1 8.1 7.5 9.6 4.4-1.5 7.5-5 7.5-9.6V6L12 3Z"/><path d="m8.8 12 2 2 4.5-4.5"/></>,
     check: <path d="m5 12 4 4L19 6"/>,
-    message: <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v8Z"/>,
-    settings: <><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.6v-.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"/></>,
-    store: <><path d="M4 9v11h16V9"/><path d="M3 9 5 3h14l2 6M8 20v-6h8v6"/><path d="M3 9a3 3 0 0 0 5 2 3 3 0 0 0 4 0 3 3 0 0 0 4 0 3 3 0 0 0 5-2"/></>,
-    plus: <path d="M12 5v14M5 12h14"/>,
-    bank: <><path d="m3 9 9-5 9 5M5 10h14M6 10v7M10 10v7M14 10v7M18 10v7M4 20h16"/></>,
+    warning: <><path d="M12 3 2.5 20h19L12 3Z"/><path d="M12 9v5M12 17h.01"/></>,
+    arrow: <><path d="M5 12h14M14 7l5 5-5 5"/></>,
+    refresh: <><path d="M20 6v5h-5"/><path d="M4 18v-5h5"/><path d="M18.5 9A7 7 0 0 0 6 6.5L4 11M5.5 15A7 7 0 0 0 18 17.5l2-4.5"/></>,
+    activity: <><path d="M4 19V5M4 19h16"/><path d="m7 15 4-4 3 2 5-6"/></>,
+    workspace: <><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 9h8M8 13h5M8 17h7"/></>,
   };
-
   return <svg {...common}>{paths[name]}</svg>;
 }
 
-const summaryCards: Array<[IconName, string, string, string]> = [
-  ["listing", "Aktif ilan", "12", "3 ilan bugün bitiyor"],
-  ["bid", "Devam eden teklif", "6", "2 üründe lider sensin"],
-  ["sale", "Bu ay satış", "28", "Geçen aya göre +%15"],
-  ["eye", "Toplam görüntülenme", "1.248", "Son 30 günde +%12"],
-];
+function roleLabel(role: AccountDashboard["role"], adminLevel: AccountDashboard["identity"]["adminLevel"]) {
+  if (role === "admin") return adminLevel === "owner" ? "Sahip yönetici" : "Operasyon yöneticisi";
+  if (role === "seller") return "Satıcı hesabı";
+  return "Alıcı hesabı";
+}
 
-const quickActions: Array<[IconName, string, string, string]> = [
-  ["plus", "Yeni ilan oluştur", "Ürününü açık artırmaya çıkar", "/ilan-olustur"],
-  ["wallet", "Cüzdanı yönet", "Bakiye ve ödeme hareketleri", "/cuzdan"],
-  ["message", "Mesajlara git", "Alıcı ve satıcılarla görüş", "/mesajlar"],
-  ["settings", "Hesap ayarları", "Profil ve güvenlik bilgileri", "/ayarlar"],
-];
+function roleIcon(role: AccountDashboard["role"]): IconName {
+  return role === "admin" ? "admin" : role === "seller" ? "seller" : "buyer";
+}
 
-const activity = [
-  { title: "iPhone 15 Pro satışın tamamlandı", date: "Bugün, 14:32", amount: "+30.250 TL", positive: true },
-  { title: "Banka hesabına para çekme", date: "Dün, 10:15", amount: "-10.000 TL", positive: false },
-  { title: "MacBook Pro ilanına yeni teklif", date: "Dün, 08:45", amount: "80.500 TL", positive: false },
-  { title: "Cüzdan bakiyesi yüklendi", date: "16 Temmuz, 17:20", amount: "+5.000 TL", positive: true },
-];
+function roleDescription(role: AccountDashboard["role"]) {
+  if (role === "admin") return "Platform güvenliği, kullanıcı onayları ve operasyon kuyruğunu yönet.";
+  if (role === "seller") return "İlanlarını, satışlarını, kargolarını ve mağaza durumunu takip et.";
+  return "Tekliflerini, siparişlerini ve hesap doğrulamalarını tek merkezden takip et.";
+}
+
+function relativeTime(value: string) {
+  const time = new Date(value).getTime();
+  if (!Number.isFinite(time)) return "";
+  const seconds = Math.max(0, Math.round((Date.now() - time) / 1000));
+  if (seconds < 60) return "Az önce";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes} dk önce`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} sa önce`;
+  const days = Math.floor(hours / 24);
+  return days < 7 ? `${days} gün önce` : new Date(value).toLocaleDateString("tr-TR");
+}
+
+function toneClass(tone: DashboardTone) {
+  return `dashboardTone-${tone}`;
+}
 
 export default function ProfileDashboard() {
-  const activeProducts = demoProducts.slice(1, 4);
+  const { user, loading: authLoading } = useAuth();
+  const [dashboard, setDashboard] = useState<AccountDashboard | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const load = useCallback(async () => {
+    if (!user) return;
+    setLoading(true);
+    setError("");
+    try {
+      setDashboard(await fetchAccountDashboard());
+    } catch (nextError) {
+      setError(nextError instanceof Error ? nextError.message : "Hesap merkezi yüklenemedi.");
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (!authLoading && user) void load();
+    if (!authLoading && !user) setLoading(false);
+  }, [authLoading, load, user]);
+
+  const completion = useMemo(() => {
+    if (!dashboard) return { percent: 0 };
+    const required = dashboard.tasks.filter((task) => task.key !== "seller");
+    const complete = required.filter((task) => task.complete).length;
+    return { percent: required.length ? Math.round((complete / required.length) * 100) : 100 };
+  }, [dashboard]);
+
+  if (authLoading || loading) {
+    return <div className="roleDashboardV24" aria-busy="true"><div className="dashboardLoadingV24"><span/><span/><span/><span/></div></div>;
+  }
+
+  if (!user) {
+    return <div className="dashboardStateV24"><h2>Hesabına giriş yap</h2><p>Kişisel hesap merkezini görmek için oturum açmalısın.</p><Link href="/giris?returnTo=/profil">Giriş yap</Link></div>;
+  }
+
+  if (error || !dashboard) {
+    return <div className="dashboardStateV24 dashboardErrorV24"><Icon name="warning"/><h2>Hesap özeti yüklenemedi</h2><p>{error || "Beklenmeyen bir bağlantı hatası oluştu."}</p><button type="button" onClick={() => void load()}><Icon name="refresh"/> Yeniden dene</button></div>;
+  }
+
+  const firstName = dashboard.identity.fullName.split(/\s+/)[0] || "Hoş geldin";
+  const incompleteTasks = dashboard.tasks.filter((task) => !task.complete && task.key !== "seller");
 
   return (
-    <div className="profileDashboardV4">
-      <section className="profileOverviewV4">
-        <article className="profileIdentityV4">
-          <div className="profileIdentityTopV4">
-            <div className="profileAvatarV4" aria-hidden="true">KA</div>
-            <div className="profileIdentityCopyV4">
-              <div className="profileNameRowV4">
-                <h2>Kemal Akar</h2>
-                <span className="profileVerifiedV4"><Icon name="check" /> Doğrulanmış</span>
-              </div>
-              <p>@kemalakar · Mayıs 2024’ten beri üye</p>
-              <div className="profileRatingV4"><strong>4,8</strong><span>★★★★★</span><small>128 değerlendirme</small></div>
-            </div>
+    <div className="roleDashboardV24">
+      <section className={`dashboardHeroV24 dashboardRole-${dashboard.role}`}>
+        <div className="dashboardRoleIconV24"><Icon name={roleIcon(dashboard.role)}/></div>
+        <div className="dashboardHeroCopyV24">
+          <span>{roleLabel(dashboard.role, dashboard.identity.adminLevel)}</span>
+          <h2>Merhaba {firstName}</h2>
+          <p>{roleDescription(dashboard.role)}</p>
+          <div className="dashboardIdentityChipsV24">
+            {dashboard.identity.username && <small>@{dashboard.identity.username}</small>}
+            <small className={dashboard.identity.emailVerified ? "complete" : "missing"}>{dashboard.identity.emailVerified ? "E-posta doğrulandı" : "E-posta eksik"}</small>
+            <small className={dashboard.identity.phoneVerified ? "complete" : "missing"}>{dashboard.identity.phoneVerified ? "Telefon doğrulandı" : "Telefon eksik"}</small>
           </div>
-
-          <div className="profileTrustV4">
-            <div><strong>127</strong><span>Başarılı satış</span></div>
-            <div><strong>89</strong><span>Başarılı alış</span></div>
-            <div><strong>%98</strong><span>Olumlu puan</span></div>
-          </div>
-
-          <div className="profileIdentityActionsV4">
-            <Link href="/ayarlar">Profili düzenle</Link>
-            <button type="button"><Icon name="store" /> Mağazayı görüntüle</button>
-          </div>
-        </article>
-
-        <article className="profileWalletV4">
-          <div className="profileCardTitleV4"><span><Icon name="wallet" /></span><div><small>CÜZDAN BAKİYESİ</small><strong>12.450,75 TL</strong></div></div>
-          <div className="profileWalletRowsV4">
-            <p><span>Çekilebilir</span><b>10.100,75 TL</b></p>
-            <p><span>Bekleyen ödeme</span><b>2.350,00 TL</b></p>
-          </div>
-          <div className="profileWalletActionsV4">
-            <Link href="/cuzdan">Cüzdana git <Icon name="arrow" /></Link>
-            <button type="button">Para çek</button>
-          </div>
-        </article>
-
-        <article className="profileSecurityV4">
-          <div className="profileCardTitleV4"><span><Icon name="shield" /></span><div><small>HESAP GÜVENLİĞİ</small><strong>Tam koruma aktif</strong></div></div>
-          <div className="securityScoreV4"><div><span style={{ width: "100%" }} /></div><b>3/3 tamamlandı</b></div>
-          <ul>
-            <li><Icon name="check" /><span>Telefon doğrulandı</span></li>
-            <li><Icon name="check" /><span>E-posta doğrulandı</span></li>
-            <li><Icon name="check" /><span>Kimlik doğrulandı</span></li>
-          </ul>
-          <Link href="/ayarlar">Güvenlik ayarları <Icon name="arrow" /></Link>
-        </article>
+        </div>
+        <div className="dashboardHeroActionsV24">
+          {dashboard.role === "buyer" && <Link href="/arama">Açık artırmaları keşfet</Link>}
+          {dashboard.role === "seller" && <Link href="/ilan-olustur">Yeni ilan oluştur</Link>}
+          {dashboard.role === "admin" && <Link href="/yonetim/kullanicilar">Kullanıcı yönetimi</Link>}
+          <button type="button" onClick={() => void load()} aria-label="Hesap özetini yenile"><Icon name="refresh"/></button>
+        </div>
       </section>
 
-      <section className="profileSummaryGridV4" aria-label="Hesap özeti">
-        {summaryCards.map(([icon, label, value, helper]) => (
-          <article key={label}>
-            <span><Icon name={icon} /></span>
-            <div><small>{label}</small><strong>{value}</strong><p>{helper}</p></div>
-          </article>
+      {incompleteTasks.length > 0 && (
+        <section className="dashboardCompletionV24">
+          <div><span>HESAP HAZIRLIĞI</span><h3>Hesabını tamamla · %{completion.percent}</h3><p>{incompleteTasks[0]?.description}</p></div>
+          <div className="dashboardCompletionProgressV24" aria-label={`Hesap tamamlanma oranı yüzde ${completion.percent}`}><i style={{ width: `${completion.percent}%` }}/></div>
+          <Link href={incompleteTasks[0]?.href || "/ayarlar"}>Şimdi tamamla <Icon name="arrow"/></Link>
+        </section>
+      )}
+
+      <section className="dashboardMetricsV24" aria-label="Hesap metrikleri">
+        {dashboard.metrics.map((metric) => (
+          <Link href={metric.href} key={metric.key} className={toneClass(metric.tone)}>
+            <small>{metric.label}</small><strong>{metric.value}</strong><p>{metric.helper}</p><Icon name="arrow"/>
+          </Link>
         ))}
       </section>
 
-      <section className="profileMainGridV4">
-        <article className="profilePanelV4 profilePerformanceV4">
-          <div className="profilePanelHeadV4">
-            <div><span>PERFORMANS</span><h3>İlan istatistikleri</h3></div>
-            <select aria-label="İstatistik dönemi" defaultValue="30"><option value="7">Son 7 gün</option><option value="30">Son 30 gün</option><option value="90">Son 90 gün</option></select>
-          </div>
-          <div className="profileChartLegendV4">
-            <div><span className="views" />Görüntülenme</div>
-            <div><span className="bids" />Teklifler</div>
-          </div>
-          <div className="profileChartV4" aria-label="Son 30 günlük görüntülenme ve teklif grafiği">
-            <div className="chartGridV4"><i/><i/><i/><i/></div>
-            <svg viewBox="0 0 640 230" role="img">
-              <defs>
-                <linearGradient id="profileArea" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stopColor="#f6a313" stopOpacity=".28"/><stop offset="1" stopColor="#f6a313" stopOpacity="0"/></linearGradient>
-              </defs>
-              <path className="profileAreaPathV4" d="M10 190 C78 174 93 132 145 145 S222 178 280 105 S365 142 421 88 S510 125 630 40 L630 220 L10 220 Z" />
-              <path className="profileViewsPathV4" d="M10 190 C78 174 93 132 145 145 S222 178 280 105 S365 142 421 88 S510 125 630 40" />
-              <path className="profileBidsPathV4" d="M10 205 C92 198 122 180 176 185 S260 165 320 172 S410 143 465 155 S548 128 630 120" />
-            </svg>
-            <div className="profileChartDatesV4"><span>19 Haz</span><span>26 Haz</span><span>3 Tem</span><span>10 Tem</span><span>19 Tem</span></div>
-          </div>
-        </article>
-
-        <article className="profilePanelV4 profileActiveListingsV4">
-          <div className="profilePanelHeadV4"><div><span>SATIŞ MERKEZİ</span><h3>Aktif ilanlarım</h3></div><Link href="/ilanlarim">Tümünü gör</Link></div>
-          <div className="profileListingRowsV4">
-            {activeProducts.map((product, index) => (
-              <Link href={`/urun/${product.id}`} key={product.id}>
-                <img src={product.image} alt="" />
-                <div><b>{product.title}</b><small>{product.bids} teklif · Güncel teklif</small><strong>{product.price}</strong></div>
-                <time className={index === 0 ? "urgent" : ""}>{product.time}</time>
+      <section className="dashboardMainGridV24">
+        <article className="dashboardPanelV24">
+          <header><div><span>ÖNCELİKLİ İŞLEMLER</span><h3>Hesap kontrol listesi</h3></div><b>{dashboard.tasks.filter((task) => task.complete).length}/{dashboard.tasks.length}</b></header>
+          <div className="dashboardTaskListV24">
+            {dashboard.tasks.map((task) => (
+              <Link href={task.href} key={task.key} className={task.complete ? "complete" : task.important ? "important" : ""}>
+                <span>{task.complete ? <Icon name="check"/> : <Icon name="warning"/>}</span>
+                <div><b>{task.title}</b><p>{task.description}</p></div><Icon name="arrow"/>
               </Link>
             ))}
           </div>
         </article>
-      </section>
 
-      <section className="profileLowerGridV4">
-        <article className="profilePanelV4 profileActivityV4">
-          <div className="profilePanelHeadV4"><div><span>HAREKETLER</span><h3>Son işlemler</h3></div><Link href="/cuzdan">Tüm hareketler</Link></div>
-          <div>
-            {activity.map((item) => (
-              <div className="profileActivityRowV4" key={item.title}>
-                <span className={item.positive ? "positive" : ""}><Icon name={item.positive ? "wallet" : "bank"} /></span>
-                <div><b>{item.title}</b><small>{item.date}</small></div>
-                <strong className={item.positive ? "positive" : ""}>{item.amount}</strong>
-              </div>
+        <article className="dashboardPanelV24">
+          <header><div><span>SON HAREKETLER</span><h3>Hesabındaki gelişmeler</h3></div><Link href="/bildirimler">Tümü</Link></header>
+          {dashboard.activity.length ? <div className="dashboardActivityListV24">
+            {dashboard.activity.map((item) => (
+              <Link href={item.href} key={item.id} className={toneClass(item.tone)}>
+                <span><Icon name="activity"/></span><div><b>{item.title}</b><p>{item.description}</p><small>{relativeTime(item.createdAt)}</small></div>
+              </Link>
             ))}
-          </div>
-        </article>
-
-        <article className="profilePanelV4 profileQuickActionsV4">
-          <div className="profilePanelHeadV4"><div><span>KISAYOLLAR</span><h3>Hızlı işlemler</h3></div></div>
-          <div>
-            {quickActions.map(([icon, title, helper, href]) => (
-              <Link href={href} key={title}><span><Icon name={icon} /></span><div><b>{title}</b><small>{helper}</small></div><Icon name="arrow" /></Link>
-            ))}
-          </div>
+          </div> : <div className="dashboardEmptyV24"><Icon name="activity"/><b>Henüz yeni hareket yok</b><p>Teklif, sipariş ve güvenlik gelişmeleri burada görünecek.</p></div>}
         </article>
       </section>
 
-      <section className="profileStoreBannerV4">
-        <div className="profileStoreIconV4"><Icon name="store" /></div>
-        <div><span>SATICI ARAÇLARI</span><h3>Mağazanı daha profesyonel göster</h3><p>Kapak görseli, mağaza açıklaması ve öne çıkan ilanlarını düzenle.</p></div>
-        <button type="button">Mağazayı düzenle <Icon name="arrow" /></button>
+      <section className="dashboardPanelV24 dashboardWorkspaceV24">
+        <header>
+          <div><span>{dashboard.role === "admin" ? "OPERASYON" : dashboard.role === "seller" ? "İLANLAR" : "AÇIK ARTIRMALAR"}</span><h3>{dashboard.role === "admin" ? "Son güvenlik hareketleri" : dashboard.role === "seller" ? "Son ilanların" : "Katıldığın açık artırmalar"}</h3></div>
+          <Link href={dashboard.role === "admin" ? "/yonetim" : dashboard.role === "seller" ? "/ilanlarim" : "/tekliflerim"}>Merkeze git</Link>
+        </header>
+        {dashboard.workspace.length ? <div className="dashboardWorkspaceListV24">
+          {dashboard.workspace.map((item) => (
+            <Link href={item.href} key={item.id}>
+              <span className={toneClass(item.tone)}><Icon name="workspace"/></span>
+              <div><b>{item.title}</b><p>{item.description}</p><small>{item.meta}</small></div>
+              <em className={toneClass(item.tone)}>{item.status}</em><Icon name="arrow"/>
+            </Link>
+          ))}
+        </div> : <div className="dashboardEmptyV24"><Icon name="workspace"/><b>{dashboard.role === "seller" ? "Henüz ilan bulunmuyor" : dashboard.role === "admin" ? "Yeni operasyon kaydı yok" : "Henüz teklif vermedin"}</b><p>{dashboard.role === "seller" ? "İlk ürününü yayınlayarak satışa başlayabilirsin." : dashboard.role === "buyer" ? "İlgini çeken bir açık artırmaya katıl." : "Yeni kayıtlar burada listelenecek."}</p>{dashboard.role === "seller" && <Link href="/ilan-olustur">İlan oluştur</Link>}{dashboard.role === "buyer" && <Link href="/arama">Ürünleri keşfet</Link>}</div>}
       </section>
+
+      {dashboard.role === "buyer" && <section className="dashboardSellerCtaV24"><div><span>SATICI OL</span><h3>Kullanmadığın ürünleri açık artırmaya çıkar</h3><p>Satıcı doğrulamasını tamamla, mağazanı aç ve güvenli ödeme ile satış yap.</p></div><Link href="/satici-dogrulama">Satıcı başvurusunu başlat <Icon name="arrow"/></Link></section>}
+      {dashboard.role === "seller" && dashboard.identity.storeSlug && <section className="dashboardSellerCtaV24"><div><span>MAĞAZAN</span><h3>Herkese açık mağazanı kontrol et</h3><p>İlanların, değerlendirmelerin ve satıcı güven göstergelerin müşterilere nasıl görünüyor incele.</p></div><Link href={`/magaza/${dashboard.identity.storeSlug}`}>Mağazayı görüntüle <Icon name="arrow"/></Link></section>}
     </div>
   );
 }
