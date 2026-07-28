@@ -17,6 +17,8 @@ import "./onboarding-v17.css";
 import "./bid-security-v18.css";
 import "./authz-v19.css";
 import "./account-activation-v20.css";
+import "./profile-onboarding-v21.css";
+import "./admin-accounts-v22.css";
 import { AuthProvider } from "@/components/AuthProvider";
 
 export const metadata: Metadata = {
