@@ -23,6 +23,7 @@ import "./security-v23.css";
 import "./dashboard-v24.css";
 import "./store-management-v25.css";
 import "./seller-center-v26.css";
+import "./seller-listings-v27.css";
 import { AuthProvider } from "@/components/AuthProvider";
 
 export const metadata: Metadata = {

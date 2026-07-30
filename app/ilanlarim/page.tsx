@@ -1,15 +1,14 @@
 import MarketplaceShell from "@/components/MarketplaceShell";
-import SellerCenterExperience from "@/components/SellerCenterExperience";
+import MyListingsExperience from "@/components/MyListingsExperience";
 
-export default function SellerCenterPage() {
+export default function MyListingsPage() {
   return (
     <MarketplaceShell
-      eyebrow="SATIŞ YÖNETİMİ"
-      title="Satış Merkezi"
-      description="İlanlarını, siparişlerini, kazancını ve satıcı performansını tek yerden yönet."
-      compact
+      eyebrow="SATICI MERKEZİ"
+      title="İlanlarım"
+      description="Taslak, aktif, durdurulmuş ve tamamlanan satışlarını tek ekrandan yönet."
     >
-      <SellerCenterExperience />
+      <MyListingsExperience />
     </MarketplaceShell>
   );
 }
