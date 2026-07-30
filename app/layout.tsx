@@ -25,6 +25,7 @@ import "./store-management-v25.css";
 import "./seller-center-v26.css";
 import "./seller-listings-v27.css";
 import "./auction-room-v28.css";
+import "./checkout-v29.css";
 import { AuthProvider } from "@/components/AuthProvider";
 
 export const metadata: Metadata = {
