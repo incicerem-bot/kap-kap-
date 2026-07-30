@@ -24,30 +24,18 @@ import "./dashboard-v24.css";
 import "./store-management-v25.css";
 import "./seller-center-v26.css";
 import "./seller-listings-v27.css";
+import "./auction-room-v28.css";
 import { AuthProvider } from "@/components/AuthProvider";
 
 export const metadata: Metadata = {
   title: "KapışKapış — Açık Artırma Platformu",
   description: "Beğendiysen bekleme, KapışKapış kap!",
   manifest: "/manifest.webmanifest",
-  icons: {
-    icon: "/kapiskapis-icon.png",
-    apple: "/kapiskapis-icon.png",
-  },
+  icons: { icon: "/kapiskapis-icon.png", apple: "/kapiskapis-icon.png" },
 };
 
-export const viewport: Viewport = {
-  width: "device-width",
-  initialScale: 1,
-  themeColor: "#07090c",
-};
+export const viewport: Viewport = { width: "device-width", initialScale: 1, themeColor: "#07090c" };
 
-export default function RootLayout({
-  children,
-}: Readonly<{ children: React.ReactNode }>) {
-  return (
-    <html lang="tr">
-      <body><AuthProvider>{children}</AuthProvider></body>
-    </html>
-  );
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  return <html lang="tr"><body><AuthProvider>{children}</AuthProvider></body></html>;
 }
