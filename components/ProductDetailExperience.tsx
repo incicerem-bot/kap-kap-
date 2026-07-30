@@ -1,503 +1,374 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, ReactNode, useEffect, useMemo, useRef, useState } from "react";
-import {
-  formatPrice,
-  parsePrice,
-  secondsToTime,
-  timeToSeconds,
-  type Product,
-} from "@/components/productData";
-import { sellerSlugForName } from "@/components/sellerData";
-import { COMPARE_STORAGE_KEY, FAVORITES_STORAGE_KEY, defaultCompareIds, defaultFavoriteIds, useStoredIds } from "@/components/useMarketplaceCollections";
-import {
-  fetchPublicBidHistory,
-  fetchPublicListing,
-  finalizeExpiredAuctions,
-  placeAuctionBid,
-  secondsUntil,
-  subscribeToListingLive,
-  supabaseConfigured,
-} from "@/lib/auctions";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
-import { estimateSmartBidSecurity, quoteBidSecurity } from "@/lib/bid-security";
 
-type IconName =
-  | "arrow"
-  | "heart"
-  | "share"
-  | "eye"
-  | "shield"
-  | "truck"
-  | "check"
-  | "store"
-  | "clock"
-  | "info"
-  | "bolt"
-  | "card"
-  | "compare";
-
-function Icon({ name }: { name: IconName }) {
-  const common = {
-    viewBox: "0 0 24 24",
-    fill: "none",
-    stroke: "currentColor",
-    strokeWidth: 1.8,
-    strokeLinecap: "round" as const,
-    strokeLinejoin: "round" as const,
-    "aria-hidden": true,
-  };
-
-  const paths: Record<IconName, ReactNode> = {
-    arrow: <><path d="m15 18-6-6 6-6" /></>,
-    heart: <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z" />,
-    share: <><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><path d="m8.6 10.5 6.8-4M8.6 13.5l6.8 4" /></>,
-    eye: <><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z" /><circle cx="12" cy="12" r="2.5" /></>,
-    shield: <><path d="M12 3 5 6v5c0 4.8 2.8 8.1 7 10 4.2-1.9 7-5.2 7-10V6z" /><path d="m9 12 2 2 4-4" /></>,
-    truck: <><path d="M3 6h11v11H3zM14 10h4l3 3v4h-7z" /><circle cx="7" cy="18" r="2" /><circle cx="18" cy="18" r="2" /></>,
-    check: <path d="m5 12 4 4L19 6" />,
-    store: <><path d="M4 10v10h16V10M3 4h18l-1 6H4z" /><path d="M9 20v-6h6v6" /></>,
-    clock: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></>,
-    info: <><circle cx="12" cy="12" r="9" /><path d="M12 11v5M12 8h.01" /></>,
-    bolt: <path d="m13 2-8 12h6l-1 8 9-13h-6z" />,
-    card: <><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 10h18M7 15h4" /></>,
-    compare: <><path d="M8 3 4 7l4 4" /><path d="M4 7h12a4 4 0 0 1 4 4v1" /><path d="m16 21 4-4-4-4" /><path d="M20 17H8a4 4 0 0 1-4-4v-1" /></>,
-  };
-
-  return <svg {...common}>{paths[name]}</svg>;
-}
-
-type BidHistoryItem = {
-  id: string | number;
-  bidder: string;
+type Bid = {
+  id: string;
   amount: number;
-  time: string;
-  mine?: boolean;
+  createdAt: string;
+  bidderLabel: string;
+  isMine: boolean;
 };
 
-function createInitialHistory(product: Product): BidHistoryItem[] {
-  const current = parsePrice(product.price);
-  return [
-    { id: 1, bidder: "k***7", amount: current, time: "2 dk önce" },
-    { id: 2, bidder: "a***2", amount: Math.max(0, current - product.increment), time: "4 dk önce" },
-    { id: 3, bidder: "m***9", amount: Math.max(0, current - product.increment * 2), time: "7 dk önce" },
-    { id: 4, bidder: "s***4", amount: Math.max(0, current - product.increment * 3), time: "11 dk önce" },
-  ];
+type Seller = {
+  id: string;
+  slug: string;
+  name: string;
+  initials: string;
+  tagline: string;
+  location: string;
+  logoPath: string | null;
+  verified: boolean;
+  successfulSalesCount: number;
+  responseRate: number;
+  responseTimeMinutes: number;
+};
+
+type Viewer = {
+  signedIn: boolean;
+  isOwner: boolean;
+  isWatching: boolean;
+  myHighestBid: number | null;
+  isHighestBidder: boolean;
+  isWinner: boolean;
+};
+
+type Listing = {
+  id: string;
+  slug: string;
+  title: string;
+  description: string;
+  saleType: "auction" | "fixed";
+  category: string;
+  subcategory: string;
+  condition: string;
+  brand: string;
+  model: string;
+  location: string;
+  warrantyStatus: string;
+  boxContents: string;
+  shippingMethod: string;
+  shippingPayer: string;
+  specifications: Record<string, unknown>;
+  status: string;
+  startPrice: number;
+  currentPrice: number;
+  minimumBid: number;
+  minIncrement: number;
+  buyNowPrice: number | null;
+  stock: number;
+  reservedStock: number;
+  availableStock: number;
+  bidCount: number;
+  watchersCount: number;
+  startsAt: string | null;
+  endsAt: string | null;
+  reserveMet: boolean | null;
+  winningBid: number | null;
+  settlementStatus: string;
+  images: string[];
+  bids: Bid[];
+  seller: Seller;
+  viewer: Viewer;
+};
+
+type IconName = "gavel" | "heart" | "shield" | "truck" | "clock" | "eye" | "store" | "check" | "arrow" | "image" | "tag" | "box" | "refresh" | "lock" | "minus" | "plus";
+
+function Icon({ name }: { name: IconName }) {
+  const common = { viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, "aria-hidden": true };
+  const icons: Record<IconName, ReactNode> = {
+    gavel: <><path d="m14 5 5 5"/><path d="m12 7 5 5"/><path d="m4 20 8-8"/><path d="m9 4 4-2 6 6-2 4Z"/><path d="M3 21h10"/></>,
+    heart: <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z"/>,
+    shield: <><path d="M12 3 5 6v5c0 4.6 2.9 8 7 10 4.1-2 7-5.4 7-10V6Z"/><path d="m9 12 2 2 4-4"/></>,
+    truck: <><path d="M3 6h11v10H3Z"/><path d="M14 9h4l3 3v4h-7Z"/><circle cx="7" cy="18" r="2"/><circle cx="18" cy="18" r="2"/></>,
+    clock: <><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></>,
+    eye: <><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="2.5"/></>,
+    store: <><path d="M4 10v10h16V10"/><path d="M3 10 5 4h14l2 6"/><path d="M8 20v-6h8v6"/><path d="M3 10c0 2 3 2 4 0 1 2 4 2 5 0 1 2 4 2 5 0 1 2 4 2 4 0"/></>,
+    check: <path d="m5 12 4 4L19 6"/>,
+    arrow: <><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></>,
+    image: <><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m4 18 5-5 3 3 3-4 5 6"/></>,
+    tag: <><path d="M20 13 13 20l-9-9V4h7Z"/><circle cx="8.5" cy="8.5" r="1"/></>,
+    box: <><path d="m4 7 8-4 8 4-8 4Z"/><path d="m4 7 8 4 8-4v10l-8 4-8-4Z"/><path d="M12 11v10"/></>,
+    refresh: <><path d="M20 6v5h-5"/><path d="M4 18v-5h5"/><path d="M18.5 9A7 7 0 0 0 6.8 6.2L4 11M5.5 15A7 7 0 0 0 17.2 17.8L20 13"/></>,
+    lock: <><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></>,
+    minus: <path d="M5 12h14"/>,
+    plus: <><path d="M12 5v14"/><path d="M5 12h14"/></>,
+  };
+  return <svg {...common}>{icons[name]}</svg>;
 }
 
-function placeholderProduct(slug: string): Product {
+function n(value: unknown) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function text(value: unknown) {
+  return value == null ? "" : String(value);
+}
+
+function normalize(raw: unknown): Listing | null {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const value = raw as Record<string, unknown>;
+  const sellerRaw = (value.seller ?? {}) as Record<string, unknown>;
+  const viewerRaw = (value.viewer ?? {}) as Record<string, unknown>;
+  const bidsRaw = Array.isArray(value.bids) ? value.bids : [];
   return {
-    id: slug,
-    title: "Açık artırma yükleniyor",
-    category: "Diğer",
-    price: "0 TL",
-    next: "0 TL",
-    bids: 0,
-    time: "00:00:00",
-    image: "/kapiskapis-promo.jpg",
-    gallery: ["/kapiskapis-promo.jpg"],
-    live: false,
-    verified: false,
-    condition: "Bilgi bekleniyor",
-    increment: 100,
-    seller: "KapışKapış satıcısı",
-    sellerInitials: "KK",
-    sellerRating: 0,
-    sellerSales: 0,
-    location: "Türkiye",
-    watchers: 0,
-    views: 0,
-    description: "İlan bilgileri yükleniyor.",
-    shipping: "KapışKapış Güvenli Kargo",
-    specs: [],
+    id: text(value.id), slug: text(value.slug), title: text(value.title), description: text(value.description),
+    saleType: value.saleType === "fixed" ? "fixed" : "auction",
+    category: text(value.category), subcategory: text(value.subcategory), condition: text(value.condition),
+    brand: text(value.brand), model: text(value.model), location: text(value.location),
+    warrantyStatus: text(value.warrantyStatus), boxContents: text(value.boxContents),
+    shippingMethod: text(value.shippingMethod), shippingPayer: text(value.shippingPayer),
+    specifications: value.specifications && typeof value.specifications === "object" && !Array.isArray(value.specifications) ? value.specifications as Record<string, unknown> : {},
+    status: text(value.status), startPrice: n(value.startPrice), currentPrice: n(value.currentPrice),
+    minimumBid: n(value.minimumBid), minIncrement: n(value.minIncrement),
+    buyNowPrice: value.buyNowPrice == null ? null : n(value.buyNowPrice), stock: n(value.stock),
+    reservedStock: n(value.reservedStock), availableStock: n(value.availableStock), bidCount: n(value.bidCount),
+    watchersCount: n(value.watchersCount), startsAt: value.startsAt ? text(value.startsAt) : null,
+    endsAt: value.endsAt ? text(value.endsAt) : null, reserveMet: value.reserveMet == null ? null : Boolean(value.reserveMet),
+    winningBid: value.winningBid == null ? null : n(value.winningBid), settlementStatus: text(value.settlementStatus),
+    images: Array.isArray(value.images) ? value.images.map(text).filter(Boolean) : [],
+    bids: bidsRaw.map((item) => {
+      const bid = item as Record<string, unknown>;
+      return { id: text(bid.id), amount: n(bid.amount), createdAt: text(bid.createdAt), bidderLabel: text(bid.bidderLabel), isMine: Boolean(bid.isMine) };
+    }),
+    seller: {
+      id: text(sellerRaw.id), slug: text(sellerRaw.slug), name: text(sellerRaw.name), initials: text(sellerRaw.initials),
+      tagline: text(sellerRaw.tagline), location: text(sellerRaw.location), logoPath: sellerRaw.logoPath ? text(sellerRaw.logoPath) : null,
+      verified: Boolean(sellerRaw.verified), successfulSalesCount: n(sellerRaw.successfulSalesCount),
+      responseRate: n(sellerRaw.responseRate), responseTimeMinutes: n(sellerRaw.responseTimeMinutes),
+    },
+    viewer: {
+      signedIn: Boolean(viewerRaw.signedIn), isOwner: Boolean(viewerRaw.isOwner), isWatching: Boolean(viewerRaw.isWatching),
+      myHighestBid: viewerRaw.myHighestBid == null ? null : n(viewerRaw.myHighestBid),
+      isHighestBidder: Boolean(viewerRaw.isHighestBidder), isWinner: Boolean(viewerRaw.isWinner),
+    },
   };
 }
 
-function relativeTime(value: string) {
-  const seconds = Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 1000));
-  if (seconds < 60) return "Şimdi";
-  if (seconds < 3600) return `${Math.floor(seconds / 60)} dk önce`;
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)} sa önce`;
-  return `${Math.floor(seconds / 86400)} gün önce`;
+function money(value: number) {
+  return new Intl.NumberFormat("tr-TR", { style: "currency", currency: "TRY", maximumFractionDigits: 0 }).format(value);
 }
 
-type Props = { productSlug: string; fallbackProduct?: Product | null };
+function dateTime(value: string | null) {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return new Intl.DateTimeFormat("tr-TR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }).format(date);
+}
 
-export default function ProductDetailExperience({ productSlug, fallbackProduct }: Props) {
-  const initialProduct = fallbackProduct ?? placeholderProduct(productSlug);
-  const [product, setProduct] = useState<Product>(initialProduct);
-  const [selectedImage, setSelectedImage] = useState(0);
-  const favorites = useStoredIds(FAVORITES_STORAGE_KEY, defaultFavoriteIds);
-  const compare = useStoredIds(COMPARE_STORAGE_KEY, defaultCompareIds);
-  const favorite = favorites.ids.includes(product.id);
-  const compared = compare.ids.includes(product.id);
-  const [currentPrice, setCurrentPrice] = useState(() => parsePrice(initialProduct.price));
-  const [bidCount, setBidCount] = useState(initialProduct.bids);
-  const [bidAmount, setBidAmount] = useState(() => String(parsePrice(initialProduct.price) + initialProduct.increment));
-  const [autoBid, setAutoBid] = useState(false);
-  const [autoBidMax, setAutoBidMax] = useState("");
-  const [remaining, setRemaining] = useState(() => initialProduct.endsAt ? secondsUntil(initialProduct.endsAt) : timeToSeconds(initialProduct.time));
-  const [history, setHistory] = useState<BidHistoryItem[]>(() => createInitialHistory(initialProduct));
-  const [activeTab, setActiveTab] = useState<"description" | "specs" | "shipping">("description");
+function timeLeft(endsAt: string | null, now: number) {
+  if (!endsAt) return { done: true, label: "Süre yok", urgent: false };
+  const distance = new Date(endsAt).getTime() - now;
+  if (distance <= 0) return { done: true, label: "Sona erdi", urgent: true };
+  const seconds = Math.floor(distance / 1000);
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor((seconds % 86400) / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = seconds % 60;
+  const label = days > 0 ? `${days}g ${hours}s ${minutes}dk` : hours > 0 ? `${hours}s ${minutes}dk ${secs}sn` : `${minutes}dk ${secs}sn`;
+  return { done: false, label, urgent: seconds <= 300 };
+}
+
+const conditionLabels: Record<string, string> = { new: "Sıfır", like_new: "Yeni gibi", good: "İyi", fair: "Kullanılmış" };
+const warrantyLabels: Record<string, string> = { none: "Garanti yok", invoice: "Faturalı", manufacturer: "Üretici garantili", seller: "Satıcı garantili" };
+
+export default function ProductDetailExperience({ slug }: { slug: string }) {
+  const router = useRouter();
+  const [listing, setListing] = useState<Listing | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [working, setWorking] = useState(false);
+  const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const finalizingRef = useRef(false);
+  const [selectedImage, setSelectedImage] = useState(0);
+  const [bidAmount, setBidAmount] = useState("");
+  const [quantity, setQuantity] = useState(1);
+  const [now, setNow] = useState(Date.now());
 
-  const minimumBid = bidCount === 0 ? currentPrice : currentPrice + product.increment;
-  const ended = remaining <= 0 || product.status === "ended" || product.status === "sold";
-  const quickBidValues = useMemo(
-    () => [minimumBid, minimumBid + product.increment, minimumBid + product.increment * 4],
-    [minimumBid, product.increment]
-  );
-
-  useEffect(() => {
-    if (!supabaseConfigured) return;
-    let cancelled = false;
-
-    const syncHistory = async () => {
-      try {
-        const rows = await fetchPublicBidHistory(productSlug);
-        if (!cancelled) {
-          setHistory(rows.map((item) => ({
-            id: item.id,
-            bidder: item.bidder,
-            amount: item.amount,
-            time: relativeTime(item.createdAt),
-            mine: item.mine,
-          })));
-        }
-      } catch {
-        // İlan görünmeye devam eder; yalnızca teklif geçmişi yenilenemez.
-      }
-    };
-
-    const load = async () => {
-      try {
-        const liveProduct = await fetchPublicListing(productSlug);
-        if (!cancelled && liveProduct) {
-          setProduct(liveProduct);
-          setSelectedImage(0);
-          setCurrentPrice(parsePrice(liveProduct.price));
-          setBidCount(liveProduct.bids);
-          setRemaining(liveProduct.endsAt ? secondsUntil(liveProduct.endsAt) : timeToSeconds(liveProduct.time));
-          await syncHistory();
-        } else if (!cancelled && !fallbackProduct) {
-          setNotice("Bu ilan bulunamadı veya yayından kaldırılmış olabilir.");
-        }
-      } catch {
-        if (!cancelled && !fallbackProduct) setNotice("İlan verileri yüklenemedi.");
-      }
-    };
-
-    void load();
-    const channel = subscribeToListingLive(productSlug, (payload) => {
-      setCurrentPrice(payload.currentPrice);
-      setBidCount(payload.bidCount);
-      setRemaining(payload.endsAt ? secondsUntil(payload.endsAt) : 0);
-      setProduct((current) => ({ ...current, endsAt: payload.endsAt, status: payload.status, price: formatPrice(payload.currentPrice), bids: payload.bidCount }));
-      void syncHistory();
-    });
-    const client = getSupabaseBrowserClient();
-
-    return () => {
-      cancelled = true;
-      if (channel && client) void client.removeChannel(channel);
-    };
-  }, [fallbackProduct, productSlug]);
-
-  useEffect(() => {
-    const timer = window.setInterval(() => {
-      setRemaining((value) => Math.max(0, value - 1));
-    }, 1000);
-    return () => window.clearInterval(timer);
-  }, []);
-
-  useEffect(() => {
-    setBidAmount(String(minimumBid));
-  }, [minimumBid]);
-
-  useEffect(() => {
-    if (remaining > 0 || product.source !== "supabase" || product.status !== "active" || finalizingRef.current) return;
-    finalizingRef.current = true;
-    void finalizeExpiredAuctions()
-      .then(() => fetchPublicListing(productSlug))
-      .then((latest) => {
-        if (!latest) return;
-        setProduct(latest);
-        setCurrentPrice(parsePrice(latest.price));
-        setBidCount(latest.bids);
-        setRemaining(latest.endsAt ? secondsUntil(latest.endsAt) : 0);
-      })
-      .catch(() => undefined)
-      .finally(() => { finalizingRef.current = false; });
-  }, [product.source, product.status, productSlug, remaining]);
-
-  useEffect(() => {
-    if (!notice) return;
-    const timer = window.setTimeout(() => setNotice(""), 5200);
-    return () => window.clearTimeout(timer);
-  }, [notice]);
-
-  async function submitBid(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const value = Number(bidAmount);
-
-    if (ended) {
-      setNotice("Bu açık artırma sona erdi.");
-      return;
-    }
-    if (!Number.isFinite(value) || value < minimumBid) {
-      setNotice(`Teklif en az ${formatPrice(minimumBid)} olmalı.`);
-      return;
-    }
-    if (autoBid && Number(autoBidMax) < value) {
-      setNotice("Otomatik teklif üst sınırı, vereceğin tekliften düşük olamaz.");
-      return;
-    }
-
-    if (product.source !== "supabase" || !supabaseConfigured) {
-      setCurrentPrice(value);
-      setBidCount((count) => count + 1);
-      setHistory((items) => [
-        { id: Date.now(), bidder: "Sen", amount: value, time: "Şimdi", mine: true },
-        ...items.map((item) => ({ ...item, mine: false })),
-      ].slice(0, 8));
-      setNotice("Demo teklifin ekranda güncellendi. Supabase SQL'i çalıştırıldığında gerçek teklif olarak kaydedilir.");
-      return;
-    }
-
-    setSubmitting(true);
+  const load = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
-      const maxValue = autoBid ? Number(autoBidMax) : value;
-      const quoteResult = await quoteBidSecurity(product.id, value, maxValue);
-      if (quoteResult.quote.requiresPayment) {
-        const params = new URLSearchParams({
-          listing: product.id,
-          bid: String(value),
-          max: String(maxValue),
-          return: `/urun/${product.id}`,
-        });
-        window.location.assign(`/teklif-guvencesi?${params.toString()}`);
-        return;
-      }
-      const result = await placeAuctionBid(product.id, value, maxValue);
-      setCurrentPrice(result.currentPrice);
-      setBidCount(result.bidCount);
-      setRemaining(result.endsAt ? secondsUntil(result.endsAt) : remaining);
-      const rows = await fetchPublicBidHistory(product.id);
-      setHistory(rows.map((item) => ({ id: item.id, bidder: item.bidder, amount: item.amount, time: relativeTime(item.createdAt), mine: item.mine })));
-      setNotice(result.isLeading ? "Teklifin kaydedildi. Şu anda lider sensin." : "Teklifin kaydedildi; otomatik teklif nedeniyle lider değişmedi.");
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Teklif kaydedilemedi.";
-      setNotice(message.includes("JWT") || message.includes("Oturum") || message.includes("giriş") ? "Teklif vermek için hesabına giriş yapmalısın." : message);
+      const client = getSupabaseBrowserClient();
+      if (!client) throw new Error("Supabase bağlantısı yapılandırılmamış.");
+      const { data, error: rpcError } = await client.rpc("kk_get_public_listing", { p_slug: slug });
+      if (rpcError) throw rpcError;
+      const next = normalize(data);
+      if (!next) throw new Error("İlan bulunamadı veya artık görüntülenemiyor.");
+      setListing(next);
+      setBidAmount((current) => current || String(next.minimumBid));
+      setError("");
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : "İlan yüklenemedi.");
     } finally {
-      setSubmitting(false);
+      if (!silent) setLoading(false);
     }
-  }
+  }, [slug]);
 
-  async function shareProduct() {
-    const shareData = { title: product.title, text: `${product.title} KapışKapış açık artırmasında.`, url: window.location.href };
+  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    const clock = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(clock);
+  }, []);
+  useEffect(() => {
+    if (!listing || listing.status !== "active") return;
+    const poll = window.setInterval(() => void load(true), 5000);
+    return () => window.clearInterval(poll);
+  }, [listing?.id, listing?.status, load]);
+  useEffect(() => {
+    if (listing && Number(bidAmount) < listing.minimumBid) setBidAmount(String(listing.minimumBid));
+  }, [listing?.minimumBid]);
+
+  const countdown = useMemo(() => timeLeft(listing?.endsAt ?? null, now), [listing?.endsAt, now]);
+  const imageUrls = useMemo(() => {
+    const client = getSupabaseBrowserClient();
+    return listing?.images.map((path) => client?.storage.from("listing-assets").getPublicUrl(path).data.publicUrl ?? "").filter(Boolean) ?? [];
+  }, [listing?.images]);
+  const sellerLogo = useMemo(() => {
+    if (!listing?.seller.logoPath) return "";
+    return getSupabaseBrowserClient()?.storage.from("seller-assets").getPublicUrl(listing.seller.logoPath).data.publicUrl ?? "";
+  }, [listing?.seller.logoPath]);
+
+  async function toggleWatch() {
+    if (!listing) return;
+    if (!listing.viewer.signedIn) { router.push(`/giris?redirect=/urun/${listing.slug}`); return; }
+    const client = getSupabaseBrowserClient();
+    if (!client) return;
+    setWorking(true); setError("");
     try {
-      if (navigator.share) {
-        await navigator.share(shareData);
-      } else {
-        await navigator.clipboard.writeText(window.location.href);
-        setNotice("Ürün bağlantısı panoya kopyalandı.");
-      }
-    } catch {
-      // Kullanıcı paylaşım penceresini kapatmış olabilir.
+      const { data, error: rpcError } = await client.rpc("kk_toggle_listing_watch", { p_listing_id: listing.id });
+      if (rpcError) throw rpcError;
+      const result = data as { watching?: boolean; watchersCount?: number } | null;
+      setListing((current) => current ? { ...current, watchersCount: Number(result?.watchersCount ?? current.watchersCount), viewer: { ...current.viewer, isWatching: Boolean(result?.watching) } } : current);
+    } catch (watchError) {
+      setError(watchError instanceof Error ? watchError.message : "Takip işlemi tamamlanamadı.");
+    } finally { setWorking(false); }
+  }
+
+  async function placeBid() {
+    if (!listing) return;
+    if (!listing.viewer.signedIn) { router.push(`/giris?redirect=/urun/${listing.slug}`); return; }
+    const amount = Number(String(bidAmount).replace(",", "."));
+    if (!Number.isFinite(amount) || amount < listing.minimumBid) {
+      setError(`Minimum teklif ${money(listing.minimumBid)} olmalıdır.`); return;
+    }
+    const client = getSupabaseBrowserClient();
+    if (!client) return;
+    setWorking(true); setError(""); setNotice("Teklifin güvenli şekilde işleniyor…");
+    try {
+      const { data, error: rpcError } = await client.rpc("kk_place_listing_bid", { p_listing_id: listing.id, p_amount: amount });
+      if (rpcError) throw rpcError;
+      const result = data as { extended?: boolean } | null;
+      setNotice(result?.extended ? "Teklifin kabul edildi. Son saniye koruması süreyi 2 dakika uzattı." : "Teklifin kabul edildi ve lider teklif oldun.");
+      await load(true);
+    } catch (bidError) {
+      setNotice("");
+      setError(bidError instanceof Error ? bidError.message : "Teklif verilemedi.");
+      await load(true);
+    } finally { setWorking(false); }
+  }
+
+  async function reservePurchase() {
+    if (!listing) return;
+    if (!listing.viewer.signedIn) { router.push(`/giris?redirect=/urun/${listing.slug}`); return; }
+    const client = getSupabaseBrowserClient();
+    if (!client) return;
+    setWorking(true); setError(""); setNotice("Ürün senin için rezerve ediliyor…");
+    try {
+      const { data, error: rpcError } = await client.rpc("kk_create_purchase_intent", { p_listing_id: listing.id, p_quantity: quantity });
+      if (rpcError) throw rpcError;
+      const result = data as { checkoutPath?: string } | null;
+      if (!result?.checkoutPath) throw new Error("Ödeme yönlendirmesi oluşturulamadı.");
+      router.push(result.checkoutPath);
+    } catch (purchaseError) {
+      setNotice("");
+      setError(purchaseError instanceof Error ? purchaseError.message : "Satın alma rezervasyonu oluşturulamadı.");
+      await load(true);
+      setWorking(false);
     }
   }
 
-  const [hours, minutes, seconds] = secondsToTime(remaining).split(":");
+  if (loading) return <section className="productRoomLoadingV28"><span/><strong>Canlı ilan hazırlanıyor</strong><p>Fiyat, süre ve teklif geçmişi yükleniyor.</p></section>;
+  if (!listing) return <section className="productRoomEmptyV28"><Icon name="gavel"/><h2>İlan görüntülenemiyor</h2><p>{error || "İlan kaldırılmış veya yayından alınmış olabilir."}</p><Link href="/">Ana sayfaya dön</Link></section>;
+
+  const selectedUrl = imageUrls[selectedImage] || imageUrls[0] || "";
+  const auctionOpen = listing.saleType === "auction" && listing.status === "active" && !countdown.done;
+  const fixedOpen = listing.saleType === "fixed" && listing.status === "active" && !countdown.done && listing.availableStock > 0;
+  const displayPrice = listing.saleType === "fixed" ? (listing.buyNowPrice ?? listing.currentPrice) : listing.currentPrice;
 
   return (
-    <div className="productExperienceV5">
-      {notice && <div className="productToastV5" role="status"><Icon name="check" /> {notice}</div>}
+    <div className="productRoomV28">
+      {notice && <button type="button" className="productNoticeV28" onClick={() => setNotice("")}>{notice}</button>}
+      {error && <div className="productErrorV28"><strong>İşlem tamamlanamadı</strong><span>{error}</span><button type="button" onClick={() => setError("")}>Kapat</button></div>}
 
-      <nav className="productBreadcrumbV5" aria-label="Sayfa yolu">
-        <Link href="/"><Icon name="arrow" /> Ana sayfa</Link>
-        <span>/</span>
-        <Link href={`/kategori/${product.category.toLocaleLowerCase("tr").replaceAll(" ", "-").replaceAll("&", "")}`}>{product.category}</Link>
-        <span>/</span>
-        <b>{product.title}</b>
-      </nav>
-
-      <section className="productHeroV5">
-        <div className="productGalleryV5">
-          <div className="productMainImageV5">
-            <img src={product.gallery[selectedImage] ?? product.image} alt={`${product.title} ürün fotoğrafı ${selectedImage + 1}`} />
-            <div className="productImageBadgesV5">
-              {product.live && <span className="live"><i /> CANLI AÇIK ARTIRMA</span>}
-              <span>{product.condition}</span>
-            </div>
-            <div className="productImageActionsV5">
-              <button className={favorite ? "active" : ""} type="button" onClick={() => favorites.toggle(product.id)} aria-pressed={favorite}>
-                <Icon name="heart" /> {favorite ? "Favorilerde" : "Favoriye ekle"}
-              </button>
-              <button className={compared ? "active" : ""} type="button" onClick={() => { const result = compare.toggle(product.id, 3); setNotice(result === "limit" ? "En fazla 3 ürünü karşılaştırabilirsin." : result === "added" ? "Ürün karşılaştırmaya eklendi." : "Ürün karşılaştırmadan çıkarıldı."); }} aria-pressed={compared}><Icon name="compare" /> {compared ? "Karşılaştırmada" : "Karşılaştır"}</button>
-              <button type="button" onClick={shareProduct}><Icon name="share" /> Paylaş</button>
-            </div>
+      <div className="productRoomGridV28">
+        <section className="productGalleryV28">
+          <div className="productHeroImageV28">
+            {selectedUrl ? <img src={selectedUrl} alt={listing.title}/> : <Icon name="image"/>}
+            <span className={listing.saleType}><Icon name={listing.saleType === "auction" ? "gavel" : "tag"}/>{listing.saleType === "auction" ? "Canlı açık artırma" : "Sabit fiyat"}</span>
+            <button type="button" className={listing.viewer.isWatching ? "active" : ""} onClick={() => void toggleWatch()} disabled={working} aria-label="İlanı takip et"><Icon name="heart"/></button>
           </div>
+          {imageUrls.length > 1 && <div className="productThumbsV28">{imageUrls.map((url, index) => <button type="button" className={selectedImage === index ? "active" : ""} key={url} onClick={() => setSelectedImage(index)}><img src={url} alt={`${listing.title} ${index + 1}`}/></button>)}</div>}
 
-          <div className="productThumbnailsV5" aria-label="Ürün fotoğrafları">
-            {product.gallery.map((image, index) => (
-              <button
-                key={image}
-                type="button"
-                className={selectedImage === index ? "active" : ""}
-                onClick={() => setSelectedImage(index)}
-                aria-label={`${index + 1}. fotoğrafı göster`}
-              >
-                <img src={image} alt="" />
-                <span>{String(index + 1).padStart(2, "0")}</span>
-              </button>
-            ))}
-            <div className="productGalleryInfoV5">
-              <Icon name="eye" />
-              <div><b>{product.views.toLocaleString("tr-TR")}</b><span>görüntülenme</span></div>
-            </div>
-          </div>
-        </div>
-
-        <aside className="productBidCardV5">
-          <div className="productTitleBlockV5">
-            <div>
-              <span>{product.category}</span>
-              <b>İlan no: KK-{product.id.slice(0, 4).toUpperCase()}26</b>
-            </div>
-            <h1>{product.title}</h1>
-            <p>{product.location} · {product.shipping}</p>
-          </div>
-
-          <section className="productPriceBlockV5">
-            <div>
-              <span>Güncel teklif</span>
-              <strong>{formatPrice(currentPrice)}</strong>
-              <small>{bidCount} teklif · {product.watchers} kişi takip ediyor</small>
-            </div>
-            <div className={ended ? "ended" : remaining < 1200 ? "urgent" : ""}>
-              <span>Kalan süre</span>
-              <strong>{ended ? "Sona erdi" : `${hours}:${minutes}:${seconds}`}</strong>
-              <small>{product.live ? "Canlı teklif odası açık" : "Süre dolunca en yüksek teklif kazanır"}</small>
-            </div>
-          </section>
-
-          <form className="productBidFormV5" onSubmit={submitBid}>
-            <div className="productBidInputV5">
-              <label htmlFor="bidAmountV5">Teklif tutarın</label>
-              <div>
-                <input
-                  id="bidAmountV5"
-                  type="number"
-                  inputMode="numeric"
-                  min={minimumBid}
-                  step={product.increment}
-                  value={bidAmount}
-                  onChange={(event) => setBidAmount(event.target.value)}
-                  disabled={ended}
-                />
-                <span>TL</span>
-              </div>
-              <small>Minimum yeni teklif: <b>{formatPrice(minimumBid)}</b></small>
-            </div>
-
-            <div className="productQuickBidsV5">
-              {quickBidValues.map((value, index) => (
-                <button type="button" key={value} onClick={() => setBidAmount(String(value))} disabled={ended}>
-                  <span>{index === 0 ? "Minimum" : index === 1 ? "+2 artış" : "+5 artış"}</span>
-                  <b>{formatPrice(value)}</b>
-                </button>
-              ))}
-            </div>
-
-            <section className={autoBid ? "productAutoBidV5 active" : "productAutoBidV5"}>
-              <label>
-                <input type="checkbox" checked={autoBid} onChange={(event) => setAutoBid(event.target.checked)} disabled={ended} />
-                <span><Icon name="bolt" /></span>
-                <div><b>Otomatik teklif</b><small>Belirlediğin üst sınıra kadar minimum artışla senin adına teklif verir.</small></div>
-              </label>
-              {autoBid && (
-                <div className="productAutoBidLimitV5">
-                  <label htmlFor="autoBidMaxV5">Gizli üst sınır</label>
-                  <div><input id="autoBidMaxV5" type="number" min={minimumBid} value={autoBidMax} onChange={(event) => setAutoBidMax(event.target.value)} placeholder={String(minimumBid + product.increment * 5)} /><span>TL</span></div>
-                </div>
-              )}
-            </section>
-
-            <button className="productBidSubmitV5" type="submit" disabled={submitting || ended || Number(bidAmount) < minimumBid}>
-              {submitting ? "Teklif doğrulanıyor..." : ended ? "Açık artırma sona erdi" : product.live ? "KAPIŞ! — Canlı teklif ver" : "KAPIŞ! — Teklifini gönder"}
-            </button>
-          </form>
-
-          <div className="productPaymentNoteV5">
-            <Icon name="card" />
-            <div><b>Akıllı Teklif Güvencesi</b><span>{estimateSmartBidSecurity(autoBid ? Number(autoBidMax || bidAmount) : Number(bidAmount)) > 0 ? `Bu teklif seviyesi için yaklaşık ${formatPrice(estimateSmartBidSecurity(autoBid ? Number(autoBidMax || bidAmount) : Number(bidAmount)))} güvence gerekir. Mevcut güvencen varsa yalnızca fark alınır.` : "5.000 TL'ye kadar doğrulanmış kart yeterlidir; önceden limit yüklemezsin."}</span></div>
-          </div>
-
-          <section className="productSellerV5">
-            <div className="productSellerAvatarV5">{product.sellerInitials}</div>
-            <div>
-              <span>Satıcı</span>
-              <b>{product.seller} {product.verified && <i><Icon name="check" /></i>}</b>
-              <small>{product.sellerRating.toLocaleString("tr-TR")} puan · {product.sellerSales} başarılı satış</small>
-            </div>
-            <Link href={`/magaza/${product.sellerSlug ?? sellerSlugForName(product.seller)}`}><Icon name="store" /> Mağaza</Link>
-          </section>
-        </aside>
-      </section>
-
-      <section className="productTrustRowV5">
-        <article><Icon name="shield" /><div><b>Alıcı koruması</b><span>Ödeme, teslimat onayına kadar güvenli hesapta tutulur.</span></div></article>
-        <article><Icon name="truck" /><div><b>Takipli gönderim</b><span>Kargo hareketleri sipariş ekranından takip edilir.</span></div></article>
-        <article><Icon name="clock" /><div><b>Son dakika uzatması</b><span>Son 2 dakikadaki teklifler süreyi 2 dakika uzatır.</span></div></article>
-      </section>
-
-      <div className="productLowerGridV5">
-        <section className="productInfoPanelV5">
-          <nav aria-label="Ürün bilgi sekmeleri">
-            <button type="button" className={activeTab === "description" ? "active" : ""} onClick={() => setActiveTab("description")}>Açıklama</button>
-            <button type="button" className={activeTab === "specs" ? "active" : ""} onClick={() => setActiveTab("specs")}>Teknik özellikler</button>
-            <button type="button" className={activeTab === "shipping" ? "active" : ""} onClick={() => setActiveTab("shipping")}>Kargo ve iade</button>
-          </nav>
-
-          {activeTab === "description" && (
-            <div className="productDescriptionV5">
-              <h2>Satıcının ürün açıklaması</h2>
-              <p>{product.description}</p>
-              <div><Icon name="info" /><span>Ürün açıklaması satıcı tarafından sağlanmıştır. Teklif vermeden önce fotoğrafları ve ürün özelliklerini incele.</span></div>
-            </div>
-          )}
-
-          {activeTab === "specs" && (
-            <div className="productSpecsV5">
-              {product.specs.map((spec) => <div key={spec.label}><span>{spec.label}</span><b>{spec.value}</b></div>)}
-            </div>
-          )}
-
-          {activeTab === "shipping" && (
-            <div className="productShippingV5">
-              <article><Icon name="truck" /><div><b>{product.shipping}</b><span>Satıcı, ödeme onayından sonra ürünü belirtilen süre içinde kargoya verir.</span></div></article>
-              <article><Icon name="shield" /><div><b>Kontrol süresi</b><span>Alıcı ürünü teslim aldıktan sonra sipariş ekranından teslimatı onaylar veya sorun bildirir.</span></div></article>
-              <article><Icon name="check" /><div><b>Uyuşmazlık desteği</b><span>Ürün ilan açıklamasından farklıysa kanıtlarla inceleme talebi oluşturulabilir.</span></div></article>
-            </div>
-          )}
+          <article className="productDescriptionV28">
+            <header><div><span>ÜRÜN AÇIKLAMASI</span><h2>Satıcının ürün notları</h2></div><small>İlan no: {listing.id.slice(0, 8).toUpperCase()}</small></header>
+            <p>{listing.description}</p>
+            <dl>
+              <div><dt>Marka</dt><dd>{listing.brand || "Belirtilmedi"}</dd></div>
+              <div><dt>Model</dt><dd>{listing.model || "Belirtilmedi"}</dd></div>
+              <div><dt>Durum</dt><dd>{conditionLabels[listing.condition] ?? listing.condition}</dd></div>
+              <div><dt>Garanti</dt><dd>{warrantyLabels[listing.warrantyStatus] ?? listing.warrantyStatus}</dd></div>
+              <div><dt>Konum</dt><dd>{listing.location || "Belirtilmedi"}</dd></div>
+              <div><dt>Kargo</dt><dd>{listing.shippingPayer === "seller" ? "Satıcı öder" : "Alıcı öder"}</dd></div>
+            </dl>
+            {listing.boxContents && <div className="productBoxContentsV28"><Icon name="box"/><div><strong>Kutu içeriği</strong><p>{listing.boxContents}</p></div></div>}
+          </article>
         </section>
 
-        <aside className="productBidHistoryV5">
-          <header><div><span>TEKLİF AKIŞI</span><h2>Son teklifler</h2></div><b>{bidCount}</b></header>
-          <div>
-            {history.map((item, index) => (
-              <article className={item.mine ? "mine" : index === 0 ? "leader" : ""} key={item.id}>
-                <span>{String(index + 1).padStart(2, "0")}</span>
-                <div><b>{item.bidder}</b><small>{item.time}</small></div>
-                <strong>{formatPrice(item.amount)}</strong>
-                {index === 0 && <em>{item.mine ? "Lider sensin" : "Lider"}</em>}
-              </article>
-            ))}
-          </div>
-          <p><Icon name="shield" /> Kullanıcı adları gizlilik amacıyla maskelenir.</p>
+        <aside className="productActionColumnV28">
+          <section className="productHeadlineV28">
+            <div className="productBreadcrumbV28"><span>{listing.category}</span><i>/</i><span>{listing.subcategory || "Ürün"}</span></div>
+            <h1>{listing.title}</h1>
+            <div className="productSignalV28"><span><Icon name="eye"/>{listing.watchersCount} takipçi</span><span><Icon name="gavel"/>{listing.bidCount} teklif</span><button type="button" onClick={() => void load(true)}><Icon name="refresh"/> Yenile</button></div>
+          </section>
+
+          <section className={`productCommerceV28 ${listing.saleType}`}>
+            <div className="productPriceTopV28">
+              <div><span>{listing.saleType === "auction" ? "Güncel teklif" : "Satış fiyatı"}</span><strong>{money(displayPrice)}</strong>{listing.saleType === "auction" && <small>Başlangıç {money(listing.startPrice)}</small>}</div>
+              <div className={countdown.urgent ? "urgent" : ""}><Icon name="clock"/><span>{listing.status === "active" ? "Kalan süre" : "İlan durumu"}</span><strong>{listing.status === "active" ? countdown.label : listing.status === "ended" ? "Sona erdi" : listing.status}</strong><small>{dateTime(listing.endsAt)}</small></div>
+            </div>
+
+            {listing.viewer.isHighestBidder && auctionOpen && <div className="productLeaderV28"><Icon name="check"/><div><strong>Şu anda lider sensin</strong><span>Başka teklif gelirse ekran otomatik güncellenecek.</span></div></div>}
+            {listing.viewer.isWinner && listing.status === "ended" && <div className="productLeaderV28 winner"><Icon name="gavel"/><div><strong>Açık artırmayı kazandın</strong><span>Güvenli ödeme adımı sipariş merkezinde açılacak.</span></div></div>}
+
+            {listing.saleType === "auction" ? (
+              auctionOpen ? <div className="productBidFormV28">
+                <label><span>Teklif tutarın</span><div><b>₺</b><input inputMode="decimal" value={bidAmount} onChange={(event) => setBidAmount(event.target.value)} aria-label="Teklif tutarı"/></div><small>Minimum teklif: {money(listing.minimumBid)} · Artış: {money(listing.minIncrement)}</small></label>
+                <div className="productQuickBidsV28">{[1,2,5].map((multiplier) => <button type="button" key={multiplier} onClick={() => setBidAmount(String(listing.minimumBid + listing.minIncrement * multiplier))}>+{money(listing.minIncrement * multiplier)}</button>)}</div>
+                <button type="button" className="primary" onClick={() => void placeBid()} disabled={working || listing.viewer.isOwner}>{working ? "Teklif işleniyor…" : listing.viewer.isOwner ? "Kendi ilanına teklif veremezsin" : "Teklifi gönder"}<Icon name="arrow"/></button>
+                <p><Icon name="shield"/> Teklifler sunucuda sıra kilidiyle işlenir. Son 60 saniyedeki teklif süreyi 2 dakika uzatır.</p>
+              </div> : <div className="productClosedV28"><Icon name="gavel"/><strong>Açık artırma tamamlandı</strong><span>{listing.winningBid ? `Kazanan teklif ${money(listing.winningBid)}` : "Gizli taban fiyat karşılanmadı veya teklif gelmedi."}</span></div>
+            ) : (
+              fixedOpen ? <div className="productBuyFormV28">
+                <div className="productStockV28"><span>Kullanılabilir stok</span><strong>{listing.availableStock}</strong></div>
+                <div className="productQuantityV28"><span>Adet</span><div><button type="button" onClick={() => setQuantity((value) => Math.max(1, value - 1))}><Icon name="minus"/></button><strong>{quantity}</strong><button type="button" onClick={() => setQuantity((value) => Math.min(Math.min(10, listing.availableStock), value + 1))}><Icon name="plus"/></button></div></div>
+                <button type="button" className="primary" onClick={() => void reservePurchase()} disabled={working || listing.viewer.isOwner}>{working ? "Rezerve ediliyor…" : listing.viewer.isOwner ? "Kendi ürününü satın alamazsın" : `${money((listing.buyNowPrice ?? 0) * quantity)} · Satın al`}<Icon name="arrow"/></button>
+                <p><Icon name="lock"/> Ürün ödeme sırasında 15 dakika senin adına stoktan ayrılır.</p>
+              </div> : <div className="productClosedV28"><Icon name="box"/><strong>Ürün şu anda satın alınamıyor</strong><span>Stok tükenmiş veya ilan sona ermiş olabilir.</span></div>
+            )}
+          </section>
+
+          <section className="productSellerV28">
+            <header><span>SATICI</span><Link href={`/magaza/${listing.seller.slug}`}>Mağazaya git <Icon name="arrow"/></Link></header>
+            <div className="productSellerIdentityV28">{sellerLogo ? <img src={sellerLogo} alt={listing.seller.name}/> : <b>{listing.seller.initials || listing.seller.name.slice(0,2).toUpperCase()}</b>}<div><h2>{listing.seller.name}{listing.seller.verified && <Icon name="check"/>}</h2><p>{listing.seller.tagline || listing.seller.location}</p></div></div>
+            <div className="productSellerStatsV28"><div><strong>{listing.seller.successfulSalesCount}</strong><span>Başarılı satış</span></div><div><strong>%{listing.seller.responseRate}</strong><span>Yanıt oranı</span></div><div><strong>{listing.seller.responseTimeMinutes || "—"}</strong><span>Dk. yanıt</span></div></div>
+          </section>
+
+          <section className="productTrustV28"><div><Icon name="shield"/><p><strong>KapışKapış Güvencesi</strong><span>Ödeme, ürün teslim akışına göre satıcıya aktarılır.</span></p></div><div><Icon name="truck"/><p><strong>Takipli teslimat</strong><span>Kargo ve teslim durumu sipariş merkezinden izlenir.</span></p></div><div><Icon name="lock"/><p><strong>Gizli bilgiler</strong><span>Kart ve kimlik bilgileri satıcıyla paylaşılmaz.</span></p></div></section>
+
+          {listing.saleType === "auction" && <section className="productBidHistoryV28"><header><div><span>CANLI AKIŞ</span><h2>Son teklifler</h2></div><small>{listing.bidCount} toplam</small></header>{listing.bids.length ? <ol>{listing.bids.map((bid, index) => <li key={bid.id} className={bid.isMine ? "mine" : ""}><b>{index + 1}</b><div><strong>{bid.bidderLabel}{bid.isMine ? " · Sen" : ""}</strong><span>{dateTime(bid.createdAt)}</span></div><em>{money(bid.amount)}</em></li>)}</ol> : <div className="productNoBidsV28"><Icon name="gavel"/><span>İlk teklifi sen ver.</span></div>}</section>}
         </aside>
       </div>
     </div>
