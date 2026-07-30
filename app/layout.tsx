@@ -26,11 +26,12 @@ import "./seller-center-v26.css";
 import "./seller-listings-v27.css";
 import "./auction-room-v28.css";
 import "./checkout-v29.css";
+import "./navigation-v30.css";
 import { AuthProvider } from "@/components/AuthProvider";
 
 export const metadata: Metadata = {
-  title: "KapışKapış — Açık Artırma Platformu",
-  description: "Beğendiysen bekleme, KapışKapış kap!",
+  title: "KapışKapış — Açık Artırma, Sabit Fiyat ve Oyun İtemleri",
+  description: "Açık artırma, sabit fiyatlı alışveriş ve oyun itemleri için güvenli pazar platformu.",
   manifest: "/manifest.webmanifest",
   icons: { icon: "/kapiskapis-icon.png", apple: "/kapiskapis-icon.png" },
 };

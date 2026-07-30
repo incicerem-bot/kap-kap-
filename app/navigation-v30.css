@@ -1,0 +1,132 @@
+/* KapışKapış Navigation v30 — üç pazar menü mimarisi */
+.marketHeader{z-index:80}
+
+.marketSellMenuV30{position:relative;flex:0 0 auto}
+.marketSellMenuV30 summary{height:40px;display:flex;align-items:center;gap:7px;padding:0 16px;border:0;border-radius:11px;background:linear-gradient(135deg,var(--kk-gold-bright),#e68b00);color:#15100a;font-size:12px;font-weight:950;list-style:none;cursor:pointer;user-select:none}
+.marketSellMenuV30 summary::-webkit-details-marker{display:none}
+.marketSellMenuV30 summary svg{width:17px;height:17px}
+.marketSellMenuV30[open] summary{box-shadow:0 0 0 3px rgba(246,163,19,.12)}
+.marketSellMenuV30>div{position:absolute;right:0;top:48px;width:286px;display:grid;gap:6px;padding:9px;border:1px solid rgba(255,255,255,.1);border-radius:15px;background:#11151b;box-shadow:0 24px 70px rgba(0,0,0,.55)}
+.marketSellMenuV30>div::before{content:"";position:absolute;right:22px;top:-6px;width:11px;height:11px;border-left:1px solid rgba(255,255,255,.1);border-top:1px solid rgba(255,255,255,.1);background:#11151b;transform:rotate(45deg)}
+.marketSellMenuV30>div a{position:relative;z-index:1;display:grid;grid-template-columns:38px minmax(0,1fr);align-items:center;gap:10px;min-height:58px;padding:8px 10px;border:1px solid transparent;border-radius:11px;color:#fff;text-decoration:none}
+.marketSellMenuV30>div a:hover{border-color:rgba(246,163,19,.25);background:rgba(246,163,19,.07)}
+.marketSellMenuV30>div a>svg{width:20px;color:var(--kk-gold-bright)}
+.marketSellMenuV30>div a span{display:grid;gap:3px}
+.marketSellMenuV30>div a b{font-size:11px}
+.marketSellMenuV30>div a small{color:#7f8994;font-size:9px}
+
+.marketModeBarV30{position:sticky;top:72px;z-index:55;height:46px;display:flex;align-items:center;gap:4px;padding:0 24px;border-bottom:1px solid rgba(255,255,255,.075);background:rgba(10,12,16,.95);backdrop-filter:blur(16px)}
+.marketModeBarV30 a{position:relative;height:34px;display:flex;align-items:center;gap:8px;padding:0 13px;border:1px solid transparent;border-radius:9px;color:#8f98a4;text-decoration:none;font-size:10px;font-weight:850;white-space:nowrap}
+.marketModeBarV30 a svg{width:16px;height:16px}
+.marketModeBarV30 a:hover{color:#fff;background:rgba(255,255,255,.035)}
+.marketModeBarV30 a.active{border-color:rgba(246,163,19,.23);background:rgba(246,163,19,.09);color:var(--kk-gold-bright)}
+.marketModeBarV30 a small{padding:3px 5px;border-radius:5px;background:rgba(246,163,19,.14);color:var(--kk-gold-bright);font-size:6px;letter-spacing:.08em}
+.marketModeBarV30 .all{margin-right:5px;border-right-color:rgba(255,255,255,.08)}
+.marketModeBarV30 .help{margin-left:auto}
+
+.marketLayout{min-height:calc(100vh - 118px)}
+.marketSidebar{top:118px;height:calc(100vh - 118px)}
+.marketSidebar nav a em{min-width:0;flex:1;overflow:hidden;font-style:normal;text-overflow:ellipsis;white-space:nowrap}
+.marketSidebar nav a>small.sidebarBadgeV30{position:static;min-width:auto;height:auto;padding:3px 5px;border-radius:5px;background:rgba(246,163,19,.1);color:var(--kk-gold-bright);font-size:6px;letter-spacing:.07em}
+.sidebarSubLabelV30{display:block;margin:13px 12px 5px;color:#59626d;font-size:7px;font-weight:950;letter-spacing:.13em}
+.accountMenuV30>a span{display:grid!important}
+.accountMenuV30 .accountLogoutV19{min-height:35px!important;font-size:9px!important}
+.sidebarGameItemsV30{margin-top:8px}
+.sidebarGameItemsV30 summary{min-height:40px;display:flex;align-items:center;gap:11px;padding:0 12px;border-radius:10px;color:#9aa3ae;font-size:11px;font-weight:850;list-style:none;cursor:pointer}
+.sidebarGameItemsV30 summary::-webkit-details-marker{display:none}
+.sidebarGameItemsV30 summary:hover,.sidebarGameItemsV30[open] summary{background:rgba(255,255,255,.035);color:#fff}
+.sidebarGameItemsV30 summary>svg{width:17px;color:var(--kk-gold)}
+.sidebarGameItemsV30 summary>span{margin-left:auto;color:#616a75}
+.sidebarGameItemsV30 nav{margin:4px 0 0 14px;padding-left:8px;border-left:1px solid rgba(246,163,19,.16)}
+.sidebarGameItemsV30 nav a{min-height:32px!important;font-size:9px!important}
+
+.marketFooterV30{grid-template-columns:minmax(240px,1.6fr) repeat(3,minmax(120px,1fr));align-items:start}
+.marketFooterV30>div:not(:first-child){display:grid;gap:9px}
+.marketFooterV30>div>strong{color:#b4bcc6;font-size:8px;letter-spacing:.13em}
+.marketFooterV30>div nav{display:grid;justify-content:start;gap:8px}
+.marketFooterV30>div nav a{font-size:9px}
+
+.marketMobileNavV30 a span{font-size:8px}
+
+.marketEntryStripV30{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:0 0 25px}
+.marketEntryStripV30>a{min-width:0;display:grid;grid-template-columns:34px minmax(0,1fr) 20px;align-items:center;gap:11px;padding:15px 16px;border:1px solid #252b33;border-radius:15px;background:linear-gradient(145deg,#12161c,#0d1014);color:#fff;text-decoration:none;transition:transform .18s,border-color .18s,background .18s}
+.marketEntryStripV30>a:hover{transform:translateY(-2px);border-color:rgba(246,163,19,.35);background:linear-gradient(145deg,rgba(246,163,19,.08),#0d1014)}
+.marketEntryStripV30>a>small{display:grid;place-items:center;width:32px;height:32px;border-radius:10px;background:rgba(246,163,19,.1);color:var(--kk-gold-bright);font-size:8px;font-weight:950}
+.marketEntryStripV30>a>div{min-width:0;display:grid;gap:4px}
+.marketEntryStripV30 strong{font-size:11px}
+.marketEntryStripV30 span{overflow:hidden;color:#79838e;font-size:8px;text-overflow:ellipsis;white-space:nowrap}
+.marketEntryStripV30 b{color:var(--kk-gold-bright)}
+
+.marketHubV30{display:grid;gap:22px}
+.marketHubIntroV30{position:relative;overflow:hidden;min-height:280px;display:flex;flex-direction:column;justify-content:flex-end;padding:clamp(28px,5vw,58px);border:1px solid rgba(246,163,19,.22);border-radius:24px;background:radial-gradient(circle at 82% 12%,rgba(246,163,19,.2),transparent 34%),linear-gradient(145deg,#15191f,#0c0f13)}
+.marketHubIntroV30::after{content:"K";position:absolute;right:5%;top:-28%;color:rgba(255,255,255,.025);font-size:340px;font-weight:1000;line-height:1;transform:rotate(8deg)}
+.marketHubIntroV30>span{position:relative;z-index:1;color:var(--kk-gold-bright);font-size:9px;font-weight:950;letter-spacing:.17em}
+.marketHubIntroV30 h1{position:relative;z-index:1;max-width:850px;margin:10px 0 12px;font-size:clamp(34px,5vw,62px);line-height:1.02;letter-spacing:-.05em}
+.marketHubIntroV30 p{position:relative;z-index:1;max-width:740px;margin:0;color:#919aa5;font-size:13px;line-height:1.7}
+.marketHubIntroV30.fixed{border-color:rgba(92,181,255,.22);background:radial-gradient(circle at 82% 12%,rgba(58,150,230,.2),transparent 34%),linear-gradient(145deg,#13191f,#0c0f13)}
+.marketHubIntroV30.fixed>span{color:#78c4ff}
+.marketHubIntroV30.gameItems{border-color:rgba(168,109,255,.25);background:radial-gradient(circle at 82% 12%,rgba(127,72,216,.24),transparent 34%),linear-gradient(145deg,#17131f,#0c0f13)}
+.marketHubIntroV30.gameItems>span{color:#b88cff}
+.marketHubActionsV30{position:relative;z-index:2;display:flex;flex-wrap:wrap;gap:9px;margin-top:22px}
+.marketHubActionsV30 a{min-height:41px;display:inline-flex;align-items:center;padding:0 16px;border:1px solid rgba(255,255,255,.12);border-radius:10px;color:#fff;text-decoration:none;font-size:10px;font-weight:900}
+.marketHubActionsV30 a:first-child{border-color:transparent;background:var(--kk-gold);color:#111}
+.marketHubIntroV30.fixed .marketHubActionsV30 a:first-child{background:#70bfff}
+.marketHubIntroV30.gameItems .marketHubActionsV30 a:first-child{background:#a979ff}
+
+.marketHubModeGridV30{display:grid;grid-template-columns:repeat(3,1fr);gap:15px}
+.marketHubModeCardV30{position:relative;min-height:230px;display:flex;flex-direction:column;justify-content:flex-end;overflow:hidden;padding:24px;border:1px solid #272d35;border-radius:20px;background:#11151a;color:#fff;text-decoration:none;transition:transform .2s,border-color .2s}
+.marketHubModeCardV30:hover{transform:translateY(-4px);border-color:rgba(246,163,19,.38)}
+.marketHubModeCardV30::before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 90% 0,rgba(246,163,19,.18),transparent 42%);pointer-events:none}
+.marketHubModeCardV30.mode-2::before{background:radial-gradient(circle at 90% 0,rgba(75,169,245,.2),transparent 42%)}
+.marketHubModeCardV30.mode-3::before{background:radial-gradient(circle at 90% 0,rgba(139,83,230,.22),transparent 42%)}
+.marketHubModeNumberV30{position:absolute;right:18px;top:12px;color:rgba(255,255,255,.05);font-size:78px;font-weight:1000}
+.marketHubModeCardV30>div:not(.marketHubModeNumberV30){position:relative;z-index:1}
+.marketHubModeCardV30 span{color:var(--kk-gold);font-size:8px;font-weight:950;letter-spacing:.15em}
+.marketHubModeCardV30.mode-2 span{color:#78c4ff}.marketHubModeCardV30.mode-3 span{color:#b88cff}
+.marketHubModeCardV30 h2{margin:7px 0;font-size:22px}
+.marketHubModeCardV30 p{max-width:260px;margin:0;color:#818b96;font-size:10px;line-height:1.55}
+.marketHubModeCardV30>b{position:absolute;right:22px;bottom:22px;color:#fff}
+
+.marketHubLinkGridV30{display:grid;grid-template-columns:repeat(4,1fr);gap:13px}
+.marketHubLinkGridV30>a{position:relative;min-height:180px;display:flex;flex-direction:column;padding:21px;border:1px solid #252b33;border-radius:17px;background:#11151a;color:#fff;text-decoration:none}
+.marketHubLinkGridV30>a:hover{border-color:rgba(246,163,19,.35)}
+.marketHubLinkGridV30 span{color:var(--kk-gold);font-size:7px;font-weight:950;letter-spacing:.12em}
+.marketHubLinkGridV30 h2{margin:11px 0 8px;font-size:16px}
+.marketHubLinkGridV30 p{margin:0;color:#7f8994;font-size:9px;line-height:1.6}
+.marketHubLinkGridV30 b{margin-top:auto;align-self:flex-end;color:var(--kk-gold)}
+
+.gameItemMenuGridV30{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.gameItemMenuGridV30>a{display:grid;grid-template-columns:46px minmax(0,1fr) 18px;align-items:center;gap:12px;padding:15px;border:1px solid #272d35;border-radius:15px;background:#11151a;color:#fff;text-decoration:none}
+.gameItemMenuGridV30>a:hover,.gameItemMenuGridV30>a.active{border-color:rgba(169,121,255,.48);background:rgba(135,82,224,.07)}
+.gameItemMenuGridV30>a>span{display:grid;place-items:center;width:44px;height:44px;border-radius:12px;background:rgba(149,91,242,.13);color:#c19cff;font-size:10px;font-weight:950}
+.gameItemMenuGridV30>a>div{min-width:0;display:grid;gap:4px}
+.gameItemMenuGridV30 strong{font-size:11px}.gameItemMenuGridV30 small{color:#7f8994;font-size:8px}.gameItemMenuGridV30 b{color:#b88cff}
+.gameItemSafetyV30{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;overflow:hidden;border:1px solid #272d35;border-radius:16px;background:#272d35}
+.gameItemSafetyV30>div{padding:18px;background:#11151a}.gameItemSafetyV30 strong,.gameItemSafetyV30 span{display:block}.gameItemSafetyV30 strong{font-size:10px}.gameItemSafetyV30 span{margin-top:5px;color:#7f8994;font-size:8px;line-height:1.5}
+
+@media(max-width:1180px){
+  .marketModeBarV30{padding:0 16px}.marketModeBarV30 a{padding:0 10px}.marketModeBarV30 .help{display:none}
+  .marketHubLinkGridV30{grid-template-columns:1fr 1fr}
+}
+
+@media(max-width:900px){
+  .marketModeBarV30{position:static;height:46px;overflow-x:auto;padding:0 12px;scrollbar-width:none}.marketModeBarV30::-webkit-scrollbar{display:none}.marketModeBarV30 a{flex:0 0 auto}
+  .marketLayout{min-height:calc(100vh - 112px)}
+  .marketSellMenuV30 summary{height:38px;padding:0 13px}.marketSellMenuV30>div{position:fixed;right:12px;top:62px}
+  .marketHubModeGridV30{grid-template-columns:1fr}.marketHubModeCardV30{min-height:180px}
+  .marketEntryStripV30{grid-template-columns:1fr}
+  .gameItemMenuGridV30{grid-template-columns:1fr 1fr}
+  .marketFooterV30{grid-template-columns:1fr 1fr}
+  .marketFooterV30>div:first-child{grid-column:1/-1}
+}
+
+@media(max-width:680px){
+  .marketSellMenuV30 summary{position:absolute;right:0;top:-52px;width:37px;height:37px;display:grid;place-items:center;padding:0;font-size:0}.marketSellMenuV30 summary span{display:none}.marketSellMenuV30>div{top:66px;right:10px;width:min(300px,calc(100vw - 20px))}
+  .marketModeBarV30{height:43px}.marketModeBarV30 a{height:31px;padding:0 9px;font-size:9px}.marketModeBarV30 a small{display:none}
+  .marketHubIntroV30{min-height:330px;padding:28px 22px}.marketHubIntroV30 h1{font-size:38px}.marketHubIntroV30 p{font-size:11px}
+  .marketHubLinkGridV30{grid-template-columns:1fr}.marketHubLinkGridV30>a{min-height:145px}
+  .gameItemMenuGridV30{grid-template-columns:1fr}
+  .gameItemSafetyV30{grid-template-columns:1fr}
+  .marketFooterV30{grid-template-columns:1fr}.marketFooterV30>div:first-child{grid-column:auto}
+  .marketEntryStripV30{gap:8px}.marketEntryStripV30>a{padding:12px}
+}

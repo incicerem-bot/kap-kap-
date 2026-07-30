@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import Hero from "@/components/Hero";
 import MarketplaceShell from "@/components/MarketplaceShell";
 import { ProductGrid, StatsRow } from "@/components/MarketplaceUI";
+import { MarketEntryStrip } from "@/components/MarketHubExperience";
 
 export default function HomePage() {
   const router = useRouter();
@@ -11,11 +12,13 @@ export default function HomePage() {
   return (
     <MarketplaceShell
       title="KapışKapış"
-      eyebrow="TÜRKİYE'NİN YENİ NESİL AÇIK ARTIRMA PLATFORMU"
-      description="Doğrulanmış satıcılardan güvenle teklif ver, açık artırmayı kazan."
+      eyebrow="AÇIK ARTIRMA · SABİT FİYAT · OYUN İTEMLERİ"
+      description="Tek hesapla teklif ver, doğrudan satın al veya oyun itemi pazarını keşfet."
       compact
     >
       <Hero onOpenSell={() => router.push("/ilan-olustur")} />
+
+      <MarketEntryStrip />
 
       <StatsRow />
 

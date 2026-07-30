@@ -2,7 +2,7 @@ import DiscoveryExperience from "@/components/DiscoveryExperience";
 import MarketplaceShell from "@/components/MarketplaceShell";
 import { notFound } from "next/navigation";
 
-const categories: Record<string, string> = { telefon: "Telefon", bilgisayar: "Bilgisayar", oyun: "Oyun & Konsol", saat: "Saat", koleksiyon: "Koleksiyon", elektronik: "Elektronik", "ev-yasam": "Ev & Yaşam" };
+const categories: Record<string, string> = { telefon: "Telefon", bilgisayar: "Bilgisayar", oyun: "Oyun & Konsol", kamera: "Kamera", saat: "Saat", koleksiyon: "Koleksiyon", elektronik: "Elektronik", "ev-yasam": "Ev & Yaşam" };
 
 export default async function CategoryPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
