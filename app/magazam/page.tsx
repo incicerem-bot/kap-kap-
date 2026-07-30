@@ -1,5 +1,14 @@
-import { redirect } from "next/navigation";
+import MarketplaceShell from "@/components/MarketplaceShell";
+import SellerCenterDashboard from "@/components/SellerCenterDashboard";
 
-export default function MagazamPage() {
-  redirect("/magazam/ayarlar");
+export default function SellerCenterPage() {
+  return (
+    <MarketplaceShell
+      eyebrow="SATICI MERKEZİ"
+      title="Mağazam"
+      description="İlanlarını, mağaza hazırlığını ve satışa başlama adımlarını tek ekrandan yönet."
+    >
+      <SellerCenterDashboard />
+    </MarketplaceShell>
+  );
 }
