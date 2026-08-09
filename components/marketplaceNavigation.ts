@@ -93,6 +93,17 @@ export const equipmentMenuItems: NavigationItem[] = [
   { href: "/kategori/gamepad-joystick", label: "Gamepad ve Joystick", icon: "game", description: "PC ve konsol kontrolcüleri" },
   { href: "/kategori/direksiyon-seti", label: "Direksiyon Seti", icon: "game", description: "Sim racing direksiyon ve pedal setleri" },
   { href: "/kategori/yayin-ekipmanlari", label: "Mikrofon ve Yayın", icon: "electronics", description: "Mikrofon, stand ve yayın aksesuarları" },
+  { href: "/kategori/bilgisayar-kasasi", label: "Bilgisayar Kasası", icon: "computer", description: "ATX, mATX ve Mini-ITX oyuncu kasaları" },
+  { href: "/kategori/ekran-karti", label: "Ekran Kartı", icon: "electronics", description: "GeForce RTX, Radeon RX ve Intel Arc" },
+  { href: "/kategori/ssd", label: "SSD", icon: "electronics", description: "NVMe M.2 ve SATA oyuncu depolaması" },
+  { href: "/kategori/anakart", label: "Anakart", icon: "electronics", description: "AMD ve Intel platform anakartları" },
+  { href: "/kategori/islemci", label: "İşlemci", icon: "electronics", description: "AMD Ryzen ve Intel Core işlemciler" },
+  { href: "/kategori/ram-bellek", label: "RAM Bellek", icon: "electronics", description: "DDR4 ve DDR5 oyuncu bellekleri" },
+  { href: "/kategori/guc-kaynagi", label: "Güç Kaynağı", icon: "electronics", description: "Modüler ve 80 PLUS oyuncu PSU modelleri" },
+  { href: "/kategori/sivi-sogutma", label: "Sıvı Soğutma", icon: "electronics", description: "AIO 120–420 mm işlemci soğutucuları" },
+  { href: "/kategori/hava-sogutma", label: "Hava Soğutma", icon: "electronics", description: "Kule tipi ve düşük profil CPU soğutucular" },
+  { href: "/kategori/kasa-fani", label: "Kasa Fanı", icon: "electronics", description: "120/140 mm PWM, RGB ve ARGB fanlar" },
+  { href: "/kategori/oyuncu-masasi", label: "Oyuncu Masası", icon: "collection", description: "Setup ve yayın masaları" },
 ];
 
 export const equipmentBrandItems: NavigationItem[] = [
