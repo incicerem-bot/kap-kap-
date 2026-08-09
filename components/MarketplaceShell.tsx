@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { FAVORITES_STORAGE_KEY, defaultFavoriteIds, useStoredIds } from "@/components/useMarketplaceCollections";
 import { useNotifications } from "@/components/useNotifications";
 import { useAuth } from "@/components/AuthProvider";
@@ -73,6 +73,7 @@ export default function MarketplaceShell({ title, eyebrow, description, children
   title: string; eyebrow?: string; description?: string; children: ReactNode; action?: ReactNode; compact?: boolean;
 }) {
   const pathname = usePathname();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const favorites = useStoredIds(FAVORITES_STORAGE_KEY, defaultFavoriteIds);
   const { unreadCount: unreadNotificationCount } = useNotifications();
   const { user, profile, loading: authLoading, signOut } = useAuth();
@@ -85,6 +86,14 @@ export default function MarketplaceShell({ title, eyebrow, description, children
   const sellHref = sellerTarget("/ilan-olustur");
   const displayName = profile?.fullName || user?.email?.split("@")[0] || "Hesabım";
   const initials = displayName.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toLocaleUpperCase("tr-TR") || "KK";
+
+  useEffect(() => setMobileMenuOpen(false), [pathname]);
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = previousOverflow; };
+  }, [mobileMenuOpen]);
 
   return (
     <main className="marketApp">
@@ -113,6 +122,15 @@ export default function MarketplaceShell({ title, eyebrow, description, children
       <nav className="marketModeBarV30" aria-label="KapışKapış pazarları">
         <Link href="/pazarlar" className={isPathActive(pathname, "/pazarlar") ? "active all" : "all"}><Icon name="markets" /><span>Tüm Pazarlar</span></Link>
         {marketModeItems.map((item) => <Link key={item.href} href={item.href} className={isPathActive(pathname, item.href) ? "active" : ""}><Icon name={item.icon || "markets"} /><span>{item.label}</span>{item.badge && <small>{item.badge}</small>}</Link>)}
+        <details className="marketCatalogMenuV34">
+          <summary><Icon name="game" /><span>Kategoriler</span></summary>
+          <div>
+            <section><b>OYUNLAR & KODLAR</b>{gameProductMenuItems.map((item) => <Link key={item.href} href={item.href}>{item.label}<small>{item.description}</small></Link>)}</section>
+            <section><b>OYUNCU EKİPMANLARI</b>{equipmentMenuItems.map((item) => <Link key={item.href} href={item.href}>{item.label}<small>{item.description}</small></Link>)}</section>
+            <section><b>OYUN İTEMLERİ</b>{gameItemMenuItems.map((item) => <Link key={item.href} href={item.href}>{item.label}<small>{item.description}</small></Link>)}</section>
+            <section><b>KOLEKSİYON</b>{collectionMenuItems.map((item) => <Link key={item.href} href={item.href}>{item.label}<small>{item.description}</small></Link>)}</section>
+          </div>
+        </details>
         <Link href="/nasil-calisir" className={isPathActive(pathname, "/nasil-calisir") ? "active help" : "help"}><span>Nasıl Çalışır?</span></Link>
       </nav>
 
@@ -180,9 +198,26 @@ export default function MarketplaceShell({ title, eyebrow, description, children
         <Link href="/" className={pathname === "/" ? "active" : ""}><Icon name="home" /><span>Ana Sayfa</span></Link>
         <Link href="/pazarlar" className={isPathActive(pathname, "/pazarlar") || isPathActive(pathname, "/acik-artirma") || isPathActive(pathname, "/sabit-fiyat") || isPathActive(pathname, "/oyun-itemleri") ? "active" : ""}><Icon name="markets" /><span>Pazarlar</span></Link>
         <Link href={sellHref} className="mobileSell" aria-label="Satış oluştur"><Icon name="plus" /></Link>
-        <Link href={user ? "/siparisler" : "/giris?returnTo=/siparisler"} className={isPathActive(pathname, "/siparisler") ? "active" : ""}><Icon name="orders" /><span>Siparişler</span></Link>
+        <button type="button" className={mobileMenuOpen ? "active" : ""} onClick={() => setMobileMenuOpen(true)} aria-haspopup="dialog" aria-expanded={mobileMenuOpen}><Icon name="markets" /><span>Menü</span></button>
         <Link href={user ? "/profil" : "/giris"} className={isPathActive(pathname, "/profil") ? "active" : ""}><Icon name="user" /><span>{user ? "Hesabım" : "Giriş"}</span></Link>
       </nav>
+
+      {mobileMenuOpen && <div className="mobileMenuLayerV34" role="dialog" aria-modal="true" aria-label="KapışKapış menüsü">
+        <button type="button" className="mobileMenuBackdropV34" onClick={() => setMobileMenuOpen(false)} aria-label="Menüyü kapat" />
+        <section className="mobileMenuPanelV34">
+          <header><div><span>TÜM BÖLÜMLER</span><strong>KapışKapış Menü</strong></div><button type="button" onClick={() => setMobileMenuOpen(false)} aria-label="Menüyü kapat">×</button></header>
+          <div className="mobileMenuQuickV34">
+            <Link href="/canli"><Icon name="live" /><span>Canlı</span></Link>
+            <Link href="/son-dakika"><Icon name="bolt" /><span>Son Dakika</span></Link>
+            <Link href={user ? "/siparisler" : "/giris?returnTo=/siparisler"}><Icon name="orders" /><span>Siparişler</span></Link>
+            <Link href="/yardim"><Icon name="support" /><span>Yardım</span></Link>
+          </div>
+          <details open><summary>Oyunlar ve Dijital Kodlar <span>⌄</span></summary><nav><SidebarLinks items={gameProductMenuItems} pathname={pathname} /></nav></details>
+          <details><summary>Oyuncu Ekipmanları <span>⌄</span></summary><nav><SidebarLinks items={equipmentMenuItems} pathname={pathname} /></nav></details>
+          <details><summary>Oyun İtemleri <span>⌄</span></summary><nav><SidebarLinks items={gameItemMenuItems} pathname={pathname} /></nav></details>
+          <details><summary>Hesap ve Destek <span>⌄</span></summary><nav><SidebarLinks items={user ? [...buyerAccountItems, ...accountSecurityItems] : accountSecurityItems.slice(2)} pathname={pathname} /></nav></details>
+        </section>
+      </div>}
     </main>
   );
 }
