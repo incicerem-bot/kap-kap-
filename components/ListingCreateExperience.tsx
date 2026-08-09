@@ -98,6 +98,14 @@ export default function ListingCreateExperience() {
     () => categories.find((item) => item.id === categoryId) ?? categories[2],
     [categoryId],
   );
+  const digitalListing = ["steam-codes", "epin-gift-card", "knight-online", "metin2", "cs2", "valorant", "league-of-legends", "pubg-mobile", "roblox", "mobile-legends"].includes(categoryId);
+  const specificationPlaceholder = digitalListing
+    ? "Oyun, sunucu/bölge, item veya kod türü, teslimat yöntemi ve doğrulama bilgileri…"
+    : categoryId.includes("mouse") ? "Bağlantı türü, sensör, DPI, ağırlık ve pil bilgileri…"
+    : categoryId.includes("keyboard") ? "Switch türü, dizilim, bağlantı ve aydınlatma bilgileri…"
+    : categoryId.includes("headset") ? "Bağlantı, mikrofon, sürücü ve platform uyumluluğu…"
+    : categoryId.includes("monitor") ? "Panel, çözünürlük, yenileme hızı ve tepki süresi…"
+    : "Model, ölçü, bağlantı, renk, seri ve test bilgileri…";
 
   function addPhotos(event: ChangeEvent<HTMLInputElement>) {
     const incoming = Array.from(event.target.files ?? []);
@@ -273,9 +281,9 @@ export default function ListingCreateExperience() {
               <label><span>Ürün durumu</span><select value={condition} onChange={(event) => setCondition(event.target.value)}><option value="new">Sıfır / kullanılmamış</option><option value="like_new">Yeni gibi</option><option value="good">İyi</option><option value="fair">Kullanılmış</option></select></label>
             </div>
             <label className="listingFieldV27"><span>İlan başlığı <small>{title.length}/120</small></span><input maxLength={120} value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Örn. PlayStation 5 Slim Diskli + 2 Kol" /></label>
-            <div className="listingFieldsV27 two"><label><span>Marka</span><input value={brand} onChange={(event) => setBrand(event.target.value)} placeholder="Sony" /></label><label><span>Model</span><input value={model} onChange={(event) => setModel(event.target.value)} placeholder="PS5 Slim" /></label></div>
+            <div className="listingFieldsV27 two"><label><span>{digitalListing ? "Oyun / Platform" : "Marka"}</span><input value={brand} onChange={(event) => setBrand(event.target.value)} placeholder={digitalListing ? "Steam, CS2, Valorant…" : "Logitech, Razer, Sony…"} /></label><label><span>{digitalListing ? "Sunucu / Bölge / Ürün türü" : "Model"}</span><input value={model} onChange={(event) => setModel(event.target.value)} placeholder={digitalListing ? "Türkiye, EU, skin, oyun kodu…" : "Model adı"} /></label></div>
             <label className="listingFieldV27"><span>Açıklama <small>{description.length}/4000</small></span><textarea maxLength={4000} value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Ürünün kozmetik durumunu, çalışma durumunu, varsa kusurlarını ve önemli ayrıntıları açıkça yaz." /></label>
-            <label className="listingFieldV27"><span>Teknik özellik notu</span><textarea className="short" value={specificationNote} onChange={(event) => setSpecificationNote(event.target.value)} placeholder="Depolama, RAM, ölçü, renk, pil sağlığı, seri veya test bilgileri…" /></label>
+            <label className="listingFieldV27"><span>{digitalListing ? "Oyun ve teslimat bilgileri" : "Teknik özellikler"}</span><textarea className="short" value={specificationNote} onChange={(event) => setSpecificationNote(event.target.value)} placeholder={specificationPlaceholder} /></label>
           </section>
 
           <section className="listingFormCardV27">
