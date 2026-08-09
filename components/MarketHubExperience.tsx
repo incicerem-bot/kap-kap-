@@ -10,11 +10,8 @@ type Props = {
 
 const gameNames: Record<string, string> = {
   cs2: "Counter-Strike 2",
-  valorant: "VALORANT",
-  "dota-2": "Dota 2",
-  rust: "Rust",
-  lol: "League of Legends",
-  steam: "Steam Envanteri",
+  "knight-online": "Knight Online",
+  metin2: "Metin2",
 };
 
 const auctionLinks = [
@@ -25,10 +22,11 @@ const auctionLinks = [
 ] as const;
 
 const fixedLinks = [
-  ["/sabit-fiyat?category=teknoloji", "Teknoloji Pazarı", "Telefon, bilgisayar ve elektronik ürünleri."],
-  ["/sabit-fiyat?category=oyun", "Oyun & Konsol", "Konsol, ekipman ve aksesuarlar."],
-  ["/sabit-fiyat?category=koleksiyon", "Koleksiyon", "Nadir ve özel ürünleri doğrudan satın al."],
-  ["/sabit-fiyat?category=ev-yasam", "Ev & Yaşam", "Ev, yaşam ve kişisel kullanım ürünleri."],
+  ["/kategori/bilgisayar-oyunlari", "Bilgisayar Oyunları", "PC oyunlarını doğrudan satın al."],
+  ["/kategori/xbox-oyunlari", "Xbox Oyunları", "Xbox oyunlarını keşfet."],
+  ["/kategori/playstation-oyunlari", "PlayStation Oyunları", "PlayStation oyunlarını keşfet."],
+  ["/kategori/steam-oyunlari", "Steam Oyunları", "Steam oyunlarını doğrudan satın al."],
+  ["/kategori/ozel-seri", "Özel Seri Oyuncu Ürünleri", "Sınırlı ve koleksiyonluk oyuncu ürünleri."],
 ] as const;
 
 function MarketCards() {
@@ -70,7 +68,7 @@ export default function MarketHubExperience({ mode, selectedGame }: Props) {
         <section className="marketHubIntroV30">
           <span>TEK HESAP · ÜÇ PAZAR</span>
           <h1>Nasıl almak veya satmak istediğini seç.</h1>
-          <p>Açık artırma, doğrudan satın alma ve oyun itemi işlemleri aynı güvenli hesap, ödeme ve destek altyapısında birleşir.</p>
+          <p>Oyunlar, oyun itemleri ve özel seri oyuncu ürünleri aynı güvenli hesap, ödeme ve destek altyapısında birleşir.</p>
         </section>
         <MarketCards />
       </div>
