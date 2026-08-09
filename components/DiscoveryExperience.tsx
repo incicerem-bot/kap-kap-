@@ -17,7 +17,7 @@ type Props = {
   categoryTitle?: string;
 };
 
-const categories = ["Tümü", "Telefon", "Bilgisayar", "Oyun & Konsol", "Saat", "Elektronik", "Koleksiyon", "Ev & Yaşam"];
+const categories = ["Tümü", "Bilgisayar Oyunları", "Xbox Oyunları", "PlayStation Oyunları", "Steam Oyunları", "Özel Seri Oyuncu Ürünleri"];
 const conditions = ["Az kullanılmış", "Çok iyi", "Garantili", "Kutulu", "Sıfır ayarında"];
 
 function normalize(value: string) {
@@ -138,12 +138,12 @@ export default function DiscoveryExperience({ initialQuery = "", lockedCategory,
 
       <form className="discoverySearchBox" onSubmit={(event) => event.preventDefault()} role="search">
         <Icon name="search" />
-        <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Örn. iPhone 15 Pro, M3 Pro, PlayStation..." aria-label="Ürünlerde ara" />
+        <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Örn. Steam oyunu, PS5 oyunu, CS2 skin..." aria-label="Oyuncu ürünlerinde ara" />
         {query && <button type="button" className="discoverySearchClear" onClick={() => setQuery("")} aria-label="Aramayı temizle"><Icon name="close" /></button>}
         <button type="submit" className="discoverySearchSubmit">Ara</button>
       </form>
 
-      <div className="discoveryPopularSearches"><span>Popüler:</span>{["iPhone", "PlayStation", "MacBook", "Rolex", "Sony"].map((term) => <button key={term} type="button" onClick={() => setQuery(term)}>{term}</button>)}</div>
+      <div className="discoveryPopularSearches"><span>Popüler:</span>{["Steam", "PlayStation", "Xbox", "Knight Online", "CS2"].map((term) => <button key={term} type="button" onClick={() => setQuery(term)}>{term}</button>)}</div>
 
       <div className="discoveryToolbar">
         <div className="discoveryResultSummary"><strong>{products.length}</strong><span>{query ? `“${query}” için uygun ilan` : "uygun açık artırma"}</span></div>
