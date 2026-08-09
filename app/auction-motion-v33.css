@@ -1,0 +1,130 @@
+@keyframes auctionRevealV33 {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes auctionPulseV33 {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 74, 87, .42); }
+  50% { box-shadow: 0 0 0 7px rgba(255, 74, 87, 0); }
+}
+
+@keyframes auctionGlowV33 {
+  0%, 100% { filter: drop-shadow(0 0 0 rgba(255, 181, 70, 0)); }
+  50% { filter: drop-shadow(0 0 8px rgba(255, 181, 70, .22)); }
+}
+
+@keyframes auctionSweepV33 {
+  from { transform: translateX(-160%) rotate(16deg); }
+  to { transform: translateX(360%) rotate(16deg); }
+}
+
+.marketHubIntroV30.auction,
+.liveLobbyHeroContentV5 > *,
+.liveLobbyFeaturedV5,
+.liveSafetyStripV5 article,
+.liveRoomCardV5,
+.liveScheduleV5 article,
+.productCommerceV28.auction {
+  animation: auctionRevealV33 .55s cubic-bezier(.2,.75,.25,1) both;
+}
+
+.liveLobbyHeroContentV5 > :nth-child(2), .liveSafetyStripV5 article:nth-child(2), .liveRoomCardV5:nth-child(2) { animation-delay: .07s; }
+.liveLobbyHeroContentV5 > :nth-child(3), .liveSafetyStripV5 article:nth-child(3), .liveRoomCardV5:nth-child(3) { animation-delay: .14s; }
+.liveLobbyHeroContentV5 > :nth-child(4), .liveRoomCardV5:nth-child(4) { animation-delay: .21s; }
+
+.auctionFlowV33 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 20px 0 24px;
+}
+
+.auctionFlowV33 article {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 18px;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 18px;
+  background: linear-gradient(145deg, rgba(255,255,255,.055), rgba(255,255,255,.018));
+  animation: auctionRevealV33 .5s cubic-bezier(.2,.75,.25,1) both;
+}
+
+.auctionFlowV33 article:nth-child(2) { animation-delay: .08s; }
+.auctionFlowV33 article:nth-child(3) { animation-delay: .16s; }
+.auctionFlowV33 b { color: #ffb546; font-size: .76rem; letter-spacing: .08em; }
+.auctionFlowV33 div { display: grid; gap: 5px; }
+.auctionFlowV33 strong { color: #fff; font-size: .98rem; }
+.auctionFlowV33 span { color: rgba(255,255,255,.62); font-size: .82rem; line-height: 1.5; }
+
+.marketHubLinkGridV30 > a {
+  animation: auctionRevealV33 .5s cubic-bezier(.2,.75,.25,1) both;
+  transition: transform .24s ease, border-color .24s ease, box-shadow .24s ease;
+}
+.marketHubLinkGridV30 > a:nth-child(2) { animation-delay: .06s; }
+.marketHubLinkGridV30 > a:nth-child(3) { animation-delay: .12s; }
+.marketHubLinkGridV30 > a:nth-child(4) { animation-delay: .18s; }
+.marketHubLinkGridV30 > a:hover { transform: translateY(-5px); border-color: rgba(255,181,70,.4); box-shadow: 0 18px 44px rgba(0,0,0,.22); }
+
+.liveLobbyKickerV5 i,
+.liveRoomStatusV5 i,
+.discoveryLiveBadge i { animation: auctionPulseV33 1.8s ease-out infinite; }
+
+.liveLobbyFeaturedV5 { overflow: hidden; }
+.liveLobbyFeaturedV5::after {
+  content: "";
+  position: absolute;
+  inset: -35% auto -35% -25%;
+  width: 16%;
+  z-index: 2;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.12), transparent);
+  animation: auctionSweepV33 7s ease-in-out 1.2s infinite;
+}
+
+.liveRoomCardV5 {
+  transition: transform .25s ease, border-color .25s ease, box-shadow .25s ease;
+}
+.liveRoomCardV5:hover { transform: translateY(-6px); border-color: rgba(255,181,70,.34); box-shadow: 0 20px 50px rgba(0,0,0,.28); }
+.liveRoomImageV5 img { transition: transform .45s cubic-bezier(.2,.75,.25,1); }
+.liveRoomCardV5:hover .liveRoomImageV5 img { transform: scale(1.045); }
+
+.liveRoomPriceV5 strong,
+.liveLobbyFeaturedBodyV5 strong,
+.productPriceTopV28 strong { font-variant-numeric: tabular-nums; }
+.liveRoomPriceV5 .urgent strong,
+.liveLobbyFeaturedBodyV5 .urgent strong,
+.productPriceTopV28 .urgent strong { animation: auctionGlowV33 2s ease-in-out infinite; }
+
+.productCommerceV28.auction .productBidFormV28 button,
+.productCommerceV28.auction .productQuickBidsV28 button { transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
+.productCommerceV28.auction .productBidFormV28 button:hover:not(:disabled) { transform: translateY(-2px); }
+.productCommerceV28.auction .productBidFormV28 button:active:not(:disabled) { transform: translateY(0) scale(.985); }
+.productCommerceV28.auction .primary.processing { cursor: progress; opacity: .72; }
+
+@media (max-width: 760px) {
+  .auctionFlowV33 { grid-template-columns: 1fr; }
+  .auctionFlowV33 article { padding: 15px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marketHubIntroV30.auction,
+  .auctionFlowV33 article,
+  .marketHubLinkGridV30 > a,
+  .liveLobbyHeroContentV5 > *,
+  .liveLobbyFeaturedV5,
+  .liveSafetyStripV5 article,
+  .liveRoomCardV5,
+  .liveScheduleV5 article,
+  .productCommerceV28.auction,
+  .liveLobbyKickerV5 i,
+  .liveRoomStatusV5 i,
+  .discoveryLiveBadge i,
+  .liveLobbyFeaturedV5::after,
+  .liveRoomPriceV5 .urgent strong,
+  .liveLobbyFeaturedBodyV5 .urgent strong,
+  .productPriceTopV28 .urgent strong {
+    animation: none !important;
+    transition: none !important;
+  }
+}

@@ -400,8 +400,8 @@ export default function ProductDetailExperience({ slug }: { slug: string }) {
 
           <section className={`productCommerceV28 ${listing.saleType}`}>
             <div className="productPriceTopV28">
-              <div><span>{listing.saleType === "auction" ? "Güncel teklif" : "Satış fiyatı"}</span><strong>{money(displayPrice)}</strong>{listing.saleType === "auction" && <small>Başlangıç {money(listing.startPrice)}</small>}</div>
-              <div className={countdown.urgent ? "urgent" : ""}><Icon name="clock"/><span>{listing.status === "active" ? "Kalan süre" : "İlan durumu"}</span><strong>{listing.status === "active" ? countdown.label : listing.status === "ended" ? "Sona erdi" : listing.status}</strong><small>{dateTime(listing.endsAt)}</small></div>
+              <div aria-live="polite"><span>{listing.saleType === "auction" ? "Güncel teklif" : "Satış fiyatı"}</span><strong>{money(displayPrice)}</strong>{listing.saleType === "auction" && <small>Başlangıç {money(listing.startPrice)}</small>}</div>
+              <div className={countdown.urgent ? "urgent" : ""} aria-live="polite"><Icon name="clock"/><span>{listing.status === "active" ? "Kalan süre" : "İlan durumu"}</span><strong>{listing.status === "active" ? countdown.label : listing.status === "ended" ? "Sona erdi" : listing.status}</strong><small>{dateTime(listing.endsAt)}</small></div>
             </div>
 
             {listing.viewer.isHighestBidder && auctionOpen && <div className="productLeaderV28"><Icon name="check"/><div><strong>Şu anda lider sensin</strong><span>Başka teklif gelirse ekran otomatik güncellenecek.</span></div></div>}
@@ -411,7 +411,7 @@ export default function ProductDetailExperience({ slug }: { slug: string }) {
               auctionOpen ? <div className="productBidFormV28">
                 <label><span>Teklif tutarın</span><div><b>₺</b><input inputMode="decimal" value={bidAmount} onChange={(event) => setBidAmount(event.target.value)} aria-label="Teklif tutarı"/></div><small>Minimum teklif: {money(listing.minimumBid)} · Artış: {money(listing.minIncrement)}</small></label>
                 <div className="productQuickBidsV28">{[1,2,5].map((multiplier) => <button type="button" key={multiplier} onClick={() => setBidAmount(String(listing.minimumBid + listing.minIncrement * multiplier))}>+{money(listing.minIncrement * multiplier)}</button>)}</div>
-                <button type="button" className="primary" onClick={() => void placeBid()} disabled={working || listing.viewer.isOwner}>{working ? "Teklif işleniyor…" : listing.viewer.isOwner ? "Kendi ilanına teklif veremezsin" : "Teklifi gönder"}<Icon name="arrow"/></button>
+                <button type="button" className={working ? "primary processing" : "primary"} onClick={() => void placeBid()} disabled={working || listing.viewer.isOwner}>{working ? "Teklif işleniyor…" : listing.viewer.isOwner ? "Kendi ilanına teklif veremezsin" : "Teklifi gönder"}<Icon name="arrow"/></button>
                 <p><Icon name="shield"/> Teklifler sunucuda sıra kilidiyle işlenir. Son 60 saniyedeki teklif süreyi 2 dakika uzatır.</p>
               </div> : <div className="productClosedV28"><Icon name="gavel"/><strong>Açık artırma tamamlandı</strong><span>{listing.winningBid ? `Kazanan teklif ${money(listing.winningBid)}` : "Gizli taban fiyat karşılanmadı veya teklif gelmedi."}</span></div>
             ) : (
