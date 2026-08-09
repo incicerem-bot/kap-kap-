@@ -3,6 +3,8 @@ import MarketplaceShell from "@/components/MarketplaceShell";
 import { notFound } from "next/navigation";
 import { equipmentBrandItems } from "@/components/marketplaceNavigation";
 import EquipmentTaxonomy from "@/components/EquipmentTaxonomy";
+import CompatibilityAdvisor from "@/components/CompatibilityAdvisor";
+import type { Metadata } from "next";
 
 const categories: Record<string, string> = {
   "bilgisayar-oyunlari": "Bilgisayar Oyunları",
@@ -35,7 +37,16 @@ const categories: Record<string, string> = {
   "ozel-seri": "Özel Seri Oyuncu Ürünleri",
 };
 
-export default async function CategoryPage({ params }: { params: Promise<{ slug: string }> }) {
+type PageProps = { params: Promise<{ slug: string }> };
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const brand = equipmentBrandItems.find((item) => item.href.endsWith(`/kategori/${slug}`));
+  const title = categories[slug] ?? brand?.label;
+  return title ? { title: `${title} İlanları | KapışKapış`, description: `${title} oyuncu ürünlerini ayrıntılı filtreler, açık artırma ve sabit fiyat seçenekleriyle keşfet.` } : {};
+}
+
+export default async function CategoryPage({ params }: PageProps) {
   const { slug } = await params;
   const brand = equipmentBrandItems.find((item) => item.href.endsWith(`/kategori/${slug}`));
   const category = categories[slug] ?? brand?.label;
@@ -43,6 +54,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
   return (
     <MarketplaceShell eyebrow={brand ? "OYUNCU MARKASI" : "KATEGORİ"} title={category} description={`${category} için doğrulanmış oyuncu ürünlerini ve ilanları keşfet.`}>
       {!brand && <EquipmentTaxonomy category={slug} />}
+      {!brand && <CompatibilityAdvisor category={slug} />}
       <DiscoveryExperience initialQuery={brand?.label ?? ""} lockedCategory={brand ? undefined : category} categoryTitle={category} taxonomyCategory={brand ? undefined : slug} />
     </MarketplaceShell>
   );
