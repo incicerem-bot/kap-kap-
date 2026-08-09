@@ -39,6 +39,11 @@ export type NavigationItem = {
   badge?: string;
 };
 
+export type NavigationGroup = {
+  label: string;
+  items: NavigationItem[];
+};
+
 export const marketModeItems: NavigationItem[] = [
   {
     href: "/acik-artirma",
@@ -90,6 +95,33 @@ export const equipmentMenuItems: NavigationItem[] = [
   { href: "/kategori/yayin-ekipmanlari", label: "Mikrofon ve Yayın", icon: "electronics", description: "Mikrofon, stand ve yayın aksesuarları" },
 ];
 
+export const equipmentBrandItems: NavigationItem[] = [
+  { href: "/kategori/marka-logitech-g", label: "Logitech G", description: "Mouse, klavye, kulaklık ve direksiyon" },
+  { href: "/kategori/marka-razer", label: "Razer", description: "Çevre birimleri ve yayın ekipmanları" },
+  { href: "/kategori/marka-steelseries", label: "SteelSeries", description: "Mouse, klavye, kulaklık ve mousepad" },
+  { href: "/kategori/marka-hyperx", label: "HyperX", description: "Kulaklık, mikrofon, klavye ve mouse" },
+  { href: "/kategori/marka-corsair", label: "Corsair", description: "Oyuncu ekipmanları ve aksesuarlar" },
+  { href: "/kategori/marka-asus-rog", label: "ASUS ROG / TUF", description: "Monitör ve oyuncu çevre birimleri" },
+  { href: "/kategori/marka-msi", label: "MSI", description: "Monitör ve oyuncu ekipmanları" },
+  { href: "/kategori/marka-aoc", label: "AOC / AGON", description: "Yüksek yenileme hızlı monitörler" },
+  { href: "/kategori/marka-samsung-odyssey", label: "Samsung Odyssey", description: "Gaming monitörler" },
+  { href: "/kategori/marka-lg-ultragear", label: "LG UltraGear", description: "Gaming monitörler" },
+  { href: "/kategori/marka-lenovo-legion", label: "Lenovo Legion", description: "Monitör ve aksesuarlar" },
+  { href: "/kategori/marka-viewsonic", label: "ViewSonic", description: "Gaming monitörler" },
+  { href: "/kategori/marka-pulsar", label: "Pulsar", description: "E-spor mouse ve mousepad" },
+  { href: "/kategori/marka-glorious", label: "Glorious", description: "Mouse, klavye ve aksesuarlar" },
+  { href: "/kategori/marka-akko", label: "Akko", description: "Mekanik klavyeler ve switchler" },
+  { href: "/kategori/marka-mchose", label: "MCHOSE", description: "Mouse ve mekanik klavyeler" },
+  { href: "/kategori/marka-gravastar", label: "GravaStar", description: "Tasarım odaklı oyuncu ekipmanları" },
+  { href: "/kategori/marka-gamesir", label: "GameSir", description: "Gamepad ve mobil kontrolcüler" },
+  { href: "/kategori/marka-thrustmaster", label: "Thrustmaster", description: "Direksiyon, pedal ve joystick" },
+  { href: "/kategori/marka-fanatec", label: "Fanatec", description: "Sim racing ekipmanları" },
+  { href: "/kategori/marka-rampage", label: "Rampage", description: "Erişilebilir oyuncu ekipmanları" },
+  { href: "/kategori/marka-gamepower", label: "GamePower", description: "Klavye, mouse ve kulaklık" },
+  { href: "/kategori/marka-havit", label: "Havit", description: "Oyuncu çevre birimleri" },
+  { href: "/kategori/marka-wraith", label: "Wraith Esports", description: "E-spor odaklı seçili ekipmanlar" },
+];
+
 export const collectionMenuItems: NavigationItem[] = [
   { href: "/kategori/ozel-seri", label: "Özel Seri Oyuncu Ürünleri", icon: "collection", description: "Sınırlı üretim ve koleksiyon ürünleri" },
 ];
@@ -109,6 +141,42 @@ export const gameItemMenuItems: NavigationItem[] = [
   { href: "/oyun-itemleri/pubg-mobile", label: "PUBG Mobile", icon: "gameItem", description: "UC ve mobil oyun ürünleri" },
   { href: "/oyun-itemleri/roblox", label: "Roblox", icon: "gameItem", description: "Robux ve dijital kodlar" },
   { href: "/oyun-itemleri/mobile-legends", label: "Mobile Legends", icon: "gameItem", description: "Elmas ve mobil oyun ürünleri" },
+  { href: "/oyun-itemleri/silkroad-online", label: "Silkroad Online", icon: "gameItem", description: "Silk, gold ve aktarılabilir itemler" },
+  { href: "/oyun-itemleri/rise-online", label: "Rise Online", icon: "gameItem", description: "Gold ve oyun içi itemler" },
+  { href: "/oyun-itemleri/black-desert", label: "Black Desert", icon: "gameItem", description: "Acoin ve resmi dijital ürünler" },
+  { href: "/oyun-itemleri/fortnite", label: "Fortnite", icon: "gameItem", description: "V-Bucks ve hediye kartları" },
+  { href: "/oyun-itemleri/minecraft", label: "Minecraft", icon: "gameItem", description: "Oyun kodu ve Minecoin" },
+];
+
+export const gameItemTypeGroups: NavigationGroup[] = [
+  { label: "Counter-Strike 2", items: [
+    { href: "/oyun-itemleri/cs2?tur=silah-skinleri", label: "Silah Skinleri" },
+    { href: "/oyun-itemleri/cs2?tur=bicaklar", label: "Bıçaklar" },
+    { href: "/oyun-itemleri/cs2?tur=eldivenler", label: "Eldivenler" },
+    { href: "/oyun-itemleri/cs2?tur=sticker-kasa", label: "Sticker ve Kasalar" },
+  ]},
+  { label: "Knight Online", items: [
+    { href: "/oyun-itemleri/knight-online?tur=gb", label: "Gold Bar (GB)" },
+    { href: "/oyun-itemleri/knight-online?tur=silah", label: "Silahlar" },
+    { href: "/oyun-itemleri/knight-online?tur=zirh", label: "Zırhlar" },
+    { href: "/oyun-itemleri/knight-online?tur=aksesuar", label: "Takı ve Aksesuar" },
+    { href: "/oyun-itemleri/knight-online?tur=kc", label: "Knight Cash Kodları" },
+  ]},
+  { label: "Metin2", items: [
+    { href: "/oyun-itemleri/metin2?tur=yang-won", label: "Yang ve Won" },
+    { href: "/oyun-itemleri/metin2?tur=silah", label: "Silahlar" },
+    { href: "/oyun-itemleri/metin2?tur=zirh", label: "Zırhlar" },
+    { href: "/oyun-itemleri/metin2?tur=simya", label: "Simya ve Taşlar" },
+    { href: "/oyun-itemleri/metin2?tur=kostum", label: "Kostüm ve Pet" },
+  ]},
+  { label: "Kod ve Oyun Parası", items: [
+    { href: "/oyun-itemleri/valorant?tur=vp", label: "Valorant VP" },
+    { href: "/oyun-itemleri/league-of-legends?tur=rp", label: "League of Legends RP" },
+    { href: "/oyun-itemleri/pubg-mobile?tur=uc", label: "PUBG Mobile UC" },
+    { href: "/oyun-itemleri/mobile-legends?tur=elmas", label: "Mobile Legends Elmas" },
+    { href: "/oyun-itemleri/roblox?tur=hediye-karti", label: "Roblox Hediye Kartı" },
+    { href: "/oyun-itemleri/fortnite?tur=v-bucks", label: "Fortnite V-Bucks" },
+  ]},
 ];
 
 export const buyerAccountItems: NavigationItem[] = [
