@@ -30,6 +30,7 @@ import "./navigation-v30.css";
 import "./navigation-v31.css";
 import "./auction-motion-v33.css";
 import "./navigation-v34.css";
+import "./game-taxonomy-v36.css";
 import { AuthProvider } from "@/components/AuthProvider";
 
 export const metadata: Metadata = {

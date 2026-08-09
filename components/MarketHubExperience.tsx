@@ -1,4 +1,5 @@
 import Link from "next/link";
+import GameItemTaxonomy from "@/components/GameItemTaxonomy";
 import { collectionMenuItems, equipmentMenuItems, gameItemMenuItems, gameProductMenuItems, marketModeItems, type NavigationItem } from "@/components/marketplaceNavigation";
 
 type MarketMode = "overview" | "auction" | "fixed" | "game-items";
@@ -154,6 +155,7 @@ export default function MarketHubExperience({ mode, selectedGame }: Props) {
         <p>Yalnızca aktarımı ve satışı izin verilen dijital ürünler; işlem kaydı, kullanıcı doğrulaması ve uyuşmazlık desteğiyle listelenir.</p>
         <div className="marketHubActionsV30"><Link href="/oyun-itemleri">Tüm oyunlar</Link><Link href="/ilan-olustur?mode=game-item">İtem sat</Link></div>
       </section>
+      {selectedGame && <GameItemTaxonomy game={selectedGame} />}
       <div className="gameItemMenuGridV30">
         {gameItemMenuItems.map((item) => (
           <Link href={item.href} key={item.href} className={selectedGame && item.href.endsWith(`/${selectedGame}`) ? "active" : ""}>
