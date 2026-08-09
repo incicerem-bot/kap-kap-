@@ -28,6 +28,7 @@ import "./auction-room-v28.css";
 import "./checkout-v29.css";
 import "./navigation-v30.css";
 import "./navigation-v31.css";
+import "./auction-motion-v33.css";
 import { AuthProvider } from "@/components/AuthProvider";
 
 export const metadata: Metadata = {
