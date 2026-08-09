@@ -43,6 +43,7 @@ export default function ComparisonCenterExperience() {
   const products = useMemo(() => compare.ids.map((id) => marketplaceProducts.find((product) => product.id === id)).filter((product): product is Product => Boolean(product)), [compare.ids, marketplaceProducts]);
   const available = marketplaceProducts.filter((product) => !compare.ids.includes(product.id));
   const specLabels = [...new Set(products.flatMap((product) => product.specs.map((spec) => spec.label)))].slice(0, 8);
+  const sameCategory = products.length < 2 || products.every((product) => product.category === products[0].category);
   const lowestPrice = products.length ? Math.min(...products.map((product) => parsePrice(product.price))) : 0;
   const highestRating = products.length ? Math.max(...products.map((product) => product.sellerRating)) : 0;
   const shortestTime = products.length ? Math.min(...products.map((product) => timeToSeconds(product.time))) : 0;
@@ -93,6 +94,7 @@ export default function ComparisonCenterExperience() {
         })}
         {products.length < 3 && <button type="button" className="comparisonAddCardV11" onClick={() => setSelectorOpen(true)}><span><Icon name="plus" /></span><strong>Başka ürün ekle</strong><small>En fazla 3 ürün karşılaştırılabilir.</small></button>}
       </section>
+      {!sameCategory && <div className="comparisonCompatibilityNoticeV40"><strong>Farklı kategoriler seçildi</strong><span>Teknik özellikleri doğrudan kıyaslamak için aynı ürün kategorisindeki ilanları seçmen daha doğru sonuç verir.</span></div>}
 
       <section className={`comparisonTableV11 count-${products.length}`}>
         <header><div><Icon name="compare" /><div><span>DETAYLI KARŞILAŞTIRMA</span><h2>Teklif ve ürün özellikleri</h2></div></div><small>En avantajlı değerler vurgulanır.</small></header>
