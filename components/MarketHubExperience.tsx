@@ -7,6 +7,7 @@ type MarketMode = "overview" | "auction" | "fixed" | "game-items";
 type Props = {
   mode: MarketMode;
   selectedGame?: string;
+  selectedItemFilter?: string;
 };
 
 const gameNames: Record<string, string> = {
@@ -89,7 +90,7 @@ export function MarketEntryStrip() {
   );
 }
 
-export default function MarketHubExperience({ mode, selectedGame }: Props) {
+export default function MarketHubExperience({ mode, selectedGame, selectedItemFilter }: Props) {
   if (mode === "overview") {
     return (
       <div className="marketHubV30">
@@ -155,7 +156,7 @@ export default function MarketHubExperience({ mode, selectedGame }: Props) {
         <p>Yalnızca aktarımı ve satışı izin verilen dijital ürünler; işlem kaydı, kullanıcı doğrulaması ve uyuşmazlık desteğiyle listelenir.</p>
         <div className="marketHubActionsV30"><Link href="/oyun-itemleri">Tüm oyunlar</Link><Link href="/ilan-olustur?mode=game-item">İtem sat</Link></div>
       </section>
-      {selectedGame && <GameItemTaxonomy game={selectedGame} />}
+      {selectedGame && <GameItemTaxonomy game={selectedGame} selected={selectedItemFilter} />}
       <div className="gameItemMenuGridV30">
         {gameItemMenuItems.map((item) => (
           <Link href={item.href} key={item.href} className={selectedGame && item.href.endsWith(`/${selectedGame}`) ? "active" : ""}>
