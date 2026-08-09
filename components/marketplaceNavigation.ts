@@ -70,23 +70,20 @@ export const auctionMenuItems: NavigationItem[] = [
 ];
 
 export const categoryMenuItems: NavigationItem[] = [
-  { href: "/kategori/telefon", label: "Telefon", icon: "phone" },
-  { href: "/kategori/bilgisayar", label: "Bilgisayar", icon: "computer" },
-  { href: "/kategori/oyun", label: "Oyun & Konsol", icon: "game" },
-  { href: "/kategori/kamera", label: "Kamera", icon: "camera" },
-  { href: "/kategori/saat", label: "Saat & Giyilebilir", icon: "watch" },
-  { href: "/kategori/koleksiyon", label: "Koleksiyon", icon: "collection" },
-  { href: "/kategori/elektronik", label: "Elektronik", icon: "electronics" },
-  { href: "/kategori/ev-yasam", label: "Ev & Yaşam", icon: "house" },
+  { href: "/kategori/bilgisayar-oyunlari", label: "Bilgisayar Oyunları", icon: "computer" },
+  { href: "/kategori/xbox-oyunlari", label: "Xbox Oyunları", icon: "game" },
+  { href: "/kategori/playstation-oyunlari", label: "PlayStation Oyunları", icon: "game" },
+  { href: "/kategori/steam-oyunlari", label: "Steam Oyunları", icon: "game" },
+  { href: "/oyun-itemleri/knight-online", label: "Knight Online İtemleri", icon: "gameItem" },
+  { href: "/oyun-itemleri/metin2", label: "Metin2 İtemleri", icon: "gameItem" },
+  { href: "/oyun-itemleri/cs2", label: "CS2 İtemleri", icon: "gameItem" },
+  { href: "/kategori/ozel-seri", label: "Özel Seri Oyuncu Ürünleri", icon: "collection" },
 ];
 
 export const gameItemMenuItems: NavigationItem[] = [
   { href: "/oyun-itemleri/cs2", label: "Counter-Strike 2", icon: "gameItem" },
-  { href: "/oyun-itemleri/valorant", label: "VALORANT", icon: "gameItem" },
-  { href: "/oyun-itemleri/dota-2", label: "Dota 2", icon: "gameItem" },
-  { href: "/oyun-itemleri/rust", label: "Rust", icon: "gameItem" },
-  { href: "/oyun-itemleri/lol", label: "League of Legends", icon: "gameItem" },
-  { href: "/oyun-itemleri/steam", label: "Steam Envanteri", icon: "gameItem" },
+  { href: "/oyun-itemleri/knight-online", label: "Knight Online", icon: "gameItem" },
+  { href: "/oyun-itemleri/metin2", label: "Metin2", icon: "gameItem" },
 ];
 
 export const buyerAccountItems: NavigationItem[] = [
