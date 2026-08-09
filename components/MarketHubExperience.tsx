@@ -10,8 +10,13 @@ type Props = {
 
 const gameNames: Record<string, string> = {
   cs2: "Counter-Strike 2",
+  valorant: "Valorant",
   "knight-online": "Knight Online",
   metin2: "Metin2",
+  "league-of-legends": "League of Legends",
+  "pubg-mobile": "PUBG Mobile",
+  roblox: "Roblox",
+  "mobile-legends": "Mobile Legends",
 };
 
 const auctionLinks = [
@@ -23,10 +28,16 @@ const auctionLinks = [
 
 const fixedLinks = [
   ["/kategori/bilgisayar-oyunlari", "Bilgisayar Oyunları", "PC oyunlarını doğrudan satın al."],
-  ["/kategori/xbox-oyunlari", "Xbox Oyunları", "Xbox oyunlarını keşfet."],
   ["/kategori/playstation-oyunlari", "PlayStation Oyunları", "PlayStation oyunlarını keşfet."],
-  ["/kategori/steam-oyunlari", "Steam Oyunları", "Steam oyunlarını doğrudan satın al."],
-  ["/kategori/ozel-seri", "Özel Seri Oyuncu Ürünleri", "Sınırlı ve koleksiyonluk oyuncu ürünleri."],
+  ["/kategori/xbox-oyunlari", "Xbox Oyunları", "Xbox oyunlarını keşfet."],
+  ["/kategori/nintendo-oyunlari", "Nintendo Oyunları", "Switch oyunlarını ve özel sürümleri keşfet."],
+  ["/kategori/steam-kodlari", "Steam Cüzdan ve Kod", "Steam oyun kodu ve cüzdan ürünleri."],
+  ["/kategori/epin-hediye-karti", "E-pin ve Hediye Kartı", "Platform ve oyunlara özel dijital kodlar."],
+  ["/kategori/gaming-mouse", "Gaming Mouse", "FPS ve e-spor odaklı oyuncu mouse modelleri."],
+  ["/kategori/gaming-klavye", "Gaming Klavye", "Mekanik ve düşük gecikmeli oyuncu klavyeleri."],
+  ["/kategori/gaming-kulaklik", "Gaming Kulaklık", "Mikrofonlu kablolu ve kablosuz kulaklıklar."],
+  ["/kategori/gaming-monitor", "Gaming Monitör", "Yüksek yenileme hızlı oyuncu monitörleri."],
+  ["/kategori/gamepad-joystick", "Gamepad ve Simülasyon", "Gamepad, joystick ve direksiyon setleri."],
 ] as const;
 
 function MarketCards() {
