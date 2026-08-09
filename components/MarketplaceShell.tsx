@@ -11,7 +11,9 @@ import {
   adminMenuItems,
   auctionMenuItems,
   buyerAccountItems,
-  categoryMenuItems,
+  collectionMenuItems,
+  equipmentMenuItems,
+  gameProductMenuItems,
   gameItemMenuItems,
   marketModeItems,
   sellerMenuItems,
@@ -109,41 +111,34 @@ export default function MarketplaceShell({ title, eyebrow, description, children
       </header>
 
       <nav className="marketModeBarV30" aria-label="KapışKapış pazarları">
-        <Link href="/pazarlar" className={isPathActive(pathname, "/pazarlar") ? "active all" : "all"}>
-          <Icon name="markets" /><span><b>Pazarlar</b><em>Hepsini gör</em></span>
-        </Link>
-        {marketModeItems.map((item, index) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            data-market={index === 0 ? "auction" : index === 1 ? "fixed" : "game"}
-            className={isPathActive(pathname, item.href) ? "active" : ""}
-          >
-            <i><Icon name={item.icon || "markets"} /></i>
-            <span><b>{item.label}</b><em>{item.description}</em></span>
-            {item.badge && <small>{item.badge}</small>}
-          </Link>
-        ))}
-        <Link href="/nasil-calisir" className={isPathActive(pathname, "/nasil-calisir") ? "active help" : "help"}><Icon name="support" /><span><b>Nasıl çalışır?</b><em>Güvenli alışveriş rehberi</em></span></Link>
+        <Link href="/pazarlar" className={isPathActive(pathname, "/pazarlar") ? "active all" : "all"}><Icon name="markets" /><span>Tüm Pazarlar</span></Link>
+        {marketModeItems.map((item) => <Link key={item.href} href={item.href} className={isPathActive(pathname, item.href) ? "active" : ""}><Icon name={item.icon || "markets"} /><span>{item.label}</span>{item.badge && <small>{item.badge}</small>}</Link>)}
+        <Link href="/nasil-calisir" className={isPathActive(pathname, "/nasil-calisir") ? "active help" : "help"}><span>Nasıl Çalışır?</span></Link>
       </nav>
 
       <div className="marketLayout">
         <aside className="marketSidebar">
-          <Link href="/pazarlar" className="sidebarExploreV31">
-            <span><Icon name="markets" /></span>
-            <div><b>Keşfet</b><small>Tüm pazarlar ve kategoriler</small></div>
-            <em>→</em>
-          </Link>
+          <div className="sidebarSectionLabel">PAZARLAR</div>
+          <nav aria-label="Pazarlar"><SidebarLinks items={marketModeItems} pathname={pathname} /></nav>
 
-          <div className="sidebarSectionLabel">HIZLI ERİŞİM</div>
+          <div className="sidebarDivider" />
+          <div className="sidebarSectionLabel">AÇIK ARTIRMA</div>
           <nav aria-label="Açık artırma"><SidebarLinks items={auctionMenuItems} pathname={pathname} /></nav>
 
           <div className="sidebarDivider" />
           <div className="sidebarSectionLabel">KATEGORİLER</div>
-          <nav aria-label="Kategoriler"><SidebarLinks items={categoryMenuItems} pathname={pathname} /></nav>
+          <details className="sidebarGameItemsV30 sidebarMenuGroupV32" open={gameProductMenuItems.some((item) => isPathActive(pathname, item.href))}>
+            <summary><Icon name="game" /> Oyunlar ve Dijital Kodlar <span>⌄</span></summary>
+            <nav aria-label="Oyunlar ve dijital kodlar"><SidebarLinks items={gameProductMenuItems} pathname={pathname} /></nav>
+          </details>
+          <details className="sidebarGameItemsV30 sidebarMenuGroupV32" open={equipmentMenuItems.some((item) => isPathActive(pathname, item.href))}>
+            <summary><Icon name="computer" /> Oyuncu Ekipmanları <span>⌄</span></summary>
+            <nav aria-label="Oyuncu ekipmanları"><SidebarLinks items={equipmentMenuItems} pathname={pathname} /></nav>
+          </details>
+          <nav className="sidebarCollectionV32" aria-label="Koleksiyon ürünleri"><SidebarLinks items={collectionMenuItems} pathname={pathname} /></nav>
 
-          <details className="sidebarGameItemsV30" open={pathname.startsWith("/oyun-itemleri")}>
-            <summary><Icon name="gameItem" /> Oyun İtemi Kategorileri <span>⌄</span></summary>
+          <details className="sidebarGameItemsV30 sidebarMenuGroupV32" open={pathname.startsWith("/oyun-itemleri")}>
+            <summary><Icon name="gameItem" /> Oyun İtemleri <span>⌄</span></summary>
             <nav aria-label="Oyun itemi kategorileri"><SidebarLinks items={gameItemMenuItems} pathname={pathname} /></nav>
           </details>
 
@@ -183,16 +178,11 @@ export default function MarketplaceShell({ title, eyebrow, description, children
 
       <nav className="marketMobileNav marketMobileNavV30" aria-label="Mobil menü">
         <Link href="/" className={pathname === "/" ? "active" : ""}><Icon name="home" /><span>Ana Sayfa</span></Link>
-        <Link href="/arama" className={isPathActive(pathname, "/arama") ? "active" : ""}><Icon name="search" /><span>Keşfet</span></Link>
-        <Link href={sellHref} className="mobileSell" aria-label="Satış oluştur"><Icon name="plus" /><b>Sat</b></Link>
         <Link href="/pazarlar" className={isPathActive(pathname, "/pazarlar") || isPathActive(pathname, "/acik-artirma") || isPathActive(pathname, "/sabit-fiyat") || isPathActive(pathname, "/oyun-itemleri") ? "active" : ""}><Icon name="markets" /><span>Pazarlar</span></Link>
+        <Link href={sellHref} className="mobileSell" aria-label="Satış oluştur"><Icon name="plus" /></Link>
+        <Link href={user ? "/siparisler" : "/giris?returnTo=/siparisler"} className={isPathActive(pathname, "/siparisler") ? "active" : ""}><Icon name="orders" /><span>Siparişler</span></Link>
         <Link href={user ? "/profil" : "/giris"} className={isPathActive(pathname, "/profil") ? "active" : ""}><Icon name="user" /><span>{user ? "Hesabım" : "Giriş"}</span></Link>
       </nav>
-
-      <Link href="/yardim" className="marketSupportOrbV31" aria-label="KapışKapış canlı destek">
-        <span><Icon name="support" /></span>
-        <em><b>Yardım?</b><small>Buradayız</small></em>
-      </Link>
     </main>
   );
 }
