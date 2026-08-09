@@ -18,8 +18,8 @@ export default function Hero({ onOpenSell }: HeroProps) {
           <strong>KapışKapış kap.</strong>
         </h1>
         <p>
-          Doğrulanmış satıcılardan teknoloji, oyun ve koleksiyon ürünlerine
-          teklif ver. Kazandığında ödeme, teslimat tamamlanana kadar koruma altında.
+          Bilgisayar, Xbox, PlayStation ve Steam oyunlarına; Knight Online,
+          Metin2 ve CS2 itemlerine teklif ver. Ödemen teslimata kadar koruma altında.
         </p>
 
         <div className="heroButtons">

@@ -27,12 +27,11 @@ import "./seller-listings-v27.css";
 import "./auction-room-v28.css";
 import "./checkout-v29.css";
 import "./navigation-v30.css";
-import "./navigation-v31.css";
 import { AuthProvider } from "@/components/AuthProvider";
 
 export const metadata: Metadata = {
-  title: "KapışKapış — Açık Artırma, Sabit Fiyat ve Oyun İtemleri",
-  description: "Açık artırma, sabit fiyatlı alışveriş ve oyun itemleri için güvenli pazar platformu.",
+  title: "KapışKapış — Oyunculara Özel Oyun ve İtem Pazarı",
+  description: "Bilgisayar, Xbox, PlayStation ve Steam oyunları; Knight Online, Metin2, CS2 itemleri ve özel seri oyuncu ürünleri.",
   manifest: "/manifest.webmanifest",
   icons: { icon: "/kapiskapis-icon.png", apple: "/kapiskapis-icon.png" },
 };

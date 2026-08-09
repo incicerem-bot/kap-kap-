@@ -12,14 +12,14 @@ type PhotoItem = { id: string; file: File; preview: string };
 type IconName = "gavel" | "tag" | "camera" | "check" | "shield" | "truck" | "box" | "arrow" | "trash" | "save";
 
 const categories = [
-  { id: "phone", db: "phone", label: "Telefon & Tablet" },
-  { id: "computer", db: "computer", label: "Bilgisayar & Parça" },
-  { id: "gaming", db: "gaming", label: "Oyun & Konsol" },
-  { id: "esports", db: "gaming", label: "E-spor Ekipmanı" },
-  { id: "camera", db: "camera", label: "Kamera & Görüntü" },
-  { id: "watch", db: "watch", label: "Saat" },
-  { id: "collection", db: "collection", label: "Koleksiyon" },
-  { id: "home", db: "home", label: "Ev & Yaşam" },
+  { id: "pc-games", db: "gaming", label: "Bilgisayar Oyunları" },
+  { id: "xbox-games", db: "gaming", label: "Xbox Oyunları" },
+  { id: "playstation-games", db: "gaming", label: "PlayStation Oyunları" },
+  { id: "steam-games", db: "gaming", label: "Steam Oyunları" },
+  { id: "knight-online", db: "gaming", label: "Knight Online İtemleri" },
+  { id: "metin2", db: "gaming", label: "Metin2 İtemleri" },
+  { id: "cs2", db: "gaming", label: "CS2 İtemleri" },
+  { id: "limited-gaming", db: "collection", label: "Özel Seri Oyuncu Ürünleri" },
 ] as const;
 
 function Icon({ name }: { name: IconName }) {
@@ -55,7 +55,7 @@ function numeric(value: string) {
 export default function ListingCreateExperience() {
   const router = useRouter();
   const [saleType, setSaleType] = useState<SaleType>("auction");
-  const [categoryId, setCategoryId] = useState("gaming");
+  const [categoryId, setCategoryId] = useState("pc-games");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [condition, setCondition] = useState("good");
