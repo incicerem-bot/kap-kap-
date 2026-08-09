@@ -1,6 +1,7 @@
 import DiscoveryExperience from "@/components/DiscoveryExperience";
 import MarketplaceShell from "@/components/MarketplaceShell";
 import { notFound } from "next/navigation";
+import { equipmentBrandItems } from "@/components/marketplaceNavigation";
 
 const categories: Record<string, string> = {
   "bilgisayar-oyunlari": "Bilgisayar Oyunları",
@@ -24,11 +25,12 @@ const categories: Record<string, string> = {
 
 export default async function CategoryPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const category = categories[slug];
+  const brand = equipmentBrandItems.find((item) => item.href.endsWith(`/kategori/${slug}`));
+  const category = categories[slug] ?? brand?.label;
   if (!category) notFound();
   return (
-    <MarketplaceShell eyebrow="KATEGORİ" title={category} description={`${category} kategorisindeki doğrulanmış ilanları keşfet.`}>
-      <DiscoveryExperience lockedCategory={category} categoryTitle={category} />
+    <MarketplaceShell eyebrow={brand ? "OYUNCU MARKASI" : "KATEGORİ"} title={category} description={`${category} için doğrulanmış oyuncu ürünlerini ve ilanları keşfet.`}>
+      <DiscoveryExperience initialQuery={brand?.label ?? ""} lockedCategory={brand ? undefined : category} categoryTitle={category} />
     </MarketplaceShell>
   );
 }
