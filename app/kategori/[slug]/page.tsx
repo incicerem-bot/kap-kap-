@@ -27,7 +27,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
   const category = categories[slug];
   if (!category) notFound();
   return (
-    <MarketplaceShell compact eyebrow="KATEGORİ" title={category} description={`${category} kategorisindeki doğrulanmış ilanları keşfet.`}>
+    <MarketplaceShell eyebrow="KATEGORİ" title={category} description={`${category} kategorisindeki doğrulanmış ilanları keşfet.`}>
       <DiscoveryExperience lockedCategory={category} categoryTitle={category} />
     </MarketplaceShell>
   );
