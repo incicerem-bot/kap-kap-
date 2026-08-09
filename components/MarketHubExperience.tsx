@@ -17,6 +17,11 @@ const gameNames: Record<string, string> = {
   "pubg-mobile": "PUBG Mobile",
   roblox: "Roblox",
   "mobile-legends": "Mobile Legends",
+  "silkroad-online": "Silkroad Online",
+  "rise-online": "Rise Online",
+  "black-desert": "Black Desert",
+  fortnite: "Fortnite",
+  minecraft: "Minecraft",
 };
 
 const auctionLinks = [

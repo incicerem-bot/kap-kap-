@@ -12,9 +12,11 @@ import {
   auctionMenuItems,
   buyerAccountItems,
   collectionMenuItems,
+  equipmentBrandItems,
   equipmentMenuItems,
   gameProductMenuItems,
   gameItemMenuItems,
+  gameItemTypeGroups,
   marketModeItems,
   sellerMenuItems,
   type NavigationIcon,
@@ -128,6 +130,8 @@ export default function MarketplaceShell({ title, eyebrow, description, children
             <section><b>OYUNLAR & KODLAR</b>{gameProductMenuItems.map((item) => <Link key={item.href} href={item.href}>{item.label}<small>{item.description}</small></Link>)}</section>
             <section><b>OYUNCU EKİPMANLARI</b>{equipmentMenuItems.map((item) => <Link key={item.href} href={item.href}>{item.label}<small>{item.description}</small></Link>)}</section>
             <section><b>OYUN İTEMLERİ</b>{gameItemMenuItems.map((item) => <Link key={item.href} href={item.href}>{item.label}<small>{item.description}</small></Link>)}</section>
+            <section className="catalogBrandsV35"><b>POPÜLER MARKALAR</b>{equipmentBrandItems.map((item) => <Link key={item.href} href={item.href}>{item.label}<small>{item.description}</small></Link>)}</section>
+            <section className="catalogItemTypesV35"><b>İTEM TÜRLERİ</b>{gameItemTypeGroups.flatMap((group) => group.items.map((item) => <Link key={item.href} href={item.href}><em>{group.label}</em>{item.label}</Link>))}</section>
             <section><b>KOLEKSİYON</b>{collectionMenuItems.map((item) => <Link key={item.href} href={item.href}>{item.label}<small>{item.description}</small></Link>)}</section>
           </div>
         </details>
@@ -153,12 +157,20 @@ export default function MarketplaceShell({ title, eyebrow, description, children
             <summary><Icon name="computer" /> Oyuncu Ekipmanları <span>⌄</span></summary>
             <nav aria-label="Oyuncu ekipmanları"><SidebarLinks items={equipmentMenuItems} pathname={pathname} /></nav>
           </details>
+          <details className="sidebarGameItemsV30 sidebarMenuGroupV32" open={pathname.startsWith("/kategori/marka-")}>
+            <summary><Icon name="collection" /> Oyuncu Markaları <span>⌄</span></summary>
+            <nav aria-label="Oyuncu ekipmanı markaları"><SidebarLinks items={equipmentBrandItems} pathname={pathname} /></nav>
+          </details>
           <nav className="sidebarCollectionV32" aria-label="Koleksiyon ürünleri"><SidebarLinks items={collectionMenuItems} pathname={pathname} /></nav>
 
           <details className="sidebarGameItemsV30 sidebarMenuGroupV32" open={pathname.startsWith("/oyun-itemleri")}>
             <summary><Icon name="gameItem" /> Oyun İtemleri <span>⌄</span></summary>
             <nav aria-label="Oyun itemi kategorileri"><SidebarLinks items={gameItemMenuItems} pathname={pathname} /></nav>
           </details>
+          {pathname.startsWith("/oyun-itemleri") && <details className="sidebarGameItemsV30 sidebarMenuGroupV32 itemTypeMenuV35" open>
+            <summary><Icon name="tag" /> İtem Türleri <span>⌄</span></summary>
+            <nav aria-label="Oyun itemi türleri">{gameItemTypeGroups.flatMap((group) => [<span className="sidebarSubLabelV30" key={`${group.label}-label`}>{group.label}</span>, ...group.items.map((item) => <Link href={item.href} key={item.href}><span><Icon name="gameItem" /></span><em>{item.label}</em></Link>)])}</nav>
+          </details>}
 
           <div className="sidebarDivider" />
           <div className="sidebarSectionLabel">{user ? "HESABIM" : "ÜYELİK"}</div>
@@ -214,7 +226,9 @@ export default function MarketplaceShell({ title, eyebrow, description, children
           </div>
           <details open><summary>Oyunlar ve Dijital Kodlar <span>⌄</span></summary><nav><SidebarLinks items={gameProductMenuItems} pathname={pathname} /></nav></details>
           <details><summary>Oyuncu Ekipmanları <span>⌄</span></summary><nav><SidebarLinks items={equipmentMenuItems} pathname={pathname} /></nav></details>
+          <details><summary>Oyuncu Markaları <span>⌄</span></summary><nav><SidebarLinks items={equipmentBrandItems} pathname={pathname} /></nav></details>
           <details><summary>Oyun İtemleri <span>⌄</span></summary><nav><SidebarLinks items={gameItemMenuItems} pathname={pathname} /></nav></details>
+          <details><summary>İtem Türleri <span>⌄</span></summary><nav>{gameItemTypeGroups.flatMap((group) => group.items.map((item) => <Link href={item.href} key={item.href}><span><Icon name="gameItem" /></span><em>{item.label}</em></Link>))}</nav></details>
           <details><summary>Hesap ve Destek <span>⌄</span></summary><nav><SidebarLinks items={user ? [...buyerAccountItems, ...accountSecurityItems] : accountSecurityItems.slice(2)} pathname={pathname} /></nav></details>
         </section>
       </div>}
