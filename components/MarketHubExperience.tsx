@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { gameItemMenuItems, marketModeItems } from "@/components/marketplaceNavigation";
+import { collectionMenuItems, equipmentMenuItems, gameItemMenuItems, gameProductMenuItems, marketModeItems, type NavigationItem } from "@/components/marketplaceNavigation";
 
 type MarketMode = "overview" | "auction" | "fixed" | "game-items";
 
@@ -58,6 +58,17 @@ function MarketCards() {
   );
 }
 
+function DirectoryGroup({ title, eyebrow, items }: { title: string; eyebrow: string; items: NavigationItem[] }) {
+  return (
+    <section className="marketDirectoryGroupV32">
+      <header><span>{eyebrow}</span><h2>{title}</h2><small>{items.length} kategori</small></header>
+      <nav>
+        {items.map((item) => <Link href={item.href} key={item.href}><div><strong>{item.label}</strong><small>{item.description || "İlanları ve fırsatları keşfet"}</small></div><b>→</b></Link>)}
+      </nav>
+    </section>
+  );
+}
+
 export function MarketEntryStrip() {
   return (
     <section className="marketEntryStripV30" aria-label="KapışKapış satış sistemleri">
@@ -82,6 +93,12 @@ export default function MarketHubExperience({ mode, selectedGame }: Props) {
           <p>Oyunlar, oyun itemleri ve özel seri oyuncu ürünleri aynı güvenli hesap, ödeme ve destek altyapısında birleşir.</p>
         </section>
         <MarketCards />
+        <div className="marketDirectoryV32">
+          <DirectoryGroup eyebrow="OYUN MAĞAZASI" title="Oyunlar ve dijital kodlar" items={gameProductMenuItems} />
+          <DirectoryGroup eyebrow="OYUNCU DONANIMI" title="Oyuncu ekipmanları" items={equipmentMenuItems} />
+          <DirectoryGroup eyebrow="DİJİTAL ENVANTER" title="Oyun itemleri" items={gameItemMenuItems} />
+          <DirectoryGroup eyebrow="KOLEKSİYON" title="Özel seri ürünler" items={collectionMenuItems} />
+        </div>
       </div>
     );
   }
