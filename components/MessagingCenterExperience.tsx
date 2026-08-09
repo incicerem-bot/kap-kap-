@@ -45,28 +45,28 @@ function Icon({ name }: { name: IconName }) {
 
 const initialConversations: Conversation[] = [
   {
-    id: "mert-teknoloji", name: "Mert Teknoloji", initials: "MT", verified: true, online: true, unread: 2, kind: "order",
-    product: "iPhone 15 Pro Max 256 GB", orderId: "KK-24931", price: "58.750 TL",
-    image: "https://images.unsplash.com/photo-1695048133142-1a20484d2569?auto=format&fit=crop&w=500&q=80",
+    id: "pro-gear", name: "Pro Gear", initials: "PG", verified: true, online: true, unread: 2, kind: "order",
+    product: "Logitech G Pro X Superlight 2", orderId: "KK-24931", price: "5.900 TL",
+    image: "https://images.unsplash.com/photo-1527814050087-3793815479db?auto=format&fit=crop&w=500&q=80",
     lastMessage: "Ürün bugün kargoya verilecek.", time: "11:42",
     messages: [
       { id: 1, text: "Bu görüşme KapışKapış güvenli mesajlaşma kurallarıyla korunur.", time: "10:18", system: true },
-      { id: 2, text: "Merhaba, ürünün kutusu, faturası ve orijinal şarj kablosu mevcut.", time: "10:20" },
-      { id: 3, mine: true, text: "Teşekkürler. Pil sağlığı yüzde kaç ve bugün kargoya verebilir misiniz?", time: "10:24" },
-      { id: 4, text: "Pil sağlığı %94. Öğleden sonra KapışKapış Kargo koduyla teslim edeceğim.", time: "10:31" },
+      { id: 2, text: "Merhaba, ürünün kutusu, faturası ve USB alıcısı mevcut.", time: "10:20" },
+      { id: 3, mine: true, text: "Teşekkürler. Switch ve sensör sorunsuz mu, bugün kargoya verebilir misiniz?", time: "10:24" },
+      { id: 4, text: "Tüm tuşlar ve HERO 2 sensör test edildi. Öğleden sonra kargoya teslim edeceğim.", time: "10:31" },
       { id: 5, mine: true, text: "Tamamdır, kargo bilgisini buradan bekliyorum.", time: "10:34" },
       { id: 6, text: "Ürün bugün kargoya verilecek. Takip kodu oluşunca sistem otomatik paylaşacak.", time: "11:42" },
     ],
   },
   {
-    id: "prestige-saat", name: "Prestige Saat", initials: "PS", verified: true, unread: 0, kind: "order",
-    product: "Rolex Submariner Date 126610LN", orderId: "KK-24891", price: "125.000 TL",
-    image: "https://images.unsplash.com/photo-1523170335258-f5ed11844a49?auto=format&fit=crop&w=500&q=80",
+    id: "skin-station", name: "Skin Station", initials: "SS", verified: true, unread: 0, kind: "order",
+    product: "CS2 Karambit Doppler", orderId: "KK-24891", price: "85.000 TL",
+    image: "https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=500&q=80",
     lastMessage: "Kargo takip numarası siparişe eklendi.", time: "Dün",
     messages: [
-      { id: 1, text: "Saat ekspertiz raporuyla birlikte gönderilecektir.", time: "16:04" },
-      { id: 2, mine: true, text: "Paketleme sırasında kutunun fotoğrafını paylaşabilir misiniz?", time: "16:08" },
-      { id: 3, text: "Elbette. Kargo takip numarası siparişe eklendi.", time: "18:22" },
+      { id: 1, text: "Skin float ve desen kaydı doğrulandı.", time: "16:04" },
+      { id: 2, mine: true, text: "Steam takas bağlantısını işlem ekranından paylaşır mısınız?", time: "16:08" },
+      { id: 3, text: "Elbette. Güvenli takas kaydı siparişe eklendi.", time: "18:22" },
     ],
   },
   {
