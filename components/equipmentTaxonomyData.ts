@@ -22,3 +22,17 @@ export const equipmentTaxonomies: Record<string, EquipmentTaxonomy> = {
   "oyuncu-koltugu": { name: "Oyuncu Koltuğu", description: "Gövde, döşeme ve ergonomi özelliklerine göre koltuklar.", types: ["Oyuncu Koltuğu", "Ergonomik Fileli", "XL Koltuk", "Kumaş", "Deri", "Bel Destekli", "Ayak Destekli"], brands: ["XDrive", "Hawk", "Rampage", "Cougar", "Corsair", "Razer", "MSI", "ASUS ROG", "AndaSeat", "Secretlab", "Noblechairs", "GamePower"], specs: ["120 kg altı", "120–150 kg", "150 kg+", "4D Kolçak", "Bel Yastığı", "Boyun Yastığı", "Yatar Sırt"] },
   "oyuncu-masasi": { name: "Oyuncu Masası", description: "Setup genişliği ve aksesuarlarına göre oyuncu masaları.", types: ["Düz Masa", "L Masa", "Yükseklik Ayarlı", "Elektrikli Masa", "Karbon Yüzey", "Yayın Masası"], brands: ["XDrive", "Hawk", "Cougar", "GamePower", "Rampage", "Thermaltake", "Secretlab", "IKEA Gaming"], specs: ["120 cm", "140 cm", "160 cm+", "Kablo Kanalı", "Monitör Kolu Uyumlu", "Kulaklık Askısı", "Bardaklık"] },
 };
+
+export function equipmentFilterSlug(value: string) {
+  return value.toLocaleLowerCase("tr-TR").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+}
+
+export function findEquipmentFilter(category: string, filterSlug: string) {
+  const taxonomy = equipmentTaxonomies[category];
+  if (!taxonomy) return undefined;
+  for (const group of [{ key: "type", values: taxonomy.types }, { key: "brand", values: taxonomy.brands }, { key: "spec", values: taxonomy.specs }] as const) {
+    const value = group.values.find((item) => equipmentFilterSlug(item) === filterSlug);
+    if (value) return { value, group: group.key, taxonomy };
+  }
+  return undefined;
+}
