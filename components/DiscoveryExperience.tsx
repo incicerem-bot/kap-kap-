@@ -17,7 +17,12 @@ type Props = {
   categoryTitle?: string;
 };
 
-const categories = ["Tümü", "Bilgisayar Oyunları", "Xbox Oyunları", "PlayStation Oyunları", "Steam Oyunları", "Özel Seri Oyuncu Ürünleri"];
+const categories = [
+  "Tümü", "Bilgisayar Oyunları", "PlayStation Oyunları", "Xbox Oyunları", "Nintendo Oyunları",
+  "Steam Cüzdan ve Kod", "E-pin ve Hediye Kartı", "Gaming Mouse", "Gaming Klavye",
+  "Gaming Kulaklık", "Gaming Mousepad", "Gaming Monitör", "Oyuncu Koltuğu",
+  "Gamepad ve Joystick", "Direksiyon Seti", "Mikrofon ve Yayın", "Özel Seri Oyuncu Ürünleri",
+];
 const conditions = ["Az kullanılmış", "Çok iyi", "Garantili", "Kutulu", "Sıfır ayarında"];
 
 function normalize(value: string) {

@@ -71,19 +71,32 @@ export const auctionMenuItems: NavigationItem[] = [
 
 export const categoryMenuItems: NavigationItem[] = [
   { href: "/kategori/bilgisayar-oyunlari", label: "Bilgisayar Oyunları", icon: "computer" },
-  { href: "/kategori/xbox-oyunlari", label: "Xbox Oyunları", icon: "game" },
   { href: "/kategori/playstation-oyunlari", label: "PlayStation Oyunları", icon: "game" },
-  { href: "/kategori/steam-oyunlari", label: "Steam Oyunları", icon: "game" },
-  { href: "/oyun-itemleri/knight-online", label: "Knight Online İtemleri", icon: "gameItem" },
-  { href: "/oyun-itemleri/metin2", label: "Metin2 İtemleri", icon: "gameItem" },
-  { href: "/oyun-itemleri/cs2", label: "CS2 İtemleri", icon: "gameItem" },
+  { href: "/kategori/xbox-oyunlari", label: "Xbox Oyunları", icon: "game" },
+  { href: "/kategori/nintendo-oyunlari", label: "Nintendo Oyunları", icon: "game" },
+  { href: "/kategori/steam-kodlari", label: "Steam Cüzdan ve Kod", icon: "tag" },
+  { href: "/kategori/epin-hediye-karti", label: "E-pin ve Hediye Kartı", icon: "tag" },
+  { href: "/kategori/gaming-mouse", label: "Gaming Mouse", icon: "computer" },
+  { href: "/kategori/gaming-klavye", label: "Gaming Klavye", icon: "computer" },
+  { href: "/kategori/gaming-kulaklik", label: "Gaming Kulaklık", icon: "electronics" },
+  { href: "/kategori/gaming-mousepad", label: "Gaming Mousepad", icon: "collection" },
+  { href: "/kategori/gaming-monitor", label: "Gaming Monitör", icon: "computer" },
+  { href: "/kategori/oyuncu-koltugu", label: "Oyuncu Koltuğu", icon: "collection" },
+  { href: "/kategori/gamepad-joystick", label: "Gamepad ve Joystick", icon: "game" },
+  { href: "/kategori/direksiyon-seti", label: "Direksiyon Seti", icon: "game" },
+  { href: "/kategori/yayin-ekipmanlari", label: "Mikrofon ve Yayın", icon: "electronics" },
   { href: "/kategori/ozel-seri", label: "Özel Seri Oyuncu Ürünleri", icon: "collection" },
 ];
 
 export const gameItemMenuItems: NavigationItem[] = [
   { href: "/oyun-itemleri/cs2", label: "Counter-Strike 2", icon: "gameItem" },
+  { href: "/oyun-itemleri/valorant", label: "Valorant", icon: "gameItem" },
   { href: "/oyun-itemleri/knight-online", label: "Knight Online", icon: "gameItem" },
   { href: "/oyun-itemleri/metin2", label: "Metin2", icon: "gameItem" },
+  { href: "/oyun-itemleri/league-of-legends", label: "League of Legends", icon: "gameItem" },
+  { href: "/oyun-itemleri/pubg-mobile", label: "PUBG Mobile", icon: "gameItem" },
+  { href: "/oyun-itemleri/roblox", label: "Roblox", icon: "gameItem" },
+  { href: "/oyun-itemleri/mobile-legends", label: "Mobile Legends", icon: "gameItem" },
 ];
 
 export const buyerAccountItems: NavigationItem[] = [
