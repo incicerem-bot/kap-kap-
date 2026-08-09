@@ -34,6 +34,17 @@ export type Product = {
   specs: ProductSpec[];
 };
 
+function equipmentProduct(input: { id: string; title: string; category: string; price: string; next: string; image: string; seller: string; description: string; specs: ProductSpec[] }): Product {
+  return {
+    ...input,
+    gallery: [input.image], bids: 0, time: "23:59:59", live: false, verified: true,
+    condition: "Sıfır ayarında", increment: 100,
+    sellerInitials: input.seller.split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toLocaleUpperCase("tr-TR"),
+    sellerRating: 4.8, sellerSales: 0, location: "Türkiye", watchers: 0, views: 0,
+    shipping: "KapışKapış Güvenli Kargo",
+  };
+}
+
 export const demoProducts: Product[] = [
   {
     id: "pc-cyberpunk-collector",
@@ -320,6 +331,15 @@ export const demoProducts: Product[] = [
       { label: "Durum", value: "Koleksiyonluk" },
     ],
   },
+  equipmentProduct({ id: "gaming-mouse-superlight", title: "Logitech G Pro X Superlight 2 Gaming Mouse", category: "Gaming Mouse", price: "5.900 TL", next: "6.000 TL", image: "https://images.unsplash.com/photo-1527814050087-3793815479db?auto=format&fit=crop&w=1200&q=88", seller: "Pro Gear", description: "Kablosuz, hafif ve yüksek hassasiyetli e-spor oyuncu mouse modeli.", specs: [{ label: "Bağlantı", value: "Kablosuz" }, { label: "Sensör", value: "HERO 2" }, { label: "Ağırlık", value: "60 gr" }] }),
+  equipmentProduct({ id: "gaming-klavye-tkl", title: "SteelSeries Apex Pro TKL Gaming Klavye", category: "Gaming Klavye", price: "7.500 TL", next: "7.650 TL", image: "https://images.unsplash.com/photo-1587829741301-dc798b83add3?auto=format&fit=crop&w=1200&q=88", seller: "Arena Ekipman", description: "Ayarlanabilir mekanik switch ve TKL tasarıma sahip oyuncu klavyesi.", specs: [{ label: "Dizilim", value: "TKL" }, { label: "Switch", value: "Manyetik" }, { label: "Aydınlatma", value: "RGB" }] }),
+  equipmentProduct({ id: "gaming-kulaklik-wireless", title: "HyperX Cloud III Kablosuz Gaming Kulaklık", category: "Gaming Kulaklık", price: "5.250 TL", next: "5.400 TL", image: "https://images.unsplash.com/photo-1599669454699-248893623440?auto=format&fit=crop&w=1200&q=88", seller: "Ses Oyuncu", description: "Uzun pil ömrü ve çıkarılabilir mikrofonlu kablosuz oyuncu kulaklığı.", specs: [{ label: "Bağlantı", value: "2.4 GHz" }, { label: "Mikrofon", value: "Çıkarılabilir" }, { label: "Uyumluluk", value: "PC / PlayStation" }] }),
+  equipmentProduct({ id: "gaming-mousepad-xl", title: "XL Kontrol Yüzeyli Gaming Mousepad", category: "Gaming Mousepad", price: "1.250 TL", next: "1.350 TL", image: "https://images.unsplash.com/photo-1616588589676-62b3bd4ff6d2?auto=format&fit=crop&w=1200&q=88", seller: "Wraith Gear", description: "FPS oyuncuları için geniş kontrol yüzeyli ve kaymaz tabanlı mousepad.", specs: [{ label: "Boyut", value: "900 × 400 mm" }, { label: "Yüzey", value: "Kontrol" }, { label: "Taban", value: "Kaymaz kauçuk" }] }),
+  equipmentProduct({ id: "gaming-monitor-240hz", title: "27 İnç 240 Hz IPS Gaming Monitör", category: "Gaming Monitör", price: "13.900 TL", next: "14.100 TL", image: "https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?auto=format&fit=crop&w=1200&q=88", seller: "Pixel Arena", description: "Rekabetçi oyunlar için hızlı IPS panel ve 240 Hz yenileme hızlı monitör.", specs: [{ label: "Panel", value: "IPS" }, { label: "Yenileme", value: "240 Hz" }, { label: "Tepki", value: "1 ms" }] }),
+  equipmentProduct({ id: "oyuncu-koltugu-ergonomik", title: "Ergonomik Bel Destekli Oyuncu Koltuğu", category: "Oyuncu Koltuğu", price: "8.750 TL", next: "8.900 TL", image: "https://images.unsplash.com/photo-1598550476439-6847785fcea6?auto=format&fit=crop&w=1200&q=88", seller: "Game Room", description: "Ayarlanabilir kolçak, bel ve boyun desteğine sahip ergonomik oyuncu koltuğu.", specs: [{ label: "Kolçak", value: "4D" }, { label: "Taşıma", value: "150 kg" }, { label: "Yatış", value: "160°" }] }),
+  equipmentProduct({ id: "gamepad-pro-controller", title: "Kablosuz Pro Gamepad ve Şarj Standı", category: "Gamepad ve Joystick", price: "4.400 TL", next: "4.500 TL", image: "https://images.unsplash.com/photo-1592840496694-26d035b52b48?auto=format&fit=crop&w=1200&q=88", seller: "Controller Hub", description: "PC ve konsol uyumlu kablosuz gamepad; şarj standı dahil.", specs: [{ label: "Bağlantı", value: "Bluetooth / USB" }, { label: "Titreşim", value: "Var" }, { label: "Uyumluluk", value: "PC / Konsol" }] }),
+  equipmentProduct({ id: "direksiyon-seti-force", title: "Force Feedback Direksiyon ve Pedal Seti", category: "Direksiyon Seti", price: "14.750 TL", next: "15.000 TL", image: "https://images.unsplash.com/photo-1593118247619-e2d6f056869e?auto=format&fit=crop&w=1200&q=88", seller: "Sim Racing TR", description: "Yarış simülasyonları için güç geri bildirimli direksiyon ve üçlü pedal seti.", specs: [{ label: "Dönüş", value: "900°" }, { label: "Geri bildirim", value: "Çift motor" }, { label: "Pedal", value: "3 adet" }] }),
+  equipmentProduct({ id: "yayin-mikrofonu-usb", title: "RGB USB Yayıncı Mikrofonu ve Standı", category: "Mikrofon ve Yayın", price: "3.850 TL", next: "4.000 TL", image: "https://images.unsplash.com/photo-1590602847861-f357a9332bbc?auto=format&fit=crop&w=1200&q=88", seller: "Streamer Market", description: "Canlı yayın ve takım iletişimi için USB kondenser mikrofon ve masa standı.", specs: [{ label: "Bağlantı", value: "USB-C" }, { label: "Desen", value: "Kardioid" }, { label: "Stand", value: "Dahil" }] }),
 
 ];
 
