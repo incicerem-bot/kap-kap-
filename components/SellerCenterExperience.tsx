@@ -95,9 +95,9 @@ const initialListings: SellerListing[] = [
 ];
 
 const sellerOrders = [
-  { id: "KK-2026-07184", title: "iPhone 15 Pro 256 GB", buyer: "Mert K.", amount: "48.100 TL", status: "Kargolanacak", deadline: "Bugün 18:00", image: demoProducts[1].image },
+  { id: "KK-2026-07184", title: "CS2 Karambit Doppler", buyer: "Mert K.", amount: "85.000 TL", status: "Teslim edilecek", deadline: "Bugün 18:00", image: demoProducts[6].image },
   { id: "KK-2026-07155", title: "PlayStation 5 Slim", buyer: "Burak A.", amount: "18.500 TL", status: "Kargoda", deadline: "Takip aktif", image: demoProducts[2].image },
-  { id: "KK-2026-07096", title: "LEGO Technic Koleksiyon", buyer: "Selin D.", amount: "9.900 TL", status: "Teslim edildi", deadline: "Ödeme 20 Temmuz", image: demoProducts[5].image },
+  { id: "KK-2026-07096", title: "Zelda Özel Seri Kontrolcü", buyer: "Selin D.", amount: "6.750 TL", status: "Teslim edildi", deadline: "Onay 20 Temmuz", image: demoProducts[7].image },
 ];
 
 const revenueBars = [42, 58, 48, 72, 67, 88, 76, 92, 86, 100, 91, 114];
@@ -398,7 +398,7 @@ export default function SellerCenterExperience() {
             <article className="sellerPanelV9 sellerInsightsV9">
               <header className="sellerPanelHeadV9"><div><span>AKILLI ÖNERİLER</span><h3>Satışını artır</h3></div><Icon name="spark" /></header>
               <div>
-                <article><span>1</span><div><b>Kapak fotoğrafını iyileştir</b><p>MacBook ilanının tıklanma oranı benzer ilanlardan %18 düşük.</p><button type="button" onClick={() => setTab("ilanlar")}>İlanı düzenle</button></div></article>
+                <article><span>1</span><div><b>Kapak fotoğrafını iyileştir</b><p>Gaming monitör ilanının tıklanma oranı benzer ilanlardan %18 düşük.</p><button type="button" onClick={() => setTab("ilanlar")}>İlanı düzenle</button></div></article>
                 <article><span>2</span><div><b>Bitiş saatini değiştir</b><p>Telefon kategorisinde 20:00–23:00 arası ortalama %24 daha fazla teklif geliyor.</p><button type="button" onClick={() => showNotice("Önerilen saat ilan ayarlarına eklendi.")}>Öneriyi uygula</button></div></article>
                 <article><span>3</span><div><b>Hızlı yanıt rozetini koru</b><p>18 dakikalık yanıt süren alıcı güvenini yükseltiyor.</p><Link href="/mesajlar">Mesajlara git</Link></div></article>
               </div>
