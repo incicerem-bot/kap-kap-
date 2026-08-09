@@ -2,8 +2,11 @@
 
 import { useMemo, useState, type ReactNode } from "react";
 import AdminAccountCenter from "@/components/AdminAccountCenter";
+import Link from "next/link";
+import { equipmentTaxonomies } from "@/components/equipmentTaxonomyData";
+import { gameItemTaxonomies } from "@/components/gameItemTaxonomyData";
 
-type Section = "overview" | "moderation" | "users" | "payments" | "risk";
+type Section = "overview" | "categories" | "moderation" | "users" | "payments" | "risk";
 type ListingStatus = "pending" | "review" | "approved" | "removed";
 type UserStatus = "verified" | "review" | "limited";
 type PaymentStatus = "held" | "ready" | "disputed" | "paid";
@@ -83,6 +86,7 @@ const riskSeed: RiskItem[] = [
 
 const sectionLabels: Record<Section, string> = {
   overview: "Genel Bakış",
+  categories: "Kategori Kataloğu",
   moderation: "İlan Denetimi",
   users: "Kullanıcılar",
   payments: "Ödemeler",
@@ -154,8 +158,9 @@ export default function AdminOperationsCenter() {
     showToast(status === "paid" ? "Ödeme satıcıya aktarılmış olarak işaretlendi." : "Ödeme güvenli bekleme alanına alındı.");
   };
 
-  const navItems: Array<[Section, "dashboard" | "shield" | "users" | "wallet" | "alert", number | null]> = [
+  const navItems: Array<[Section, "dashboard" | "shield" | "users" | "wallet" | "alert" | "box", number | null]> = [
     ["overview", "dashboard", null],
+    ["categories", "box", Object.keys(equipmentTaxonomies).length + Object.keys(gameItemTaxonomies).length],
     ["moderation", "shield", overview.pendingModeration],
     ["users", "users", users.filter((item) => item.status !== "verified").length],
     ["payments", "wallet", payments.filter((item) => item.status === "disputed").length],
@@ -241,6 +246,17 @@ export default function AdminOperationsCenter() {
               </article>
             </section>
           </div>
+        )}
+
+        {section === "categories" && (
+          <section className="kkAdminCategoryCatalogV40">
+            <header><div><span>KATEGORİ YÖNETİMİ</span><h3>Oyuncu pazarı katalog kapsamı</h3><p>Menüdeki kategori, marka ve filtre yapılarını tek merkezden denetle.</p></div><strong>{Object.keys(equipmentTaxonomies).length + Object.keys(gameItemTaxonomies).length} ana kategori</strong></header>
+            <div className="kkAdminCatalogMetricsV40"><article><b>{Object.values(equipmentTaxonomies).reduce((sum, item) => sum + item.brands.length, 0)}</b><span>donanım markası</span></article><article><b>{Object.values(equipmentTaxonomies).reduce((sum, item) => sum + item.types.length + item.specs.length, 0)}</b><span>donanım filtresi</span></article><article><b>{Object.values(gameItemTaxonomies).reduce((sum, item) => sum + item.sections.reduce((total, section) => total + section.values.length, 0), 0)}</b><span>oyun item seçeneği</span></article></div>
+            <div className="kkAdminCatalogGridV40">
+              {Object.entries(equipmentTaxonomies).map(([slug, item]) => <article key={slug}><div><span>DONANIM</span><h4>{item.name}</h4></div><dl><div><dt>Tür</dt><dd>{item.types.length}</dd></div><div><dt>Marka</dt><dd>{item.brands.length}</dd></div><div><dt>Özellik</dt><dd>{item.specs.length}</dd></div></dl><Link href={`/kategori/${slug}`}>Kategoriyi aç →</Link></article>)}
+              {Object.entries(gameItemTaxonomies).map(([slug, item]) => <article key={slug}><div><span>OYUN İTEMİ</span><h4>{item.name}</h4></div><dl><div><dt>Menü</dt><dd>{item.sections.length}</dd></div><div><dt>Seçenek</dt><dd>{item.sections.reduce((sum, section) => sum + section.values.length, 0)}</dd></div></dl><Link href={`/oyun-itemleri/${slug}`}>İtem menüsünü aç →</Link></article>)}
+            </div>
+          </section>
         )}
 
         {section === "moderation" && (
