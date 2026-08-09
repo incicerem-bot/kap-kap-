@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
+import { equipmentBrandItems, gameItemMenuItems } from "@/components/marketplaceNavigation";
 
-const routes = [
+const routes = [...new Set([
   "", "/pazarlar", "/acik-artirma", "/sabit-fiyat", "/oyun-itemleri", "/canli", "/son-dakika",
   "/nasil-calisir", "/yardim", "/hukuk", "/giris", "/kayit",
   "/kategori/bilgisayar-oyunlari", "/kategori/playstation-oyunlari", "/kategori/xbox-oyunlari",
@@ -11,7 +12,9 @@ const routes = [
   "/oyun-itemleri/cs2", "/oyun-itemleri/valorant", "/oyun-itemleri/knight-online",
   "/oyun-itemleri/metin2", "/oyun-itemleri/league-of-legends", "/oyun-itemleri/pubg-mobile",
   "/oyun-itemleri/roblox", "/oyun-itemleri/mobile-legends",
-];
+  ...equipmentBrandItems.map((item) => item.href),
+  ...gameItemMenuItems.map((item) => item.href),
+])];
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const lastModified = new Date();
