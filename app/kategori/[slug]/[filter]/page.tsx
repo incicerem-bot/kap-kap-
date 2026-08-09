@@ -13,6 +13,6 @@ export default async function EquipmentFilterPage({ params }: { params: Promise<
   return <MarketplaceShell eyebrow={groupLabel} title={`${match.value} ${match.taxonomy.name}`} description={`${match.taxonomy.name} kategorisinde ${match.value} seçeneğine uygun doğrulanmış ilanları keşfet.`}>
     <nav className="equipmentBreadcrumbV38" aria-label="Kategori yolu"><Link href="/pazarlar">Pazarlar</Link><span>›</span><Link href={`/kategori/${slug}`}>{match.taxonomy.name}</Link><span>›</span><strong>{match.value}</strong></nav>
     <EquipmentTaxonomy category={slug} selected={match.value} />
-    <DiscoveryExperience initialQuery={match.value} lockedCategory={match.taxonomy.name} categoryTitle={`${match.value} ${match.taxonomy.name}`} />
+    <DiscoveryExperience lockedCategory={match.taxonomy.name} categoryTitle={`${match.value} ${match.taxonomy.name}`} taxonomyCategory={slug} initialFilters={[match.value]} />
   </MarketplaceShell>;
 }

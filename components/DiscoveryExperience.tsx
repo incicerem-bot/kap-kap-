@@ -6,6 +6,7 @@ import { parsePrice, timeToSeconds, type Product } from "@/components/productDat
 import { useAuctionProducts } from "@/components/useAuctionProducts";
 import { sellerSlugForName } from "@/components/sellerData";
 import { COMPARE_STORAGE_KEY, FAVORITES_STORAGE_KEY, defaultCompareIds, defaultFavoriteIds, useStoredIds } from "@/components/useMarketplaceCollections";
+import { equipmentTaxonomies } from "@/components/equipmentTaxonomyData";
 
 type SortKey = "relevant" | "ending" | "price-low" | "price-high" | "bids" | "newest";
 type SaleMode = "all" | "live" | "scheduled";
@@ -15,6 +16,8 @@ type Props = {
   initialQuery?: string;
   lockedCategory?: string;
   categoryTitle?: string;
+  taxonomyCategory?: string;
+  initialFilters?: string[];
 };
 
 const categories = [
@@ -82,11 +85,12 @@ function DiscoveryCard({ product, view, favorite, compared, onFavorite, onCompar
   );
 }
 
-export default function DiscoveryExperience({ initialQuery = "", lockedCategory, categoryTitle }: Props) {
+export default function DiscoveryExperience({ initialQuery = "", lockedCategory, categoryTitle, taxonomyCategory, initialFilters = [] }: Props) {
   const [query, setQuery] = useState(initialQuery);
   const [category, setCategory] = useState(lockedCategory || "Tümü");
   const [saleMode, setSaleMode] = useState<SaleMode>("all");
   const [selectedConditions, setSelectedConditions] = useState<string[]>([]);
+  const [taxonomyFilters, setTaxonomyFilters] = useState<string[]>(initialFilters);
   const [verifiedOnly, setVerifiedOnly] = useState(false);
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
@@ -98,6 +102,8 @@ export default function DiscoveryExperience({ initialQuery = "", lockedCategory,
   const [saved, setSaved] = useState(false);
   const [collectionNotice, setCollectionNotice] = useState("");
   const { products: marketplaceProducts } = useAuctionProducts();
+  const taxonomy = taxonomyCategory ? equipmentTaxonomies[taxonomyCategory] : undefined;
+  const toggleTaxonomyFilter = (value: string) => setTaxonomyFilters((current) => current.includes(value) ? current.filter((item) => item !== value) : [...current, value]);
 
   const products = useMemo(() => {
     const normalizedQuery = normalize(query.trim());
@@ -107,6 +113,7 @@ export default function DiscoveryExperience({ initialQuery = "", lockedCategory,
       const searchable = normalize([product.title, product.category, product.condition, product.seller, product.location, product.description, ...product.specs.flatMap((spec) => [spec.label, spec.value])].join(" "));
       const price = parsePrice(product.price);
       return (!normalizedQuery || searchable.includes(normalizedQuery))
+        && taxonomyFilters.every((filter) => searchable.includes(normalize(filter)))
         && (category === "Tümü" || product.category === category)
         && (saleMode === "all" || (saleMode === "live" ? product.live : !product.live))
         && (!selectedConditions.length || selectedConditions.includes(product.condition))
@@ -123,10 +130,10 @@ export default function DiscoveryExperience({ initialQuery = "", lockedCategory,
       return boost(b) - boost(a) || b.watchers - a.watchers;
     });
     return result;
-  }, [category, marketplaceProducts, maxPrice, minPrice, query, saleMode, selectedConditions, sort, verifiedOnly]);
+  }, [category, marketplaceProducts, maxPrice, minPrice, query, saleMode, selectedConditions, sort, taxonomyFilters, verifiedOnly]);
 
-  const activeFilterCount = [category !== (lockedCategory || "Tümü"), saleMode !== "all", selectedConditions.length > 0, verifiedOnly, Boolean(minPrice), Boolean(maxPrice)].filter(Boolean).length;
-  const clearFilters = () => { setCategory(lockedCategory || "Tümü"); setSaleMode("all"); setSelectedConditions([]); setVerifiedOnly(false); setMinPrice(""); setMaxPrice(""); };
+  const activeFilterCount = [category !== (lockedCategory || "Tümü"), saleMode !== "all", selectedConditions.length > 0, taxonomyFilters.length > 0, verifiedOnly, Boolean(minPrice), Boolean(maxPrice)].filter(Boolean).length;
+  const clearFilters = () => { setCategory(lockedCategory || "Tümü"); setSaleMode("all"); setSelectedConditions([]); setTaxonomyFilters([]); setVerifiedOnly(false); setMinPrice(""); setMaxPrice(""); };
   const toggleCondition = (condition: string) => setSelectedConditions((current) => current.includes(condition) ? current.filter((item) => item !== condition) : [...current, condition]);
   const toggleCompare = (id: string) => {
     const result = compare.toggle(id, 3);
@@ -164,6 +171,7 @@ export default function DiscoveryExperience({ initialQuery = "", lockedCategory,
           <div className="discoveryFilterMobileHead"><strong>Filtreler</strong><button type="button" onClick={() => setFiltersOpen(false)} aria-label="Filtreleri kapat"><Icon name="close" /></button></div>
           <div className="discoveryFilterHead"><div><Icon name="filter" /><strong>Sonuçları daralt</strong></div>{activeFilterCount > 0 && <button type="button" onClick={clearFilters}>Temizle</button>}</div>
           {!lockedCategory && <div className="discoveryFilterGroup"><h3>Kategori</h3><div className="discoveryRadioList">{categories.map((option) => <label key={option}><input type="radio" name="category" checked={category === option} onChange={() => setCategory(option)} /><span>{option}</span><small>{option === "Tümü" ? marketplaceProducts.length : marketplaceProducts.filter((item) => item.category === option).length}</small></label>)}</div></div>}
+          {taxonomy && <div className="discoveryFilterGroup discoveryTaxonomyFilterV39"><h3>Detaylı kategori filtreleri</h3>{[{ title: "Ürün türü", values: taxonomy.types }, { title: "Marka", values: taxonomy.brands }, { title: "Özellik", values: taxonomy.specs }].map((group) => <details key={group.title} open={taxonomyFilters.some((item) => group.values.includes(item))}><summary>{group.title}<small>{taxonomyFilters.filter((item) => group.values.includes(item)).length || ""}</small></summary><div className="discoveryCheckList">{group.values.map((value) => <label key={value}><input type="checkbox" checked={taxonomyFilters.includes(value)} onChange={() => toggleTaxonomyFilter(value)} /><span>{value}</span></label>)}</div></details>)}</div>}
           <div className="discoveryFilterGroup"><h3>Açık artırma türü</h3><div className="discoverySegmented"><button type="button" className={saleMode === "all" ? "active" : ""} onClick={() => setSaleMode("all")}>Tümü</button><button type="button" className={saleMode === "live" ? "active" : ""} onClick={() => setSaleMode("live")}>Canlı</button><button type="button" className={saleMode === "scheduled" ? "active" : ""} onClick={() => setSaleMode("scheduled")}>Süreli</button></div></div>
           <div className="discoveryFilterGroup"><h3>Fiyat aralığı</h3><div className="discoveryPriceFields"><label><span>En az</span><input type="number" min="0" value={minPrice} onChange={(event) => setMinPrice(event.target.value)} placeholder="0" /></label><i>—</i><label><span>En fazla</span><input type="number" min="0" value={maxPrice} onChange={(event) => setMaxPrice(event.target.value)} placeholder="Sınırsız" /></label></div><div className="discoveryPriceShortcuts">{[25000, 50000, 100000].map((value) => <button type="button" key={value} onClick={() => setMaxPrice(String(value))}>{money(value)} altı</button>)}</div></div>
           <div className="discoveryFilterGroup"><h3>Ürün durumu</h3><div className="discoveryCheckList">{conditions.map((condition) => <label key={condition}><input type="checkbox" checked={selectedConditions.includes(condition)} onChange={() => toggleCondition(condition)} /><span>{condition}</span></label>)}</div></div>
@@ -173,7 +181,7 @@ export default function DiscoveryExperience({ initialQuery = "", lockedCategory,
         {filtersOpen && <button type="button" className="discoveryFilterBackdrop" onClick={() => setFiltersOpen(false)} aria-label="Filtreleri kapat" />}
 
         <section className="discoveryResults">
-          {activeFilterCount > 0 && <div className="discoveryActiveFilters"><span>Aktif filtreler:</span>{saleMode !== "all" && <button type="button" onClick={() => setSaleMode("all")}>{saleMode === "live" ? "Canlı" : "Süreli"} <Icon name="close" /></button>}{selectedConditions.map((condition) => <button key={condition} type="button" onClick={() => toggleCondition(condition)}>{condition} <Icon name="close" /></button>)}{verifiedOnly && <button type="button" onClick={() => setVerifiedOnly(false)}>Doğrulanmış satıcı <Icon name="close" /></button>}{(minPrice || maxPrice) && <button type="button" onClick={() => { setMinPrice(""); setMaxPrice(""); }}>{minPrice ? `${money(Number(minPrice))} üzeri` : ""}{minPrice && maxPrice ? " · " : ""}{maxPrice ? `${money(Number(maxPrice))} altı` : ""} <Icon name="close" /></button>}</div>}
+          {activeFilterCount > 0 && <div className="discoveryActiveFilters"><span>Aktif filtreler:</span>{taxonomyFilters.map((filter) => <button key={filter} type="button" onClick={() => toggleTaxonomyFilter(filter)}>{filter} <Icon name="close" /></button>)}{saleMode !== "all" && <button type="button" onClick={() => setSaleMode("all")}>{saleMode === "live" ? "Canlı" : "Süreli"} <Icon name="close" /></button>}{selectedConditions.map((condition) => <button key={condition} type="button" onClick={() => toggleCondition(condition)}>{condition} <Icon name="close" /></button>)}{verifiedOnly && <button type="button" onClick={() => setVerifiedOnly(false)}>Doğrulanmış satıcı <Icon name="close" /></button>}{(minPrice || maxPrice) && <button type="button" onClick={() => { setMinPrice(""); setMaxPrice(""); }}>{minPrice ? `${money(Number(minPrice))} üzeri` : ""}{minPrice && maxPrice ? " · " : ""}{maxPrice ? `${money(Number(maxPrice))} altı` : ""} <Icon name="close" /></button>}</div>}
           {products.length > 0 ? <div className={view === "grid" ? "discoveryProductGrid" : "discoveryProductList"}>{products.map((product) => <DiscoveryCard key={product.id} product={product} view={view} favorite={favorites.ids.includes(product.id)} compared={compare.ids.includes(product.id)} onFavorite={() => favorites.toggle(product.id)} onCompare={() => toggleCompare(product.id)} />)}</div> : <div className="discoveryEmpty"><span><Icon name="search" /></span><h3>Bu filtrelerle ilan bulunamadı</h3><p>Arama kelimesini sadeleştir veya seçili filtrelerden bazılarını kaldır.</p><button type="button" onClick={() => { setQuery(""); clearFilters(); }}>Tüm ilanları göster</button></div>}
           <div className="discoverySavedSearch"><div><Icon name="bell" /><div><strong>Yeni ilanları kaçırma</strong><span>Bu aramaya uygun yeni ürün geldiğinde bildirim al.</span></div></div><button type="button" className={saved ? "saved" : ""} onClick={() => setSaved((value) => !value)}>{saved ? "Arama kaydedildi" : "Aramayı kaydet"}</button></div>
         </section>

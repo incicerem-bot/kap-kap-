@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useMemo, useState, type ChangeEvent, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
+import { equipmentTaxonomies } from "@/components/equipmentTaxonomyData";
+import { gameItemTaxonomies } from "@/components/gameItemTaxonomyData";
 
 type SaleType = "auction" | "fixed";
 type Notice = { type: "success" | "error" | "info"; text: string } | null;
@@ -35,8 +37,28 @@ const categories = [
   { id: "gamepad-joystick", db: "electronics", label: "Gamepad ve Joystick" },
   { id: "racing-wheel", db: "electronics", label: "Direksiyon Seti" },
   { id: "streaming-gear", db: "electronics", label: "Mikrofon ve Yayın" },
+  { id: "computer-case", db: "electronics", label: "Bilgisayar Kasası" },
+  { id: "graphics-card", db: "electronics", label: "Ekran Kartı" },
+  { id: "ssd", db: "electronics", label: "SSD" },
+  { id: "motherboard", db: "electronics", label: "Anakart" },
+  { id: "processor", db: "electronics", label: "İşlemci" },
+  { id: "memory", db: "electronics", label: "RAM Bellek" },
+  { id: "power-supply", db: "electronics", label: "Güç Kaynağı" },
+  { id: "liquid-cooling", db: "electronics", label: "Sıvı Soğutma" },
+  { id: "air-cooling", db: "electronics", label: "Hava Soğutma" },
+  { id: "case-fan", db: "electronics", label: "Kasa Fanı" },
+  { id: "gaming-desk", db: "collection", label: "Oyuncu Masası" },
   { id: "limited-gaming", db: "collection", label: "Özel Seri Oyuncu Ürünleri" },
 ] as const;
+
+const equipmentCategoryMap: Record<string, string> = {
+  "gaming-keyboard": "gaming-klavye", "gaming-mouse": "gaming-mouse", "gaming-headset": "gaming-kulaklik",
+  "gaming-mousepad": "gaming-mousepad", "gaming-monitor": "gaming-monitor", "gaming-chair": "oyuncu-koltugu",
+  "gamepad-joystick": "gamepad-joystick", "racing-wheel": "direksiyon-seti", "streaming-gear": "yayin-ekipmanlari",
+  "computer-case": "bilgisayar-kasasi", "graphics-card": "ekran-karti", ssd: "ssd", motherboard: "anakart",
+  processor: "islemci", memory: "ram-bellek", "power-supply": "guc-kaynagi", "liquid-cooling": "sivi-sogutma",
+  "air-cooling": "hava-sogutma", "case-fan": "kasa-fani", "gaming-desk": "oyuncu-masasi",
+};
 
 function Icon({ name }: { name: IconName }) {
   const common = {
@@ -89,6 +111,7 @@ export default function ListingCreateExperience() {
   const [durationHours, setDurationHours] = useState("24");
   const [stock, setStock] = useState("1");
   const [specificationNote, setSpecificationNote] = useState("");
+  const [structuredSpecs, setStructuredSpecs] = useState<Record<string, string>>({});
   const [photos, setPhotos] = useState<PhotoItem[]>([]);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState<Notice>(null);
@@ -98,6 +121,20 @@ export default function ListingCreateExperience() {
     () => categories.find((item) => item.id === categoryId) ?? categories[2],
     [categoryId],
   );
+  const taxonomyFields = useMemo(() => {
+    const equipment = equipmentTaxonomies[equipmentCategoryMap[categoryId]];
+    if (equipment) return [
+      { key: "Ürün türü", label: "Ürün türü", values: equipment.types },
+      { key: "Marka", label: "Marka", values: equipment.brands },
+      { key: "Teknik özellik", label: "Ana teknik özellik", values: equipment.specs },
+    ];
+    const game = gameItemTaxonomies[categoryId];
+    return game ? game.sections.slice(0, 6).map((section) => ({ key: section.title, label: section.title, values: section.values })) : [];
+  }, [categoryId]);
+  const setTaxonomySpec = (key: string, value: string) => {
+    setStructuredSpecs((current) => ({ ...current, [key]: value }));
+    if (key === "Marka") setBrand(value);
+  };
   const digitalListing = ["steam-codes", "epin-gift-card", "knight-online", "metin2", "cs2", "valorant", "league-of-legends", "pubg-mobile", "roblox", "mobile-legends"].includes(categoryId);
   const specificationPlaceholder = digitalListing
     ? "Oyun, sunucu/bölge, item veya kod türü, teslimat yöntemi ve doğrulama bilgileri…"
@@ -199,7 +236,7 @@ export default function ListingCreateExperience() {
         buyNowPrice: saleType === "fixed" ? numeric(buyNowPrice) : null,
         durationHours: numeric(durationHours),
         stock: saleType === "fixed" ? numeric(stock) : 1,
-        specifications: specificationNote.trim() ? { note: specificationNote.trim() } : {},
+        specifications: { ...structuredSpecs, ...(specificationNote.trim() ? { note: specificationNote.trim() } : {}) },
       };
 
       const { data: createdRaw, error: createError } = await client.rpc("kk_create_listing_draft", { p_payload: payload });
@@ -282,6 +319,7 @@ export default function ListingCreateExperience() {
             </div>
             <label className="listingFieldV27"><span>İlan başlığı <small>{title.length}/120</small></span><input maxLength={120} value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Örn. PlayStation 5 Slim Diskli + 2 Kol" /></label>
             <div className="listingFieldsV27 two"><label><span>{digitalListing ? "Oyun / Platform" : "Marka"}</span><input value={brand} onChange={(event) => setBrand(event.target.value)} placeholder={digitalListing ? "Steam, CS2, Valorant…" : "Logitech, Razer, Sony…"} /></label><label><span>{digitalListing ? "Sunucu / Bölge / Ürün türü" : "Model"}</span><input value={model} onChange={(event) => setModel(event.target.value)} placeholder={digitalListing ? "Türkiye, EU, skin, oyun kodu…" : "Model adı"} /></label></div>
+            {taxonomyFields.length > 0 && <div className="listingTaxonomyFieldsV39"><div><strong>Kategoriye özel bilgiler</strong><small>Alıcıların ilanı ayrıntılı filtrelerle bulabilmesi için seçim yap.</small></div><div className="listingFieldsV27 two">{taxonomyFields.map((field) => <label key={field.key}><span>{field.label}</span><select value={structuredSpecs[field.key] ?? ""} onChange={(event) => setTaxonomySpec(field.key, event.target.value)}><option value="">Seçilmedi</option>{field.values.map((value) => <option value={value} key={value}>{value}</option>)}</select></label>)}</div></div>}
             <label className="listingFieldV27"><span>Açıklama <small>{description.length}/4000</small></span><textarea maxLength={4000} value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Ürünün kozmetik durumunu, çalışma durumunu, varsa kusurlarını ve önemli ayrıntıları açıkça yaz." /></label>
             <label className="listingFieldV27"><span>{digitalListing ? "Oyun ve teslimat bilgileri" : "Teknik özellikler"}</span><textarea className="short" value={specificationNote} onChange={(event) => setSpecificationNote(event.target.value)} placeholder={specificationPlaceholder} /></label>
           </section>

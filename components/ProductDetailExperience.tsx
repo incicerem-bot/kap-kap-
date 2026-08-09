@@ -387,6 +387,8 @@ export default function ProductDetailExperience({ slug }: { slug: string }) {
               <div><dt>Konum</dt><dd>{listing.location || "Belirtilmedi"}</dd></div>
               <div><dt>Kargo</dt><dd>{listing.shippingPayer === "seller" ? "Satıcı öder" : "Alıcı öder"}</dd></div>
             </dl>
+            {Object.entries(listing.specifications).some(([key, value]) => key !== "note" && String(value || "").trim()) && <div className="productTechnicalSpecsV39"><h3>Teknik ve oyun içi özellikler</h3><dl>{Object.entries(listing.specifications).filter(([key, value]) => key !== "note" && String(value || "").trim()).map(([key, value]) => <div key={key}><dt>{key}</dt><dd>{Array.isArray(value) ? value.join(", ") : String(value)}</dd></div>)}</dl></div>}
+            {typeof listing.specifications.note === "string" && listing.specifications.note && <div className="productSpecificationNoteV39"><strong>Ek teknik not</strong><p>{listing.specifications.note}</p></div>}
             {listing.boxContents && <div className="productBoxContentsV28"><Icon name="box"/><div><strong>Kutu içeriği</strong><p>{listing.boxContents}</p></div></div>}
           </article>
         </section>

@@ -1,11 +1,7 @@
 import Link from "next/link";
-import { gameItemTaxonomies } from "@/components/gameItemTaxonomyData";
+import { gameItemFilterSlug, gameItemTaxonomies } from "@/components/gameItemTaxonomyData";
 
-function slugify(value: string) {
-  return value.toLocaleLowerCase("tr-TR").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-}
-
-export default function GameItemTaxonomy({ game }: { game: string }) {
+export default function GameItemTaxonomy({ game, selected }: { game: string; selected?: string }) {
   const taxonomy = gameItemTaxonomies[game];
   if (!taxonomy) return null;
   return (
@@ -14,7 +10,7 @@ export default function GameItemTaxonomy({ game }: { game: string }) {
       <div className="gameTaxonomyGridV36">
         {taxonomy.sections.map((section) => <article key={section.title}>
           <div><strong>{section.title}</strong><small>{section.description}</small></div>
-          <nav aria-label={`${taxonomy.name} ${section.title}`}>{section.values.map((value) => <Link key={value} href={`/oyun-itemleri/${game}?tur=${slugify(value)}`}>{value}</Link>)}</nav>
+          <nav aria-label={`${taxonomy.name} ${section.title}`}>{section.values.map((value) => <Link className={selected === value ? "active" : ""} aria-current={selected === value ? "page" : undefined} key={value} href={`/oyun-itemleri/${game}/${gameItemFilterSlug(value)}`}>{value}</Link>)}</nav>
         </article>)}
       </div>
     </section>

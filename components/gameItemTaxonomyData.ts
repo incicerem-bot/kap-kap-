@@ -117,3 +117,17 @@ export const gameItemTaxonomies: Record<string, GameTaxonomy> = {
     sections: [{ title: "Resmi dijital ürün", description: "Sürüm ve platform", values: ["Java & Bedrock PC", "Bedrock Edition", "Minecoins", "Realms Kodu", "Xbox", "PlayStation", "Nintendo Switch", "PC / Microsoft Store"] }],
   },
 };
+
+export function gameItemFilterSlug(value: string) {
+  return value.toLocaleLowerCase("tr-TR").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+}
+
+export function findGameItemFilter(game: string, filterSlug: string) {
+  const taxonomy = gameItemTaxonomies[game];
+  if (!taxonomy) return undefined;
+  for (const section of taxonomy.sections) {
+    const value = section.values.find((item) => gameItemFilterSlug(item) === filterSlug);
+    if (value) return { taxonomy, section, value };
+  }
+  return undefined;
+}
