@@ -12,8 +12,8 @@ export default function HomePage() {
   return (
     <MarketplaceShell
       title="KapışKapış"
-      eyebrow="AÇIK ARTIRMA · SABİT FİYAT · OYUN İTEMLERİ"
-      description="Tek hesapla teklif ver, doğrudan satın al veya oyun itemi pazarını keşfet."
+      eyebrow="OYUNLAR · OYUN İTEMLERİ · ÖZEL SERİLER"
+      description="Oyunculara özel oyun, item ve sınırlı seri ürün pazarını keşfet."
       compact
     >
       <Hero onOpenSell={() => router.push("/ilan-olustur")} />
