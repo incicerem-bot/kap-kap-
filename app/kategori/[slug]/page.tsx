@@ -43,7 +43,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
   return (
     <MarketplaceShell eyebrow={brand ? "OYUNCU MARKASI" : "KATEGORİ"} title={category} description={`${category} için doğrulanmış oyuncu ürünlerini ve ilanları keşfet.`}>
       {!brand && <EquipmentTaxonomy category={slug} />}
-      <DiscoveryExperience initialQuery={brand?.label ?? ""} lockedCategory={brand ? undefined : category} categoryTitle={category} />
+      <DiscoveryExperience initialQuery={brand?.label ?? ""} lockedCategory={brand ? undefined : category} categoryTitle={category} taxonomyCategory={brand ? undefined : slug} />
     </MarketplaceShell>
   );
 }
