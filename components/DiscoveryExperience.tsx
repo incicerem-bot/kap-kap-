@@ -32,6 +32,16 @@ function normalize(value: string) {
   return value.toLocaleLowerCase("tr-TR").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/ı/g, "i");
 }
 
+const searchAliases: Record<string, string[]> = {
+  gpu: ["ekran karti", "graphics card"], cpu: ["islemci", "processor"], psu: ["guc kaynagi", "power supply"],
+  aio: ["sivi sogutma", "liquid cooling"], ram: ["bellek", "memory"], kulaklik: ["headset"], klavye: ["keyboard"],
+  mouse: ["fare"], kasa: ["computer case"], anakart: ["motherboard"], logitec: ["logitech"], playstation5: ["ps5"],
+};
+
+function expandedSearchTokens(value: string) {
+  return normalize(value).split(/\s+/).filter(Boolean).flatMap((token) => [token, ...(searchAliases[token] ?? [])].map(normalize));
+}
+
 function money(value: number) {
   return `${value.toLocaleString("tr-TR")} TL`;
 }
@@ -107,12 +117,13 @@ export default function DiscoveryExperience({ initialQuery = "", lockedCategory,
 
   const products = useMemo(() => {
     const normalizedQuery = normalize(query.trim());
+    const queryTokens = expandedSearchTokens(query.trim());
     const min = minPrice ? Number(minPrice) : 0;
     const max = maxPrice ? Number(maxPrice) : Number.POSITIVE_INFINITY;
     let result = marketplaceProducts.filter((product) => {
       const searchable = normalize([product.title, product.category, product.condition, product.seller, product.location, product.description, ...product.specs.flatMap((spec) => [spec.label, spec.value])].join(" "));
       const price = parsePrice(product.price);
-      return (!normalizedQuery || searchable.includes(normalizedQuery))
+      return (!normalizedQuery || searchable.includes(normalizedQuery) || queryTokens.every((token) => searchable.includes(token)))
         && taxonomyFilters.every((filter) => searchable.includes(normalize(filter)))
         && (category === "Tümü" || product.category === category)
         && (saleMode === "all" || (saleMode === "live" ? product.live : !product.live))
