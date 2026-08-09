@@ -54,9 +54,9 @@ type RiskItem = {
 };
 
 const moderationSeed: ModerationItem[] = [
-  { id: "MOD-1048", title: "PlayStation 5 Slim + 2 Kol", seller: "GameArena", reason: "Fiyat ve ürün fotoğrafları uyuşmuyor", reports: 4, price: 22900, category: "Oyun & Konsol", status: "pending", age: "8 dk" },
-  { id: "MOD-1047", title: "iPhone 15 Pro 256 GB", seller: "Mert Teknoloji", reason: "IMEI doğrulama belgesi eksik", reports: 2, price: 48500, category: "Telefon", status: "review", age: "24 dk" },
-  { id: "MOD-1046", title: "Rolex Submariner 2021", seller: "SaatKoleksiyon", reason: "Orijinallik belgesi manuel incelemede", reports: 1, price: 312000, category: "Saat", status: "pending", age: "41 dk" },
+  { id: "MOD-1048", title: "PlayStation 5 Slim + 2 Kol", seller: "GameArena", reason: "Fiyat ve ürün fotoğrafları uyuşmuyor", reports: 4, price: 22900, category: "Konsol", status: "pending", age: "8 dk" },
+  { id: "MOD-1047", title: "CS2 Karambit Doppler", seller: "Skin Station", reason: "Float doğrulama kaydı eksik", reports: 2, price: 85000, category: "CS2 İtemi", status: "review", age: "24 dk" },
+  { id: "MOD-1046", title: "Knight Online Raptor +9", seller: "Knight Pazarı", reason: "Sunucu ve item bilgisi incelemede", reports: 1, price: 75000, category: "Knight Online", status: "pending", age: "41 dk" },
   { id: "MOD-1045", title: "RTX 4090 Gaming OC", seller: "PC Market", reason: "Seri numarası doğrulandı", reports: 1, price: 73900, category: "Bilgisayar", status: "approved", age: "1 sa" },
 ];
 
@@ -68,9 +68,9 @@ const userSeed: UserItem[] = [
 ];
 
 const paymentSeed: PaymentItem[] = [
-  { id: "PAY-5781", order: "KP-2026-8412", product: "MacBook Pro M3", buyer: "Deniz K.", seller: "AppleHub", amount: 68400, status: "held", deadline: "Teslimata 1 gün" },
+  { id: "PAY-5781", order: "KP-2026-8412", product: "240 Hz Gaming Monitör", buyer: "Deniz K.", seller: "Pixel Arena", amount: 13900, status: "held", deadline: "Teslimata 1 gün" },
   { id: "PAY-5780", order: "KP-2026-8411", product: "Steam Deck OLED", buyer: "Kerem A.", seller: "GameArena", amount: 24900, status: "ready", deadline: "Bugün aktarılabilir" },
-  { id: "PAY-5779", order: "KP-2026-8407", product: "iPhone 14 Pro", buyer: "Ece T.", seller: "MobilDükkan", amount: 39250, status: "disputed", deadline: "İnceleme sürüyor" },
+  { id: "PAY-5779", order: "KP-2026-8407", product: "Apex Pro TKL Klavye", buyer: "Ece T.", seller: "Arena Ekipman", amount: 7500, status: "disputed", deadline: "İnceleme sürüyor" },
   { id: "PAY-5778", order: "KP-2026-8402", product: "Sony A7 IV", buyer: "Bora Y.", seller: "FotoPro", amount: 71100, status: "paid", deadline: "18 Temmuz 2026" },
 ];
 

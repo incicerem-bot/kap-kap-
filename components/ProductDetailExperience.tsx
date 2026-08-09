@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
+import { demoProducts, type Product } from "@/components/productData";
+import { sellerSlugForName } from "@/components/sellerData";
 
 type Bid = {
   id: string;
@@ -149,6 +151,61 @@ function normalize(raw: unknown): Listing | null {
   };
 }
 
+function demoListing(product: Product): Listing {
+  const currentPrice = Number(product.price.replace(/[^\d]/g, ""));
+  const minimumBid = Number(product.next.replace(/[^\d]/g, ""));
+  return {
+    id: product.id,
+    slug: product.id,
+    title: product.title,
+    description: product.description,
+    saleType: "auction",
+    category: product.category,
+    subcategory: product.category,
+    condition: product.condition,
+    brand: "",
+    model: "",
+    location: product.location,
+    warrantyStatus: product.verified ? "seller" : "none",
+    boxContents: product.specs.map((spec) => `${spec.label}: ${spec.value}`).join(" · "),
+    shippingMethod: product.shipping,
+    shippingPayer: "buyer",
+    specifications: Object.fromEntries(product.specs.map((spec) => [spec.label, spec.value])),
+    status: "preview",
+    startPrice: currentPrice,
+    currentPrice,
+    minimumBid,
+    minIncrement: product.increment,
+    buyNowPrice: null,
+    stock: 1,
+    reservedStock: 0,
+    availableStock: 1,
+    bidCount: product.bids,
+    watchersCount: product.watchers,
+    startsAt: null,
+    endsAt: null,
+    reserveMet: null,
+    winningBid: null,
+    settlementStatus: "preview",
+    images: [product.image, ...product.gallery],
+    bids: [],
+    seller: {
+      id: `demo-${product.id}`,
+      slug: product.sellerSlug ?? sellerSlugForName(product.seller),
+      name: product.seller,
+      initials: product.sellerInitials,
+      tagline: "KapışKapış oyuncu mağazası",
+      location: product.location,
+      logoPath: null,
+      verified: product.verified,
+      successfulSalesCount: product.sellerSales,
+      responseRate: 98,
+      responseTimeMinutes: 18,
+    },
+    viewer: { signedIn: false, isOwner: false, isWatching: false, myHighestBid: null, isHighestBidder: false, isWinner: false },
+  };
+}
+
 function money(value: number) {
   return new Intl.NumberFormat("tr-TR", { style: "currency", currency: "TRY", maximumFractionDigits: 0 }).format(value);
 }
@@ -201,7 +258,14 @@ export default function ProductDetailExperience({ slug }: { slug: string }) {
       setBidAmount((current) => current || String(next.minimumBid));
       setError("");
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : "İlan yüklenemedi.");
+      const fallback = demoProducts.find((product) => product.id === slug);
+      if (fallback) {
+        setListing(demoListing(fallback));
+        setError("");
+        setNotice("Bu ürün vitrin örneğidir. Gerçek satıcı ilanları yayınlandığında teklif özelliği açılır.");
+      } else {
+        setError(loadError instanceof Error ? loadError.message : "İlan yüklenemedi.");
+      }
     } finally {
       if (!silent) setLoading(false);
     }
@@ -224,7 +288,7 @@ export default function ProductDetailExperience({ slug }: { slug: string }) {
   const countdown = useMemo(() => timeLeft(listing?.endsAt ?? null, now), [listing?.endsAt, now]);
   const imageUrls = useMemo(() => {
     const client = getSupabaseBrowserClient();
-    return listing?.images.map((path) => client?.storage.from("listing-assets").getPublicUrl(path).data.publicUrl ?? "").filter(Boolean) ?? [];
+    return listing?.images.map((path) => /^https?:\/\//.test(path) ? path : client?.storage.from("listing-assets").getPublicUrl(path).data.publicUrl ?? "").filter(Boolean) ?? [];
   }, [listing?.images]);
   const sellerLogo = useMemo(() => {
     if (!listing?.seller.logoPath) return "";
