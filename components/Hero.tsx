@@ -48,8 +48,8 @@ export default function Hero({ onOpenSell }: HeroProps) {
         <img src="/kapiskapis-hero.jpg" alt="" />
         <div className="heroLiveCard">
           <span><i /> CANLI</span>
-          <strong>47.850 TL</strong>
-          <small>41 teklif · 18:42 kaldı</small>
+          <strong>4.500 TL</strong>
+          <small>28 teklif · 18:42 kaldı</small>
         </div>
       </div>
 
