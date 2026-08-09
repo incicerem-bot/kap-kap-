@@ -112,6 +112,11 @@ export default function MarketHubExperience({ mode, selectedGame }: Props) {
           <p>Canlı ve süreli açık artırmalar, şeffaf teklif geçmişi ve Akıllı Teklif Güvencesiyle tek merkezde.</p>
           <div className="marketHubActionsV30"><Link href="/canli">Canlıya katıl</Link><Link href="/ilan-olustur?mode=auction">Açık artırma oluştur</Link></div>
         </section>
+        <section className="auctionFlowV33" aria-label="Açık artırma adımları">
+          <article><b>01</b><div><strong>Ürünü incele</strong><span>İlan detayını, satıcıyı ve teklif artışını kontrol et.</span></div></article>
+          <article><b>02</b><div><strong>Teklifini belirle</strong><span>Bütçene uygun tutarı seç ve teklifini güvenle gönder.</span></div></article>
+          <article><b>03</b><div><strong>Süreyi takip et</strong><span>Canlı akışı izle; kalan süreyi ve lider teklifi kaçırma.</span></div></article>
+        </section>
         <div className="marketHubLinkGridV30">
           {auctionLinks.map(([href, title, text, badge]) => <Link href={href} key={href}><span>{badge}</span><h2>{title}</h2><p>{text}</p><b>→</b></Link>)}
         </div>
